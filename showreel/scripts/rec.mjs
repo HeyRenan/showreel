@@ -195,7 +195,7 @@ async function main() {
     for (let i = 0; i < steps.length; i++) {
       const st = steps[i];
       const sels = [];
-      for (const k of ['click', 'scrollTo', 'blur', 'hide']) if (typeof st[k] === 'string') sels.push([k, st[k]]);
+      for (const k of ['click', 'scrollTo', 'blur', 'hide', 'redact', 'highlight']) if (typeof st[k] === 'string') sels.push([k, st[k]]);
       if (typeof st.zoom === 'string' && st.zoom !== 'out') sels.push(['zoom', st.zoom]);
       const fl = fillSpec(st);
       if (fl && fl.sel) sels.push(['fill', fl.sel]);
@@ -388,7 +388,7 @@ async function recordTake(browser, a, block) {
   // faded out + removed on the next step. blur persists on the element itself.
   // annotation engine (showAnnotations/clearAnnotations/applyBlur/applyHide)
   // lives in rec-annotate.mjs as a factory over rctx (stage 5a).
-  const { showAnnotations, clearAnnotations, applyBlur, applyHide } = makeAnnotator(rctx);
+  const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, applyHighlight } = makeAnnotator(rctx);
   // the camera (ensureCam/camTo/camFrame/initialFit/panToInclude/camOut) lives
   // in rec-camera.mjs as a factory over rctx (stage 5c) — the load-bearing
   // piece. camFrame returns the element's final on-screen point (aim) which
@@ -483,6 +483,8 @@ async function recordTake(browser, a, block) {
       }
     } else if (step.scrollTo) await smoothScroll(step.scrollTo);
     if (step.blur) await applyBlur(step.blur);
+    if (step.redact) await applyRedact(step.redact, step.accent || accent || null);
+    if (step.highlight) await applyHighlight(step.highlight, step.accent ? null : null);
     if (step.hide) {
       await applyHide(step.hide);
       if (!executedHides.includes(step.hide)) executedHides.push(step.hide);

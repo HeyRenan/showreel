@@ -55,7 +55,7 @@ export function parse(argv) {
   return a;
 }
 
-export const STEP_KEYS = new Set(['click', 'scrollTo', 'wait', 'note', 'arrow', 'badge', 'rect', 'circle', 'blur', 'hide', 'modal', 'glide', 'marks', 'screen', 'zoom', 'topbar', 'bottombar', 'fill', 'text', 'delay', 'select', 'option', 'camera', 'glossary', 'stagger', 'accent', 'inset', 'follow', 'fade', 'speed', 'spotlight']);
+export const STEP_KEYS = new Set(['click', 'scrollTo', 'wait', 'note', 'arrow', 'badge', 'rect', 'circle', 'blur', 'hide', 'modal', 'glide', 'marks', 'screen', 'zoom', 'topbar', 'bottombar', 'fill', 'text', 'delay', 'select', 'option', 'camera', 'glossary', 'stagger', 'accent', 'inset', 'follow', 'fade', 'speed', 'spotlight', 'redact', 'highlight']);
 
 export const GLOSSARY_POS = new Set(['auto', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
 export const MARK_KEYS = new Set(['sel', 'badge', 'rect', 'circle', 'text']);
@@ -180,7 +180,15 @@ export function modalLayout(modal, box, vp) {
     } else pos = 'center';
   }
   const backdrop = m.backdrop != null ? m.backdrop : pos === 'center';
-  return { pos, backdrop, title: m.title, text: m.text };
+  // header/html/footer = the rich card form; title/text = the plain form.
+  // header falls back to title, content to text, so old scripts still work.
+  return {
+    pos, backdrop,
+    title: m.header || m.title,
+    text: m.text,
+    html: m.html || null,
+    footer: m.footer || null,
+  };
 }
 
 export function screenPhase(step) {

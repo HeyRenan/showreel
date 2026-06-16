@@ -5,7 +5,8 @@
 // playwright browser_evaluate has no args channel at all (verified).
 //
 // Payload: { imageB64:"data:image/png;base64,...", scale?:1, annotations:[...] }
-// annotation types: rect|arrow|label|badge|callout  (see README)
+// annotation types: rect|arrow|label|badge|callout|circle|blur|zoom|highlight|
+//   redact|bracket|connector  (see README)
 // Returns: data:image/png;base64 dataURL of the annotated image.
 
 function ANNOTATE(payload) {
@@ -153,6 +154,59 @@ function ANNOTATE(payload) {
             ctx.strokeStyle = a.color || '#16a34a'; ctx.lineWidth = a.width || 4;
             ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 3;
             ctx.beginPath(); ctx.ellipse(a.x, a.y, crx, cry, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+          } else if (a.type === 'bracket') {
+            // dimension bracket: a square-cornered measure line along one edge of
+            // a region, with end ticks, and a centered label of the measurement.
+            // a.side = 'bottom'|'top'|'left'|'right' (default 'bottom').
+            var bside = a.side || 'bottom';
+            var tick = a.tick == null ? 10 : a.tick;
+            var bcol = neu(a.color, NEU.line);
+            ctx.save();
+            ctx.strokeStyle = bcol; ctx.lineWidth = a.width || 3; ctx.lineCap = 'round';
+            ctx.shadowColor = 'rgba(0,0,0,.3)'; ctx.shadowBlur = 3;
+            var off = a.gap == null ? 14 : a.gap;
+            var bx1, by1, bx2, by2, lx, ly;
+            if (bside === 'bottom' || bside === 'top') {
+              var yy = bside === 'bottom' ? a.y + a.h + off : a.y - off;
+              bx1 = a.x; bx2 = a.x + a.w; by1 = by2 = yy;
+              ctx.beginPath(); ctx.moveTo(bx1, yy); ctx.lineTo(bx2, yy);
+              ctx.moveTo(bx1, yy - tick); ctx.lineTo(bx1, yy + tick);
+              ctx.moveTo(bx2, yy - tick); ctx.lineTo(bx2, yy + tick); ctx.stroke();
+              lx = (bx1 + bx2) / 2; ly = bside === 'bottom' ? yy + 8 : yy - 8 - (a.size || 16);
+            } else {
+              var xx = bside === 'right' ? a.x + a.w + off : a.x - off;
+              by1 = a.y; by2 = a.y + a.h;
+              ctx.beginPath(); ctx.moveTo(xx, by1); ctx.lineTo(xx, by2);
+              ctx.moveTo(xx - tick, by1); ctx.lineTo(xx + tick, by1);
+              ctx.moveTo(xx - tick, by2); ctx.lineTo(xx + tick, by2); ctx.stroke();
+              lx = bside === 'right' ? xx + 10 : xx - 10; ly = (by1 + by2) / 2;
+            }
+            ctx.restore();
+            if (a.label) pill(lx - (a.label.length * (a.size || 16) * 0.3), ly, a.label, neu(a.labelColor, NEU.fg), neu(a.bg, NEU.bg), a.size || 16, 8, 5);
+          } else if (a.type === 'connector') {
+            // ordered-flow line between two points (badge centers), with an
+            // arrowhead at the destination — turns scattered badges into a path.
+            arrow(a.x1, a.y1, a.x2, a.y2, neu(a.color, NEU.line, '#09f'), a.width || 3);
+          } else if (a.type === 'highlight') {
+            // translucent marker swipe over a region, like a text highlighter.
+            // Multiply-ish: a low-alpha warm fill so the underlying text stays
+            // readable through it. Default amber; any css color via a.color.
+            ctx.save();
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.fillStyle = a.color || 'rgba(250,204,21,0.55)';
+            var hpad = a.pad == null ? 2 : a.pad;
+            roundRect(a.x - hpad, a.y - hpad, a.w + hpad * 2, a.h + hpad * 2, a.radius == null ? 3 : a.radius);
+            ctx.fill();
+            ctx.restore();
+          } else if (a.type === 'redact') {
+            // solid opaque bar over sensitive data — stronger than blur (which
+            // can still be guessed at). Rounded black box, like a censored doc.
+            ctx.save();
+            ctx.fillStyle = a.color || 'rgba(15,23,42,1)';
+            ctx.shadowColor = 'rgba(0,0,0,.3)'; ctx.shadowBlur = 2;
+            roundRect(a.x, a.y, a.w, a.h, a.radius == null ? 3 : a.radius);
+            ctx.fill();
             ctx.restore();
           } else if (a.type === 'blur') {
             // pixelate a region: downscale that area into a tiny offscreen canvas

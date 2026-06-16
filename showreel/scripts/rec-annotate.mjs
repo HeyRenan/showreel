@@ -153,13 +153,31 @@ export function makeAnnotator(rctx) {
         return f;
       };
       if (modal) {
-        if (modal.backdrop) add('left:0;top:0;width:100%;height:100%;background:rgba(12,27,45,.45)', null, 1);
-        const cardHtml =
-          (modal.title ? '<div style="color:' + T.modalTitle + ';font:700 24px system-ui;margin-bottom:10px">' + String(modal.title).replace(/[<>&]/g, '') + '</div>' : '') +
-          '<div style="color:' + T.modalText + ';font:400 18px/1.55 system-ui">' + String(modal.text || '').replace(/[<>&]/g, '') + '</div>';
-        const cardCss = (max) => 'max-width:' + max + 'px;width:calc(100% - 80px);' +
-          'background:' + T.modalBg + ';border:1px solid ' + GREEN + ';border-radius:14px;padding:24px 28px;' +
-          'box-shadow:0 12px 40px rgba(0,0,0,.5)';
+        if (modal.backdrop) add('left:0;top:0;width:100%;height:100%;background:rgba(8,15,30,.5);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)', null, 1);
+        // sanitize HTML content to a safe inline subset (layout tags only).
+        const safeHtml = (h) => String(h).replace(/<(?!\/?(p|b|i|em|strong|code|ul|ol|li|br|span)\b)[^>]*>/gi, '');
+        const isDark = theme !== 'light';
+        const glassBg = isDark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.80)';
+        const ink = isDark ? '#f8fafc' : '#0f172a';
+        const muted = isDark ? 'rgba(248,250,252,0.62)' : 'rgba(15,23,42,0.58)';
+        const hairline = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.10)';
+        const header = modal.title
+          ? '<div style="display:flex;align-items:center;gap:9px;padding:14px 20px;border-bottom:1px solid ' + hairline + '">'
+            + '<span style="width:9px;height:9px;border-radius:50%;background:' + GREEN + ';box-shadow:0 0 8px ' + GREEN + '"></span>'
+            + '<span style="color:' + ink + ';font:700 19px/1.2 system-ui;letter-spacing:-.01em">' + String(modal.title).replace(/[<>&]/g, '') + '</span></div>'
+          : '';
+        const body = (modal.html || modal.text)
+          ? '<div style="padding:16px 20px;color:' + ink + ';font:400 16px/1.55 system-ui">'
+            + (modal.html ? safeHtml(modal.html) : String(modal.text || '').replace(/[<>&]/g, '')) + '</div>'
+          : '';
+        const footer = modal.footer
+          ? '<div style="padding:11px 20px;border-top:1px solid ' + hairline + ';color:' + muted + ';font:500 13px system-ui">' + String(modal.footer).replace(/[<>&]/g, '') + '</div>'
+          : '';
+        const cardHtml = header + body + footer;
+        const cardCss = (max) => 'max-width:' + max + 'px;width:calc(100% - 80px);overflow:hidden;'
+          + 'background:' + glassBg + ';backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);'
+          + 'border:1px solid ' + hairline + ';border-left:2px solid ' + GREEN + ';border-radius:16px;'
+          + 'box-shadow:0 12px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.16)';
         if (modal.pos === 'center' || !box) {
           add('left:50%;top:50%;transform:translate(-50%,-50%);' + cardCss(540), cardHtml, 6);
         } else {
@@ -524,6 +542,57 @@ export function makeAnnotator(rctx) {
       });
     }, sel);
   };
+  // Solid opaque bar over sensitive data — stronger than blur. An overlay div
+  // sized to the element's box so the original text never renders through it.
+  const applyRedact = async (sel, color) => {
+    await safeEval((s, col) => {
+      document.querySelectorAll(s).forEach((el, i) => {
+        if (el.dataset.srRedacted) return;
+        el.dataset.srRedacted = '1';
+        const r = el.getBoundingClientRect();
+        // z BELOW the annotation wrap (2147483640) — redact is masked page
+        // content, notes/modals must sit on top of it.
+        const bar = document.createElement('div');
+        bar.style.cssText = 'position:fixed;z-index:2147483600;border-radius:3px;pointer-events:none;overflow:hidden;'
+          + 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;';
+        const fill = document.createElement('div');
+        // motion: the bar WIPES in from the left (scaleX 0->1, ease-out) — a
+        // censor swipe, not a flat fade. Staggered per element for rhythm.
+        fill.style.cssText = 'width:100%;height:100%;border-radius:3px;'
+          + 'background:' + (col || 'rgba(15,23,42,1)') + ';box-shadow:0 1px 3px rgba(0,0,0,.3);'
+          + 'transform:scaleX(0);transform-origin:left center;'
+          + 'transition:transform .42s cubic-bezier(.22,1,.36,1);';
+        bar.appendChild(fill);
+        document.body.appendChild(bar);
+        setTimeout(() => { fill.style.transform = 'scaleX(1)'; }, i * 90);
+      });
+    }, sel, color || '');
+  };
+  // Translucent highlighter that SWIPES across the region like a marker pen —
+  // a multiply-blended band growing left→right with a slight tilt, readable
+  // through. Motion is the point: it draws on, it doesn't just appear.
+  const applyHighlight = async (sel, color) => {
+    await safeEval((s, col) => {
+      document.querySelectorAll(s).forEach((el) => {
+        if (el.dataset.srHighlit) return;
+        el.dataset.srHighlit = '1';
+        const r = el.getBoundingClientRect();
+        const pad = 4;
+        const band = document.createElement('div');
+        band.style.cssText = 'position:fixed;z-index:2147483600;pointer-events:none;border-radius:4px;overflow:hidden;'
+          + 'left:' + (r.left - pad) + 'px;top:' + (r.top - pad) + 'px;'
+          + 'width:' + (r.width + pad * 2) + 'px;height:' + (r.height + pad * 2) + 'px;';
+        const ink = document.createElement('div');
+        ink.style.cssText = 'width:100%;height:100%;mix-blend-mode:multiply;border-radius:4px;'
+          + 'background:' + (col || 'rgba(250,204,21,0.55)') + ';'
+          + 'transform:scaleX(0);transform-origin:left center;'
+          + 'transition:transform .5s cubic-bezier(.22,1,.36,1);';
+        band.appendChild(ink);
+        document.body.appendChild(band);
+        requestAnimationFrame(() => { ink.style.transform = 'scaleX(1)'; });
+      });
+    }, sel, color || '');
+  };
 
-  return { showAnnotations, clearAnnotations, applyBlur, applyHide };
+  return { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, applyHighlight };
 }
