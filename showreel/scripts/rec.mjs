@@ -1,0 +1,710 @@
+#!/usr/bin/env node
+// rec.mjs — record a flow as a GIF with a moving cursor, click ripples, and
+// PER-STEP annotations anchored to selectors (appear with the action, gone next
+// step). No MCP, no hand-written Playwright. The AI passes a steps roster; the
+// script owns cursor motion, timing, annotation placement, and webm->gif.
+//
+//   node rec.mjs <url> --steps steps.json out.gif \
+//     [--steps-json '[...]'] [--stamp] [--width 900] [--height 1400] \
+//     [--gif-width 460] [--fps 18] [--mp4 out.mp4] [--keep-webm out.webm] \
+//     [--offline] [--auto-annotate] [--block-hosts [csv]]  |  node rec.mjs [url] --batch takes.json
+//   --auto-annotate = a bare click/fill/select step gets a rect outline on the
+//   target plus a note with the element's visible label, for free — author
+//   writes {click:"#deploy"} and the viewer sees "Deploy to production" boxed
+//   without declaring it. An author-declared rect/note/circle/badge/modal wins.
+//   --offline = render on the page's VIRTUAL clock instead of recording in
+//   real time: the clock pauses, hot spans advance frame by frame (one
+//   screenshot per frame), static dwells collapse to a single advance, and
+//   ffmpeg assembles the stills via the concat demuxer. Scene time decouples
+//   from wall time — long reading holds become nearly free. Side effect: the
+//   page's own Date/performance clock runs virtual (visible wall clocks on
+//   the target page freeze between frames). fps defaults to 15 offline.
+//   No webm exists in this mode, so --keep-webm is unavailable.
+//   --steps-json = inline steps (no temp file). --stamp = "n / total" step
+//   counter pill in the top letterbox strip.
+//   --mp4 = also export H.264 (same trim + letterbox graph, full capture res).
+//   --keep-webm = keep the raw webm + write '<out>.timeline.json' sidecar
+//   ({trimSec, width, height, fps, steps:[{i,t0,t1,label}]}, t0/t1 relative
+//   to the trimmed start) for compose-video.mjs --sync-trim.
+//   --block-hosts [csv] = abort requests to hosts that are neither the page's
+//   own host nor on the optional comma list; unique blocked hosts print once.
+//   --batch takes.json = [{steps, out, url?, gifWidth?, fps?, stamp?, mp4?,
+//   keepWebm?}] — one chromium, one context per take, pool of 3; CLI
+//   url/width/height act as defaults.
+//
+// steps.json: array of { click?, scrollTo?, wait?, note?, arrow?, badge?,
+//                        rect?, circle?, blur?, hide?, modal? }
+//   click/scrollTo = CSS selector (the step's anchor element).
+//   note  = text pill near the anchor.       arrow = true, links note -> anchor.
+//   badge = number on the anchor's corner.   rect/circle = true, green marker.
+//   blur  = CSS selector; that element stays blurred for the rest of the take.
+//   hide  = CSS selector; removed from view for the take (cookie bars, chat
+//           widgets — page noise that pollutes the recording).
+//   glide = true: the cursor walks to the anchor (landing just OUTSIDE its
+//           box) BEFORE the step's annotations fade in — eyes follow the
+//           pointer to the thing being explained. click steps glide anyway.
+//   marks = [{sel, badge?, rect?, circle?}]: SECONDARY targets inside the
+//           step — e.g. badge the section as 1 and its inner elements as
+//           1.1 / 1.2. Each mark anchors to its own selector; long badge
+//           text renders as a pill.
+//   screen = "Home": persistent context pill naming the current screen. Lives
+//           in the top letterbox strip (composited at gif time — it can never
+//           cover the page). On a click step it updates AFTER the navigation.
+//   topbar/bottombar = "text": persistent letterbox strips. The gif canvas is
+//           padded +44px per used lane and the strips render there, OUTSIDE
+//           the page — bar text left, screen/stamp pills right. false removes
+//           the bar.
+//   modal = "text" or {title, text, position?, backdrop?}: descriptive card.
+//           No anchor in the step -> centered over a dimmed backdrop (narration).
+//           With an anchor (click/scrollTo) -> no backdrop, placed in the corner
+//           with the least page text under it (the corner farthest from the
+//           element gets first refusal; explicit position: top-left|top-right|
+//           bottom-left|bottom-right|center always wins) and tied to the
+//           element by a 2px leader line.
+//   zoom = ".sel": the camera frames that element (smooth zoom+pan, persists
+//          across steps). "out": camera resets. true (click steps only):
+//          zooms toward the click target before the cursor glides.
+//   fill = "input#iemail" + text:"dana@co.com" (+ delay: ms/char, default 45):
+//          cursor glides to the input, click-focus with ripple, types char by
+//          char with real input events. Object form {sel, value, delay?} works.
+//   select = "select#region" + option:"São Paulo" (or {sel, value}): native
+//          dropdowns don't render in headless screencast, so a theme-aware
+//          fake panel lists the select's REAL option labels, the cursor picks
+//          the row, the real select.value is set (input+change dispatched).
+//   camera = ".sel" (+ zoom: number, 1<zoom<=3) or {sel, zoom?}: explicit-scale
+//          framing; translate is clamped so the window never leaves the page
+//          canvas. "out" resets. Numeric zoom is ONLY valid alongside camera.
+// note/arrow/badge/rect/circle/modal FADE in with the step and FADE out on the
+// next one; blur persists; scrolling is smooth. The take ends with an injected
+// END card so the looping gif has a clear stop. Prints `OK <gif> (<MB>)`.
+
+import { readFileSync, mkdtempSync, writeFileSync, copyFileSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { makeClock, buildConcatList } from './clock.mjs';
+import { num } from './cli-args.mjs';
+import { convertOutputs } from './rec-encode.mjs';
+import { cursorSnippet, endCardSnippet, detectPageLook, loadChromium, OFFLINE_ARGS } from './rec-page.mjs';
+import { makeAnnotator } from './rec-annotate.mjs';
+import { makeMotion } from './rec-motion.mjs';
+import { makeInput } from './rec-input.mjs';
+import { makeCamera } from './rec-camera.mjs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { readFileSync as rf } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+// Parse JSON with a scoped error: a steps/batch file with a typo (trailing
+// comma) otherwise throws a bare V8 SyntaxError with no clue which file failed.
+function parseJsonOrDie(text, src) {
+  try { return JSON.parse(text); }
+  catch (e) { console.error(`rec: invalid JSON in ${src}: ${e.message}`); process.exit(2); }
+}
+
+// Pure step/arg helpers live in rec-steps.mjs (extracted for readability +
+// isolation). Re-exported so existing importers of rec.mjs keep working.
+import {
+  looksLikeHostCsv, parse, dwellMs, applyOfflineDefaults, hotHeadFor, fillSpec,
+  selectSpec, autoAnnotateStep, camTransitionPlan, clampRelease, cameraSpec,
+  modalLayout, screenPhase, stepLabel, padToRatio, deriveCaptureHeight,
+  resolveCaptureHeight, validateSteps, validateBatch,
+  STEP_KEYS, GLOSSARY_POS, MARK_KEYS, TAKE_KEYS, END_CARD_MODES, THEMES,
+} from "./rec-steps.mjs";
+export * from "./rec-steps.mjs";
+
+// camera = a CSS transform on <body>; every recorder overlay rides on <html>
+// so its position:fixed stays in true viewport space while the page moves.
+const camSnippet = rf(join(HERE, 'cam-inject.js'), 'utf8');
+
+async function main() {
+  const a = applyOfflineDefaults(parse(process.argv.slice(2)));
+  // --block-hosts [csv]: requests to hosts that are neither the page's own
+  // host nor on the optional allow list are aborted at the context — file://
+  // pages treat every http(s) host as foreign. Unique blocked hosts surface
+  // once on stderr at the end of the run.
+  const block = a.blockHosts ? { allow: new Set(a.blockHosts), blocked: new Set() } : null;
+  const reportBlocked = () => {
+    if (block && block.blocked.size)
+      console.error('rec: blocked ' + block.blocked.size + ' hosts: ' + [...block.blocked].sort().join(', '));
+  };
+
+  // --batch takes.json: ONE chromium, one context per take (recordVideo is
+  // per-context), a 3-wide pool, conversion as each take finishes.
+  if (a.batch) {
+    const vb = validateBatch(parseJsonOrDie(readFileSync(a.batch, 'utf8'), a.batch), {
+      url: a.url, width: a.width, height: a.height,
+      gifWidth: a.gifWidth, fps: a.fps, stamp: a.stamp, pace: a.pace,
+    });
+    if (!vb.ok) {
+      vb.errors.forEach((e) => console.error('rec: ' + e));
+      process.exit(2);
+    }
+    const chromium = await loadChromium();
+    const browser = await chromium.launch(a.offline ? { args: OFFLINE_ARGS } : undefined);
+    let next = 0, done = 0;
+    const worker = async () => {
+      while (next < vb.takes.length) {
+        const t = vb.takes[next++];
+        t.offline = a.offline;
+        const art = await recordTake(browser, t, block);
+        const sizeMB = await convertOutputs(t, art);
+        console.log(`OK ${t.out} (${sizeMB}MB)`);
+        done++;
+      }
+    };
+    try {
+      await Promise.all(Array.from({ length: Math.min(3, vb.takes.length) }, worker));
+    } finally {
+      await browser.close();
+    }
+    reportBlocked();
+    console.log(`BATCH ${done}/${vb.takes.length} OK`);
+    return;
+  }
+
+  if (!a.url || (!a.steps && !a.stepsJson) || !a.out) {
+    console.error('usage: rec.mjs <url> --steps steps.json out.gif  |  --steps-json \'[...]\'  |  --batch takes.json');
+    process.exit(2);
+  }
+  const steps = a.stepsJson
+    ? parseJsonOrDie(a.stepsJson, '--steps-json')
+    : parseJsonOrDie(readFileSync(a.steps, 'utf8'), a.steps);
+  const v = validateSteps(steps);
+  if (!v.ok) {
+    v.errors.forEach((e) => console.error('rec: ' + e));
+    process.exit(2);
+  }
+  {
+    const rh = resolveCaptureHeight(a.width, a.height, a.ratio, steps, a.stamp);
+    if (rh.warn) console.error(rh.warn);
+    a.height = rh.height;
+  }
+  const chromium = await loadChromium();
+
+  // --dry: resolve every selector against the live page and report, no video,
+  // no waits — the cheap authoring loop before the one real take.
+  if (a.dry) {
+    const browser = await chromium.launch();
+    const pg = await (await browser.newContext({ viewport: { width: a.width, height: a.height } })).newPage();
+    await pg.goto(a.url, { waitUntil: 'domcontentloaded' });
+    let missing = 0;
+    let resolved = 0;
+    for (let i = 0; i < steps.length; i++) {
+      const st = steps[i];
+      const sels = [];
+      for (const k of ['click', 'scrollTo', 'blur', 'hide']) if (typeof st[k] === 'string') sels.push([k, st[k]]);
+      if (typeof st.zoom === 'string' && st.zoom !== 'out') sels.push(['zoom', st.zoom]);
+      const fl = fillSpec(st);
+      if (fl && fl.sel) sels.push(['fill', fl.sel]);
+      const sp = selectSpec(st);
+      if (sp && sp.sel) sels.push(['select', sp.sel]);
+      const cm = cameraSpec(st);
+      if (cm && !cm.out && cm.sel) sels.push(['camera', cm.sel]);
+      for (const mk of st.marks || []) if (mk.sel) sels.push(['mark', mk.sel]);
+      for (const [kind, sel] of sels) {
+        const hit = await pg.evaluate((q) => {
+          const el = document.querySelector(q);
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return Math.round(r.width) + 'x' + Math.round(r.height);
+        }, sel);
+        // misses are the signal — resolving selectors print only as a count.
+        if (hit) resolved++;
+        else { console.log(`  [MISS] step ${i + 1} ${kind} ${sel}`); missing++; }
+      }
+    }
+    await browser.close();
+    console.log(missing
+      ? `DRY FAIL — ${missing} selector(s) missing, ${resolved} resolve`
+      : `DRY PASS — ${resolved} selectors resolve`);
+    process.exit(missing ? 1 : 0);
+  }
+
+  const mp4Only = /\.mp4$/i.test(String(a.out || ''));
+  const t = {
+    url: a.url, out: a.out, width: a.width, height: a.height,
+    gifWidth: a.gifWidth, fps: a.fps, stamp: a.stamp, pace: a.pace,
+    theme: a.theme, accent: a.accent, ratio: a.ratio, endCard: a.endCard ?? 'none',
+    gif: !mp4Only, mp4: mp4Only ? a.out : a.mp4, keepWebm: a.keepWebm, sheet: a.sheet, steps,
+    offline: a.offline, autoAnnotate: a.autoAnnotate,
+  };
+  const browser = await chromium.launch(a.offline ? { args: OFFLINE_ARGS } : undefined);
+  let art;
+  try {
+    art = await recordTake(browser, t, block);
+  } finally {
+    await browser.close();
+  }
+  const sizeMB = await convertOutputs(t, art);
+  reportBlocked();
+  console.log(`OK ${t.out} (${sizeMB}MB)`);
+}
+
+// One take = one browser context (recordVideo rides the context). The param
+// keeps the historical name `a` so the recording runtime below reads as the
+// single-take code it grew from.
+async function recordTake(browser, a, block) {
+  const steps = a.steps;
+  const offline = !!a.offline;
+  const vidDir = mkdtempSync(join(tmpdir(), 'showreel-rec-'));
+  // offline renders stills on the virtual clock — recordVideo would tape a
+  // paused page in wall time, pure waste.
+  const ctx = await browser.newContext({
+    viewport: { width: a.width, height: a.height },
+    ...(offline ? {} : { recordVideo: { dir: vidDir, size: { width: a.width, height: a.height } } }),
+  });
+  if (block) {
+    let pageHost = '';
+    try { pageHost = new URL(a.url).host; } catch { /* bare path */ }
+    await ctx.route('**/*', (route) => {
+      let h = '';
+      try { h = new URL(route.request().url()).host; } catch { /* opaque scheme */ }
+      if (!h || h === pageHost || block.allow.has(h)) return route.continue();
+      block.blocked.add(h);
+      return route.abort();
+    });
+  }
+  // The scrollbar is browser chrome, not page content — on video it reads as
+  // a stray gray bar hugging the edge, flashing on every programmatic scroll.
+  // Strip it from every document this context loads (init script survives
+  // in-take navigations).
+  await ctx.addInitScript(() => {
+    const drop = () => {
+      const st = document.createElement('style');
+      st.textContent = '::-webkit-scrollbar{display:none!important}html{scrollbar-width:none!important}';
+      document.documentElement.appendChild(st);
+    };
+    if (document.documentElement) drop();
+    else addEventListener('DOMContentLoaded', drop);
+  });
+  const page = await ctx.newPage();
+  // recordVideo runs from page open — every chrome timestamp anchors here.
+  const recStart = Date.now();
+  await page.goto(a.url, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(cursorSnippet());
+  await page.evaluate(camSnippet);
+  // Palette: auto-detected from rendered pixels, forceable per take; accent
+  // recolors every marker (rect/circle/badge/leader/glossary) — beauty is the
+  // default, the caller is the authority.
+  const look = await detectPageLook(page);
+  const pageTheme = (a.theme === 'light' || a.theme === 'dark') ? a.theme : look.theme;
+  const pageBg = look.bg;
+  const accent = a.accent || null;
+  // --pace fast trims every scripted hold/fade ~45% for quick iteration takes;
+  // user-authored step.wait values are never scaled.
+  const PACE = a.pace === 'fast' ? 0.55 : 1;
+  const ms = (n) => Math.round(n * PACE);
+
+  // ---- the take's clock --------------------------------------------------
+  // One object owns time (see clock.mjs). Realtime: wall passthrough anchored
+  // at recStart. Offline: the page clock pauses HERE — after the load and the
+  // pixel-truth palette read ran in real time — and from this point time only
+  // passes when the clock pumps it, one captured frame per hot step.
+  let cdp = null;
+  let frameN = 0;
+  const frameWrites = [];
+  const epochBase = Date.now() / 1000;
+  if (offline) {
+    cdp = await ctx.newCDPSession(page);
+    await cdp.send('Emulation.setVirtualTimePolicy', {
+      policy: 'pause',
+      initialVirtualTime: epochBase,
+    });
+  }
+  const io = {
+    wait: (n) => page.waitForTimeout(n),
+    // budget expiry is async — never screenshot before it lands, or the
+    // capture reads the PREVIOUS frame's surface. Starvation cap + a wall
+    // watchdog turn a timer-storm page into a named error, not a hang.
+    advance: (budget) => new Promise((resolve, reject) => {
+      const dog = setTimeout(() => {
+        cdp.off('Emulation.virtualTimeBudgetExpired', on);
+        reject(new Error('rec: virtual time stalled — the page starves every budget (timer loop at one instant?)'));
+      }, 20000);
+      const on = () => {
+        clearTimeout(dog);
+        cdp.off('Emulation.virtualTimeBudgetExpired', on);
+        resolve();
+      };
+      cdp.on('Emulation.virtualTimeBudgetExpired', on);
+      cdp.send('Emulation.setVirtualTimePolicy', {
+        policy: 'advance', budget, maxVirtualTimeTaskStarvationCount: 5000,
+      }).catch((e) => { clearTimeout(dog); cdp.off('Emulation.virtualTimeBudgetExpired', on); reject(e); });
+    }),
+    // jpeg q95: q85's ringing around UI text dirties the gif palette; 95 is
+    // visually clean and still a fraction of a png's encode+disk cost.
+    capture: async () => {
+      try {
+        const r = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 95, optimizeForSpeed: true, fromSurface: true });
+        const f = join(vidDir, 'f' + String(frameN++).padStart(6, '0') + '.jpg');
+        frameWrites.push(writeFile(f, Buffer.from(r.data, 'base64')));
+        return f;
+      } catch { return null; /* mid-navigation surface — extend the last frame */ }
+    },
+    // a navigation swaps the renderer and drops the virtual-time policy: the
+    // new document boots on the wall clock. Let the load finish in REAL time
+    // (network never ran virtual anyway), then re-arm with the continuation
+    // epoch so the page's Date never jumps backwards.
+    navSettle: async (vtMs) => {
+      try { await page.waitForLoadState('domcontentloaded'); } catch { /* racing */ }
+      try { await page.waitForLoadState('networkidle', { timeout: 3000 }); } catch { /* slow assets keep loading */ }
+      await cdp.send('Emulation.setVirtualTimePolicy', {
+        policy: 'pause',
+        initialVirtualTime: epochBase + vtMs / 1000,
+      });
+    },
+  };
+  const clock = makeClock({ offline, fps: a.fps, io, wallStart: recStart });
+  if (offline) page.on('framenavigated', (f) => { if (f === page.mainFrame()) clock.markNav(); });
+
+  const canvasSrc = rf(join(HERE, 'annotate-canvas.js'), 'utf8');
+
+  const safeEval = async (fn, arg) => {
+    for (let i = 0; ; i++) {
+      try { return await page.evaluate(fn, arg); }
+      catch (e) {
+        if (i >= 2 || !/context was destroyed|navigat/i.test(String(e))) throw e;
+        await clock.wait(ms(600), true);
+      }
+    }
+  };
+
+  // Shared context handed to the extracted helper factories (stage 5). Holds
+  // the read-only deps every cluster needs; the recording loop keeps its own
+  // mutable scalars (stepIndex/followOn/placeWarns) since they never leave it.
+  // (named rctx — `ctx` is already the Playwright BrowserContext above.)
+  const rctx = { page, clock, a, ms, PACE, safeEval, vidDir, offline, pageTheme, pageBg, accent, canvasSrc };
+
+  // cursor + scroll motion lives in rec-motion.mjs as a factory over rctx
+  // (stage 5b). camBez is internal to it; the camera→cursor handoff is the
+  // object camFrame returns (aim), not shared state.
+  const motion = makeMotion(rctx);
+  const { glide, glideChase, scrollDeltaFor, smoothScroll, boxOf, ensureCursor, ripple } = motion;
+
+  // transient DOM overlays for one step (note/arrow/badge/rect/circle/modal),
+  // faded out + removed on the next step. blur persists on the element itself.
+  // annotation engine (showAnnotations/clearAnnotations/applyBlur/applyHide)
+  // lives in rec-annotate.mjs as a factory over rctx (stage 5a).
+  const { showAnnotations, clearAnnotations, applyBlur, applyHide } = makeAnnotator(rctx);
+  // the camera (ensureCam/camTo/camFrame/initialFit/panToInclude/camOut) lives
+  // in rec-camera.mjs as a factory over rctx (stage 5c) — the load-bearing
+  // piece. camFrame returns the element's final on-screen point (aim) which
+  // glideChase rides; the handoff is the return value, not shared state.
+  const { ensureCam, camTo, camFrame, initialFit, panToInclude, camOut } = makeCamera(rctx);
+
+  // form interactions (doFill/doSelect) live in rec-input.mjs as a factory
+  // over rctx + the motion helpers (stage 5d).
+  const { doFill, doSelect } = makeInput(rctx, motion);
+
+  // Letterbox chrome (topbar/bottombar/screen pill/stamp) never touches the
+  // page: the loop only records a timeline of {lane, slot, text, tStart, tEnd}
+  // as clock seconds from recording start. webm->gif pads the canvas
+  // (+44px per used lane) and composites the strips THERE — page content can
+  // never be covered. Timestamps shift by the head-trim at conversion time.
+  // Host-side bookkeeping is also navigation-proof: no DOM to restore.
+  const chrome = [];
+  const chromeOpen = {};
+  const chromeSet = (lane, slot, text) => {
+    const t = clock.now();
+    const k = lane + ':' + slot;
+    const cur = chromeOpen[k];
+    if (cur && text !== false && cur.text === String(text)) return;
+    if (cur) { cur.tEnd = t; delete chromeOpen[k]; }
+    if (text === false || text == null || text === '') return;
+    const ev = { lane, slot, text: String(text), tStart: t, tEnd: null };
+    chrome.push(ev);
+    chromeOpen[k] = ev;
+  };
+
+  let stepIndex = 0;
+  let followOn = 0;
+  const stepTimes = [];
+  let placeWarns = 0;
+  // hide is NARRATIVE: the element fades out AT its step — the viewer watches
+  // the noise being removed instead of never seeing it. Re-application across
+  // steps and navigations covers only the hides that already played.
+  const executedHides = [];
+
+  await initialFit();
+
+  await page.mouse.move(120, 160, { steps: 6 });
+  await clock.wait(ms(500));
+
+  for (let step of steps) {
+    stepIndex++;
+    // --auto-annotate: a bare click/fill/select gets a rect + the element's
+    // visible label as a note, for free (author annotations always win).
+    if (a.autoAnnotate) {
+      const sel = typeof step.click === 'string' ? step.click
+        : step.fill ? (typeof step.fill === 'string' ? step.fill : step.fill.sel)
+        : step.select ? (typeof step.select === 'string' ? step.select : step.select.sel)
+        : null;
+      let label = '';
+      if (sel) {
+        label = await safeEval((q) => {
+          const el = document.querySelector(q);
+          if (!el) return '';
+          const t = (el.getAttribute('aria-label') || el.getAttribute('placeholder') ||
+            el.getAttribute('title') || el.innerText || el.value || '').trim();
+          return t.length > 60 ? t.slice(0, 57) + '…' : t;
+        }, sel).catch(() => '');
+      }
+      step = autoAnnotateStep(step, label);
+    }
+    // per-step playback speed: 0.25 = slow-mo (camera/glide/scroll/fades of this
+    // step play 4x slower, smoothly), 2 = fast. Offline samples the animation at
+    // the matching density; realtime setRate is a no-op (wall-bound). Reset after.
+    if (typeof step.speed === 'number') clock.setRate(step.speed);
+    const stepT0 = clock.now();
+    await ensureCursor();
+    await ensureCam();
+    if (a.stamp) chromeSet('top', 'stamp', stepIndex + ' / ' + steps.length);
+    for (const sel of executedHides) await applyHide(sel);
+    if ('topbar' in step) chromeSet('top', 'bar', step.topbar);
+    if ('bottombar' in step) chromeSet('bottom', 'bar', step.bottombar);
+    if (screenPhase(step) === 'before') chromeSet('top', 'screen', step.screen);
+    // under follow the cursor must TRAVEL, not park: while the page scrolls,
+    // glide it toward the screen center (where a followed target ends up) on
+    // the same clock — the fine chase right after stitches into one long move.
+    const willFollow = followOn || step.follow === true || typeof step.follow === 'number';
+    if (step.scrollTo && willFollow) {
+      const dy = await scrollDeltaFor(step.scrollTo);
+      if (Math.abs(dy) > 2) {
+        const sdur = Math.round(Math.max(700, Math.min(1800, Math.abs(dy) * 0.9)));
+        await safeEval(() => window.__camScrollClamp && window.__camScrollClamp(true));
+        await Promise.all([
+          smoothScroll(step.scrollTo, sdur),
+          glide(a.width / 2, a.height / 2, sdur + 150),
+        ]);
+        await safeEval(() => window.__camScrollClamp && window.__camScrollClamp(false));
+      }
+    } else if (step.scrollTo) await smoothScroll(step.scrollTo);
+    if (step.blur) await applyBlur(step.blur);
+    if (step.hide) {
+      await applyHide(step.hide);
+      if (!executedHides.includes(step.hide)) executedHides.push(step.hide);
+      await clock.wait(ms(500), true);
+    }
+    // camera moves land between the previous step's fade-out and this step's
+    // overlays; every box below is measured after the camera settles.
+    if (step.zoom === 'out') await camOut();
+    else if (typeof step.zoom === 'string') await camFrame(step.zoom, 0, 800, true);
+    const cam = cameraSpec(step);
+    if (cam || step.follow === false) followOn = 0; // explicit camera takes the wheel
+    if (cam) {
+      if (cam.out) await camOut();
+      else await camFrame(cam.sel, cam.zoom ? Math.max(1, Math.min(3, cam.zoom)) : 0, 800, true);
+    } else if (step.follow === false) await camOut();
+    // follow: bind ONCE and the camera re-aims at every step target from here
+    // on — one smooth camFrame per move, cursor and camera arrive together —
+    // until {"camera":...}, {"camera":"out"} or {"follow":false} takes it
+    // back. (A per-frame cursor chase reads viewport coords as page coords
+    // under an active transform and drifts; aiming at the target does not.)
+    const followScale = step.follow === true ? 1.4
+      : typeof step.follow === 'number' ? Math.max(1, Math.min(3, step.follow)) : null;
+    if (followScale) followOn = followScale;
+    const fillS = fillSpec(step);
+    const selectS = selectSpec(step);
+    if (fillS) await doFill(fillS);
+    if (selectS) await doSelect(selectS);
+    const zoomSel = typeof step.zoom === 'string' && step.zoom !== 'out' ? step.zoom : null;
+    const camSel = cam && !cam.out ? cam.sel : null;
+    // annotation-only steps anchor on their own selector (rect/circle/arrow);
+    // a bare note falls back to a top-center pseudo-target so it still shows.
+    const arrowEdge = step.arrow === 'top' || step.arrow === 'bottom';
+    const annSel = (typeof step.rect === 'string' && step.rect) ||
+      (typeof step.circle === 'string' && step.circle) ||
+      (typeof step.spotlight === 'string' && step.spotlight) ||
+      (typeof step.arrow === 'string' && !arrowEdge && step.arrow) ||
+      (step.inset ? (typeof step.inset === 'string' ? step.inset : step.inset.sel) : null) || null;
+    const sel = step.click || (fillS && fillS.sel) || (selectS && selectS.sel) || step.scrollTo || zoomSel || camSel || annSel;
+    let box = sel ? await boxOf(sel) : null;
+    if (!box && arrowEdge) {
+      // edge arrow: the letterbox strips live OUTSIDE the page canvas — a
+      // synthetic margin target lets a note point at the bar above/below.
+      box = { x: Math.round(a.width / 2) - 1, y: step.arrow === 'top' ? 6 : a.height - 8, w: 2, h: 2 };
+    }
+    if (!box && step.note && !step.modal && !(step.marks || []).some((m) => m.text)) {
+      // bare note rides top-center — also alongside marks, as long as none of
+      // them carries text (text marks summon the glossary panel there)
+      box = { x: Math.round(a.width / 2) - 1, y: 120, w: 2, h: 2 };
+    }
+    if (step.click && box && (box.y < 0 || box.y + box.h > a.height)) {
+      await smoothScroll(step.click);
+      box = await boxOf(step.click);
+    }
+    // A marker must show WHOLE: rect/circle overshoot the target (ellipse
+    // +35%, badge sits 38px above) — if any of it would clip the viewport,
+    // scroll the target into full view and re-measure before drawing.
+    if (box && sel && (step.rect || step.circle || step.badge != null || step.spotlight)) {
+      const m = Math.max(step.badge != null ? 48 : 0, step.circle ? Math.round(box.h * 0.18) + 26 : 0, step.rect ? 20 : 0, step.spotlight ? 14 : 0);
+      if (box.y - m < 0 || box.y + box.h + m > a.height) {
+        await smoothScroll(sel);
+        box = await boxOf(sel);
+      }
+    }
+    let panned = false;
+    let followAimed = false;
+    if (followOn && box && sel && !camSel && !(step.zoom === true && step.click)) {
+      // camera and cursor travel TOGETHER on one clock; the scroll leg (with
+      // the cursor already gliding) happened just above, so this is the fine
+      // approach stitched onto it.
+      const dist = Math.hypot(box.x + box.w / 2 - a.width / 2, box.y + box.h / 2 - a.height / 2);
+      const dur = Math.round(Math.max(450, Math.min(900, 240 + dist * 0.5)));
+      const aim = await camFrame(sel, followOn, dur, true, true, false);
+      if (aim) {
+        await glideChase(aim, dur);
+        await clock.wait(100, true); // transition tail frames — measure after they land
+        box = await boxOf(sel);
+        followAimed = true; // cursor is ON the target — no glide-beside after
+        // the chase is only right if it LANDED — measure, don't assume.
+        const off = await safeEval((q) => {
+          const c = document.getElementById('__cursor__');
+          const el = document.querySelector(q);
+          if (!c || !el) return null;
+          const r = el.getBoundingClientRect();
+          return Math.hypot(
+            (parseFloat(c.style.left) || 0) - (r.x + r.width / 2),
+            (parseFloat(c.style.top) || 0) - (r.y + r.height / 2));
+        }, sel);
+        if (off != null && off > 48) {
+          placeWarns++;
+          console.log(`FOLLOW warn step ${stepIndex}: cursor ${Math.round(off)}px off target`);
+        }
+      }
+    } else if (box && sel && !camSel && !(step.zoom === true && step.click) &&
+        (box.x < 8 || box.x + box.w > a.width - 8)) {
+      panned = await panToInclude(sel);
+      if (panned) box = await boxOf(sel);
+    }
+    if (step.zoom === true && step.click && box) {
+      await camFrame(step.click, 1.6, 700, true, true);
+      box = await boxOf(step.click); // post-zoom rect = where glide/click must land
+    }
+    if (step.glide && box && !step.click && !followAimed) {
+      const gx = Math.min(a.width - 16, Math.max(16, box.x + box.w + 22));
+      const gy = Math.min(a.height - 16, Math.max(16, box.y + box.h + 22));
+      await glide(gx, gy, 700);
+      await clock.wait(ms(150));
+    }
+    // markers outline DETAIL: a rect/circle hugging a near-fullscreen element
+    // is just a picture frame — skip it (the note/badge still render).
+    if (box && (step.rect || step.circle) && box.w >= a.width * 0.85 && box.h >= a.height * 0.85) {
+      console.error(`rec: step ${stepIndex} target fills the viewport — rect/circle skipped (mark something smaller)`);
+      step = { ...step };
+      delete step.rect;
+      delete step.circle;
+    }
+    const hasOverlay = step.modal || (step.marks && step.marks.length) || step.inset || step.glossary ||
+      (box && (step.note || step.rect || step.circle || step.arrow || step.badge != null || step.spotlight));
+    if (hasOverlay) {
+      const w = await showAnnotations(box, step, sel);
+      for (const m of w || []) {
+        placeWarns++;
+        console.log(`PLACE warn step ${stepIndex}: ${m}`);
+      }
+    }
+    if (step.click && box) {
+      const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
+      await glide(cx, cy, 600);
+      await clock.wait(ms(120));
+      await ripple(cx, cy);
+      await clock.wait(ms(500), true);
+      // hit-target guard: an overlay (fixed panel, drawer) may sit above the
+      // target's coordinates — a raw mouse click would hit IT instead. When
+      // the point doesn't resolve to the target, dispatch on the element.
+      const onTarget = await safeEval(({ x, y, q }) => {
+        const t = document.querySelector(q);
+        const el = document.elementFromPoint(x, y);
+        return !!(t && el && (el === t || t.contains(el)));
+      }, { x: cx, y: cy, q: step.click });
+      if (onTarget) {
+        try { await page.mouse.click(cx, cy); } catch { /* ignore */ }
+      } else {
+        await safeEval((q) => document.querySelector(q)?.click(), step.click);
+      }
+      try { await page.waitForLoadState('domcontentloaded'); } catch { /* no nav */ }
+      if (step.screen) {
+        // the click may navigate; any evaluate racing the navigation dies with
+        // "execution context destroyed" — settle, then retry once on the new doc.
+        const restore = async () => {
+          await ensureCursor();
+          await ensureCam();
+          for (const sel of executedHides) await applyHide(sel);
+        };
+        try { await page.waitForLoadState('domcontentloaded'); } catch { /* no nav */ }
+        await clock.wait(ms(900), true);
+        try { await restore(); } catch { await clock.wait(ms(900), true); await restore(); }
+        chromeSet('top', 'screen', step.screen);
+      }
+    }
+    const dwellTexts = [];
+    if (step.note) dwellTexts.push(String(step.note));
+    if (step.marks) {
+      const gloss = step.marks.map((m) => m.text).filter(Boolean).join(' ');
+      if (gloss) dwellTexts.push(gloss);
+    }
+    if (step.glossary && typeof step.glossary === 'object' && Array.isArray(step.glossary.items)) {
+      dwellTexts.push([step.glossary.title, ...step.glossary.items.map((it) => it.text)].filter(Boolean).join(' '));
+    }
+    if (step.modal) {
+      const m = typeof step.modal === 'string' ? { text: step.modal } : step.modal;
+      dwellTexts.push([m.title, m.text].filter(Boolean).join(' '));
+    }
+    const baseHold = step.wait != null ? step.wait : ms(1200);
+    const hold = dwellTexts.length
+      ? Math.max(baseHold, 400 + Math.max(...dwellTexts.map((t) => dwellMs(t, PACE))))
+      : baseHold;
+    // the dwell is static EXCEPT its head: overlay fade-in, badge/glossary
+    // staggers and click reactions animate inside the first slice.
+    await clock.wait(hold, hotHeadFor(step));
+    if (hasOverlay) await clearAnnotations();
+    if (panned) await camOut();
+    if (typeof step.speed === 'number') clock.setRate(1);
+    stepTimes.push({ i: stepIndex, t0: stepT0, t1: clock.now(), label: stepLabel(step) });
+  }
+
+  try { await page.waitForLoadState('domcontentloaded'); } catch { /* idle */ }
+  // END card only on explicit request. endCard: 'none' (default) = never
+  // recorded; 'gif' = card recorded, mp4 cuts before it; 'all' = everywhere.
+  // REC_PROF=1: per-step scene seconds on stderr — the cheap first probe when
+  // a take's duration surprises (it caught the offline scroll crawl).
+  if (process.env.REC_PROF) console.error('PROF ' + JSON.stringify(stepTimes.map((s) => ({ i: s.i, d: +(s.t1 - s.t0).toFixed(2), label: s.label.slice(0, 24) }))));
+  const endT0 = clock.now();
+  if (a.endCard !== 'none') {
+    await safeEval(endCardSnippet());
+    await clock.wait(dwellMs('END', PACE), 400); // card entrance, then a still
+  }
+  let webm = null, listPath = null;
+  if (offline) {
+    const frames = await clock.flush();
+    await Promise.all(frameWrites);
+    listPath = join(vidDir, 'list.txt');
+    writeFileSync(listPath, buildConcatList(frames));
+  }
+  await page.close();
+  if (!offline) webm = await page.video().path();
+  await ctx.close();
+  console.log(placeWarns ? `PLACE ${placeWarns} warning(s) — inspect those steps` : 'PLACE clean');
+  return { webm, listPath, chrome, pageTheme, pageBg, vidDir, stepTimes, endT0 };
+}
+
+// webm -> gif (+ optional --mp4, --keep-webm sidecar). Prefer the two-pass
+// palette path (system ffmpeg). If only the stripped bundled ffmpeg is
+// available (no palettegen), fall back to a simple scale conversion so a gif
+// is still produced.
+// Skip the first second of the take: recordVideo starts at context open, so
+// the head of the webm is the blank page still loading — a gif opening on a
+// white frame reads as broken.
+// Offline input is the concat demuxer over the captured stills instead of a
+// webm. The list is a curated sequence (no blank head), so TRIM_S drops to 0
+// — every re-base below becomes a no-op — and the demuxer's cumulative PTS
+// line up with the chrome/step timestamps because the clock guaranteed
+// sum(frame durations) == its own timeline.
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });
+}

@@ -1,0 +1,7 @@
+[
+  { "fill": { "sel": "#iname", "value": "Dana Reeves" } },
+  { "fill": { "sel": "#iemail", "value": "dana@company.com" } },
+  { "select": { "sel": "#region", "value": "São Paulo" } },
+  { "camera": { "sel": ".invite" } },
+  { "click": "#invite", "note": "Invite sent" }
+]

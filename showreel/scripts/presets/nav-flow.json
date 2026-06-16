@@ -1,0 +1,5 @@
+[
+  { "click": "#menu", "screen": "Menu" },
+  { "scrollTo": ".cards", "note": "Active services at a glance" },
+  { "camera": "out" }
+]

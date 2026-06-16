@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen — Project Dashboard</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#121933; --panel-2:#0e1530; --line:#27325c; --line-soft:#1d2748;
+    --ink:#e8ecff; --mut:#93a0c9; --acc:#6ea8ff; --acc-2:#8b5cf6; --ok:#34d399; --warn:#fbbf24;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0}
+  ::selection{background:rgba(110,168,255,.28)}
+  html{scrollbar-color:#27325c #0b1020}
+  body{color:var(--ink);min-height:100vh;
+    background:
+      radial-gradient(1100px 520px at 82% -12%,rgba(43,64,134,.85) 0%,transparent 60%),
+      radial-gradient(900px 600px at -10% 30%,rgba(70,38,125,.35) 0%,transparent 55%),
+      var(--bg);
+    font:400 1rem/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:16px;padding:16px 28px;border-bottom:1px solid var(--line-soft);
+    position:sticky;top:0;background:rgba(11,16,32,.82);backdrop-filter:blur(12px);z-index:5}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.3px}
+  .logo i{width:28px;height:28px;border-radius:9px;display:inline-block;
+    background:conic-gradient(from 200deg,var(--acc),var(--acc-2));
+    box-shadow:0 0 18px rgba(110,168,255,.45)}
+  .menu-btn{margin-left:auto;background:rgba(18,25,51,.8);border:1px solid var(--line);color:var(--ink);
+    padding:9px 18px;border-radius:10px;font-size:.92rem;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+  .menu-btn:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(110,168,255,.15)}
+  nav.drawer{position:fixed;right:-300px;top:65px;bottom:0;width:280px;
+    background:linear-gradient(180deg,var(--panel),#0d142c);
+    border-left:1px solid var(--line);padding:22px 18px;transition:right .28s cubic-bezier(.4,0,.2,1);z-index:4;
+    box-shadow:-24px 0 48px rgba(2,6,18,.55)}
+  nav.drawer.open{right:0}
+  nav.drawer a{display:block;color:var(--mut);text-decoration:none;padding:11px 14px;border-radius:10px;
+    font-size:.95rem;border-left:2px solid transparent;transition:all .18s ease}
+  nav.drawer a:hover{background:rgba(110,168,255,.08);color:var(--ink);border-left-color:var(--acc)}
+  main{max-width:1080px;margin:0 auto;padding:40px 28px 80px}
+  .hero{padding:26px 0 8px}
+  .hero h1{font-size:2.1rem;line-height:1.18;font-weight:750;letter-spacing:-.015em}
+  .hero p{color:var(--mut);margin-top:10px;max-width:560px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:28px 0 8px}
+  .stat{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line-soft);
+    border-radius:16px;padding:16px 18px;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+  .stat:hover{transform:translateY(-2px);border-color:var(--line);box-shadow:0 10px 28px rgba(2,6,18,.45)}
+  .stat b{font-size:1.55rem;font-weight:750;display:block;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .stat span{color:var(--mut);font-size:.85rem}
+  .stat .delta{display:inline-block;margin-top:6px;margin-left:8px;font-size:.78rem;padding:2px 9px;border-radius:99px;
+    background:rgba(52,211,153,.12);color:var(--ok);border:1px solid rgba(52,211,153,.22)}
+  .stat .delta.down{background:rgba(251,191,36,.12);color:var(--warn);border-color:rgba(251,191,36,.22)}
+  h2{margin:36px 0 14px;font-size:1.12rem;letter-spacing:-.01em}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line-soft);border-radius:16px;padding:18px;
+    transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+  .card:hover{transform:translateY(-2px);border-color:var(--line);box-shadow:0 10px 28px rgba(2,6,18,.45)}
+  .card h3{font-size:1rem;margin-bottom:6px}
+  .card p{color:var(--mut);font-size:.88rem}
+  .card .bar{height:6px;border-radius:99px;background:var(--panel-2);margin-top:16px;overflow:hidden}
+  .card .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--acc-2));
+    box-shadow:0 0 10px rgba(139,92,246,.5)}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line-soft);
+    border-radius:16px;overflow:hidden;font-size:.9rem}
+  th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--line-soft)}
+  th{color:var(--mut);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.6px;
+    background:rgba(14,21,48,.6)}
+  tbody tr{transition:background .15s ease}
+  tbody tr:hover{background:rgba(110,168,255,.05)}
+  tr:last-child td{border-bottom:none}
+  .pill{padding:3px 10px;border-radius:99px;font-size:.78rem}
+  .pill.ok{background:rgba(52,211,153,.12);color:var(--ok);border:1px solid rgba(52,211,153,.22)}
+  .pill.run{background:rgba(110,168,255,.12);color:var(--acc);border:1px solid rgba(110,168,255,.22)}
+  .invite{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;align-items:end;
+    background:var(--panel);border:1px solid var(--line-soft);border-radius:16px;padding:20px}
+  .field label{display:block;color:var(--mut);font-size:.8rem;margin-bottom:6px}
+  .field input,.field select{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+    padding:10px 12px;border-radius:10px;font-size:.92rem;outline:none;transition:border-color .2s,box-shadow .2s}
+  .field input::placeholder{color:#5b6890}
+  .field input:focus,.field select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(110,168,255,.15)}
+  .cta--form{margin:0;padding:11px 18px}
+  .cta-row{position:relative;display:inline-block;margin-top:30px}
+  .cta{display:inline-block;background:linear-gradient(92deg,var(--acc),var(--acc-2));
+    color:#fff;border:none;padding:12px 22px;border-radius:12px;font-size:.95rem;font-weight:600;cursor:pointer;
+    box-shadow:0 8px 22px rgba(110,140,255,.28);transition:transform .15s ease,box-shadow .2s ease}
+  .cta:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(110,140,255,.38)}
+  .toast{position:absolute;left:calc(100% + 16px);top:50%;transform:translate(-12px,-50%);opacity:0;
+    background:var(--ok);color:#06281c;font-weight:600;padding:11px 20px;border-radius:11px;
+    transition:all .3s ease;white-space:nowrap;z-index:6;box-shadow:0 10px 30px rgba(52,211,153,.35)}
+  .toast.show{transform:translate(0,-50%);opacity:1}
+  body.after .stat b{color:var(--ok)}
+  body.after .hero h1::after{content:" — optimized";color:var(--ok);font-size:1.1rem;vertical-align:middle}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><i></i>Lumen</div>
+  <button class="menu-btn" id="menu">Menu</button>
+</header>
+<nav class="drawer" id="drawer">
+  <a href="#">Overview</a><a href="#">Deployments</a><a href="#">Monitoring</a>
+  <a href="#">Team</a><a href="#">Billing</a><a href="#">Settings</a>
+</nav>
+<main>
+  <section class="hero">
+    <h1>Everything your project ships, in one view</h1>
+    <p>Deployments, performance and team activity for <b>lumen-web</b>, updated in real time.</p>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><b>99.98%</b><span>Uptime, 30 days</span><em class="delta">▲ 0.02%</em></div>
+    <div class="stat"><b>184 ms</b><span>p95 response</span><em class="delta">▼ 21 ms</em></div>
+    <div class="stat"><b>1,248</b><span>Deploys this quarter</span><em class="delta">▲ 12%</em></div>
+    <div class="stat"><b>4.9</b><span>Apdex score</span><em class="delta down">▼ 0.1</em></div>
+  </section>
+
+  <h2>Active services</h2>
+  <section class="cards">
+    <div class="card"><h3>checkout-api</h3><p>Handles cart, payment intents and receipts.</p><div class="bar"><i style="width:82%"></i></div></div>
+    <div class="card"><h3>search-worker</h3><p>Indexes the catalog and serves typeahead.</p><div class="bar"><i style="width:64%"></i></div></div>
+    <div class="card"><h3>image-cdn</h3><p>On-the-fly resize with edge caching.</p><div class="bar"><i style="width:91%"></i></div></div>
+  </section>
+
+  <h2>Latest deployments</h2>
+  <table>
+    <thead><tr><th>Service</th><th>Author</th><th>Email</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>checkout-api</td><td>Dana Reeves</td><td class="email">dana.reeves@example.com</td><td><span class="pill ok">Live</span></td></tr>
+      <tr><td>search-worker</td><td>Yuki Tanaka</td><td class="email">yuki.tanaka@example.com</td><td><span class="pill run">Rolling out</span></td></tr>
+      <tr><td>image-cdn</td><td>Sam Okafor</td><td class="email">sam.okafor@example.com</td><td><span class="pill ok">Live</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Invite a teammate</h2>
+  <form class="invite" onsubmit="return false">
+    <div class="field"><label for="iname">Name</label><input id="iname" name="name" type="text" placeholder="Dana Reeves" autocomplete="off"></div>
+    <div class="field"><label for="iemail">Work email</label><input id="iemail" name="email" type="email" placeholder="dana@company.com" autocomplete="off"></div>
+    <div class="field"><label for="region">Region</label>
+      <select id="region" name="region">
+        <option value="">Choose…</option>
+        <option value="us-east">US East</option>
+        <option value="eu-west">EU West</option>
+        <option value="sa-east">São Paulo</option>
+        <option value="ap-south">Singapore</option>
+      </select>
+    </div>
+    <button class="cta cta--form" id="invite">Send invite</button>
+  </form>
+
+  <div class="cta-row">
+    <button class="cta" id="deploy">Deploy to production</button>
+    <div class="toast" id="toast">Build #1249 live</div>
+  </div>
+</main>
+<script>
+  const drawer=document.getElementById('drawer');
+  document.getElementById('menu').addEventListener('click',()=>drawer.classList.toggle('open'));
+  document.getElementById('deploy').addEventListener('click',()=>{
+    const t=document.getElementById('toast');t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),9000);
+  });
+  if(new URLSearchParams(location.search).get('state')==='after')document.body.classList.add('after');
+</script>
+</body>
+</html>

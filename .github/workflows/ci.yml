@@ -1,0 +1,16 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: ffmpeg for the encode tests
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - name: unit suite
+        run: node --test showreel/scripts/__tests__/*.test.mjs
