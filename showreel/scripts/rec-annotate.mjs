@@ -21,6 +21,18 @@ export function makeAnnotator(rctx) {
         ? { card: 'rgba(248,250,252,.96)', ink: '#0f172a', modalBg: '#f8fafc', modalTitle: '#0f172a', modalText: '#334155' }
         : { card: 'rgba(15,23,42,.95)', ink: '#fff', modalBg: '#0d1b2d', modalTitle: '#fff', modalText: '#c9d4e0' };
       const DARK = T.card;
+      // Shared glass tokens (see references/visual-system.md) — one premium look
+      // across note / badge / glossary / modal: frosted surface, hairline border,
+      // accent left-edge, floating shadow, inset top highlight.
+      const isDark = theme === 'dark';
+      const GLASS = isDark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.80)';
+      // notes float WITHOUT a dim backdrop, so they need more opacity than cards
+      // to stay legible over busy UI.
+      const NOTEBG = isDark ? 'rgba(17,26,44,0.92)' : 'rgba(255,255,255,0.94)';
+      const NOTEINK = isDark ? '#f8fafc' : '#0f172a'; // contrast vs NOTEBG, not T.ink
+      const HAIR = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.10)';
+      const SHADOW = '0 10px 30px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.16)';
+      const BLUR = 'backdrop-filter:blur(13px) saturate(140%);-webkit-backdrop-filter:blur(13px) saturate(140%)';
       const cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
       const W = innerWidth, H = innerHeight;
       const anchorEl = sel ? document.querySelector(sel) : null;
@@ -244,9 +256,12 @@ export function makeAnnotator(rctx) {
       // but the hole; a faint accent ring traces the lit edge. Sits at the
       // backdrop level (z=1) so markers/notes still read on top of it.
       const drawSpotlight = (b, pad) => {
-        const p = pad != null ? pad : 10;
+        const p = pad != null ? pad : 12;
+        // dim the frame, cut a lit window, ring it in the accent with a soft
+        // outward glow so the focus reads as deliberate, not just a hole.
         add('left:' + (b.x - p) + 'px;top:' + (b.y - p) + 'px;width:' + (b.w + p * 2) + 'px;height:' + (b.h + p * 2) + 'px;' +
-          'border-radius:10px;box-shadow:0 0 0 9999px ' + (T.spotlight || 'rgba(8,14,28,.62)') + ',inset 0 0 0 1px ' + GREEN + '55', null, 1);
+          'border-radius:12px;box-shadow:0 0 0 9999px ' + (T.spotlight || 'rgba(8,14,28,.66)') +
+          ',0 0 28px 4px ' + GREEN + '55,inset 0 0 0 2px ' + GREEN + 'cc', null, 1);
       };
       const drawCircle = (b) => {
         // a +10 ellipse passes INSIDE the corners of wide flat boxes and cuts
@@ -317,13 +332,15 @@ export function makeAnnotator(rctx) {
           ? settle([topCenter, botCenter, ...sides], wpx, 28, true, 'badge ' + label)
           : settle([...sides, topCenter, botCenter, ...corners, ...insides], wpx, 28, false, 'badge ' + label);
         const d = add('left:' + at.x + 'px;top:' + at.y + 'px;min-width:28px;width:' + wpx + 'px;height:28px;border-radius:14px;' +
-          'background:' + GREEN + ';border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4);' +
+          'background:' + GREEN + ';border:2px solid rgba(255,255,255,.92);' +
+          'box-shadow:0 2px 8px rgba(0,0,0,.45),0 0 0 4px ' + GREEN + '2e;' +
           'color:#fff;font:700 16px system-ui;display:flex;align-items:center;justify-content:center', label, 4);
-        if (delay != null) {
-          d.style.opacity = '0';
-          d.style.transition = 'opacity .45s ease';
-          setTimeout(() => { d.style.opacity = '1'; }, delay);
-        }
+        // pop-scale entrance (overshoot) — a badge should snap in, not fade.
+        d.style.opacity = '0';
+        d.style.transform = 'scale(.4)';
+        d.style.transformOrigin = 'center';
+        d.style.transition = 'opacity .25s ease,transform .4s cubic-bezier(.34,1.56,.64,1)';
+        setTimeout(() => { d.style.opacity = '1'; d.style.transform = 'scale(1)'; }, delay != null ? delay : 0);
         return d;
       };
       if (box && step.spotlight) drawSpotlight(box);
@@ -356,15 +373,17 @@ export function makeAnnotator(rctx) {
       const rows = explicitItems || glossRows;
       if ((step.glossary || glossRows.length) && rows.length) {
         const rowsHtml = (gOpt.title
-          ? '<div style="color:' + T.modalTitle + ';font:700 16px system-ui;margin:2px 0 8px">' + String(gOpt.title).replace(/[<>&]/g, '') + '</div>'
+          ? '<div style="display:flex;align-items:center;gap:8px;color:' + NOTEINK + ';font:700 15px system-ui;letter-spacing:-.01em;margin:0 0 11px;padding-bottom:9px;border-bottom:1px solid ' + HAIR + '">'
+            + '<span style="width:7px;height:7px;border-radius:50%;background:' + GREEN + ';box-shadow:0 0 7px ' + GREEN + '"></span>'
+            + String(gOpt.title).replace(/[<>&]/g, '') + '</div>'
           : '') + rows.map((g) =>
-          '<div data-gd="' + g.delay + '" style="display:flex;gap:10px;align-items:flex-start;margin:9px 0;opacity:0;transition:opacity .45s ease">' +
-          '<span style="flex:0 0 auto;min-width:22px;height:22px;border-radius:11px;background:' + GREEN + ';border:2px solid #fff;' +
-          'color:#fff;font:700 12px/18px system-ui;text-align:center;padding:0 4px">' + g.n + '</span>' +
-          '<span style="color:' + T.modalText + ';font:400 15px/1.45 system-ui">' + g.t + '</span></div>').join('');
+          '<div data-gd="' + g.delay + '" style="display:flex;gap:10px;align-items:center;margin:8px 0;opacity:0;transform:translateX(-6px);transition:opacity .4s ease,transform .4s cubic-bezier(.22,1,.36,1)">' +
+          '<span style="flex:0 0 auto;min-width:22px;height:22px;border-radius:11px;background:' + GREEN + ';border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + GREEN + '26;' +
+          'color:#fff;font:700 12px/19px system-ui;text-align:center;padding:0 4px">' + g.n + '</span>' +
+          '<span style="color:' + NOTEINK + ';font:400 15px/1.4 system-ui">' + g.t + '</span></div>').join('');
         const gw = gOpt.width || 320;
-        const panel = add('left:-9999px;top:0;width:' + gw + 'px;background:' + T.modalBg + ';border:1px solid ' + GREEN + ';' +
-          'border-radius:14px;padding:14px 18px;box-shadow:0 12px 40px rgba(0,0,0,.5)', rowsHtml, 6);
+        const panel = add('left:-9999px;top:0;width:' + gw + 'px;background:' + GLASS + ';' + BLUR + ';border:1px solid ' + HAIR + ';border-left:2px solid ' + GREEN + ';' +
+          'border-radius:16px;padding:15px 18px;box-shadow:' + SHADOW + '', rowsHtml, 6);
         const pr = panel.getBoundingClientRect();
         const pw = Math.round(pr.width), ph = Math.round(pr.height);
         const cornerMap = {
@@ -389,7 +408,7 @@ export function makeAnnotator(rctx) {
         panel.style.top = at.y + 'px';
         placed.push({ x: at.x, y: at.y, w: pw, h: ph });
         for (const row of panel.querySelectorAll('[data-gd]'))
-          setTimeout(() => { row.style.opacity = '1'; }, +row.getAttribute('data-gd'));
+          setTimeout(() => { row.style.opacity = '1'; row.style.transform = 'none'; }, +row.getAttribute('data-gd'));
       }
       // Element zoom: a live DOM clone of the target, magnified inside an
       // accent-bordered card, leader back to the original — the page itself
@@ -439,7 +458,13 @@ export function makeAnnotator(rctx) {
           const veil = theme === 'dark' ? 'rgba(248,250,252,.07)' : 'rgba(15,23,42,.045)';
           const card = add('left:' + at.x + 'px;top:' + at.y + 'px;width:' + iw + 'px;height:' + ih + 'px;' +
             'background:linear-gradient(' + veil + ',' + veil + '),' + pageBg + ';border:3px solid ' + GREEN + ';border-radius:50%;' +
-            'box-shadow:0 14px 44px rgba(0,0,0,.55);overflow:hidden', null, 7);
+            'box-shadow:0 14px 44px rgba(0,0,0,.55),0 0 0 5px ' + GREEN + '22,inset 0 1px 0 rgba(255,255,255,.18);overflow:hidden', null, 7);
+          // scale-in: the lens pops from ~70% so it reads as rising off the page.
+          card.style.opacity = '0';
+          card.style.transform = 'scale(.7)';
+          card.style.transformOrigin = 'center';
+          card.style.transition = 'opacity .3s ease,transform .42s cubic-bezier(.34,1.4,.64,1)';
+          requestAnimationFrame(() => { card.style.opacity = '1'; card.style.transform = 'scale(1)'; });
           const k = iel.cloneNode(true);
           // a clone outside its ancestors loses every contextual CSS rule —
           // freeze the ORIGINAL's computed styles inline, node by node.
@@ -472,8 +497,10 @@ export function makeAnnotator(rctx) {
       }
       if (box && step.note) {
         const txt = String(step.note).replace(/[<>&]/g, '');
-        const noteW = Math.min(W - 32, Math.max(120, Math.round(txt.length * 10) + 24));
-        const noteH = 40;
+        // width accounts for the new layout: 13+14 padding, 7px dot, 8px gap,
+        // ~9px/char at 17px. height fits the 17px line + 9px vert padding.
+        const noteW = Math.min(W - 32, Math.max(130, Math.round(txt.length * 9) + 56));
+        const noteH = 38;
         const gap = step.arrow ? 56 : 12;
         const at = settle([
           { x: box.x, y: box.y - noteH - gap },
@@ -488,9 +515,10 @@ export function makeAnnotator(rctx) {
         const noteX = at.x, noteY = at.y;
         const below = noteY >= box.y + box.h;
         const vertical = noteX < box.x + box.w && noteX + noteW > box.x && (below || noteY + noteH <= box.y);
-        add('left:' + noteX + 'px;top:' + noteY + 'px;background:' + DARK + ';color:' + T.ink + ';font:600 18px system-ui;' +
-          'padding:8px 12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.4)',
-          txt, 6);
+        add('left:' + noteX + 'px;top:' + noteY + 'px;background:' + NOTEBG + ';color:' + NOTEINK + ';font:600 17px system-ui;letter-spacing:-.01em;white-space:nowrap;' +
+          'padding:9px 14px 9px 13px;border-radius:10px;border:1px solid ' + HAIR + ';border-left:2px solid ' + GREEN + ';box-shadow:' + SHADOW + ';' +
+          'display:flex;align-items:center;gap:8px',
+          '<span style="width:7px;height:7px;border-radius:50%;background:' + GREEN + ';box-shadow:0 0 7px ' + GREEN + ';flex:0 0 auto"></span><span>' + txt + '</span>', 6);
         // a rescued note may land far from its anchor — a label without a
         // visible tie is forbidden, so distance forces a leader even when the
         // caller didn't ask for an arrow.
