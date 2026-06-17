@@ -591,13 +591,23 @@ export function makeAnnotator(rctx) {
   // sized to the element's box so the original text never renders through it.
   const applyRedact = async (sel, color) => {
     await safeEval((s, col) => {
-      // MOTOR RULE (see applyHighlight): hug the text, not a wide box.
+      // MOTOR RULE (see applyHighlight): hug the text, not a wide box — but a
+      // CENSOR bar must fully COVER the text, so the inset overshoots the glyph
+      // box by a few px on each side (never short of it). Plain text containers
+      // only; controls/elements-with-children use the full box.
       const textInset = (el, r) => {
+        if (/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return { l: 0, rt: 0 };
+        if (el.querySelector && el.querySelector('*')) return { l: 0, rt: 0 };
         try {
           const rng = document.createRange(); rng.selectNodeContents(el);
           const tr = rng.getBoundingClientRect();
-          if (tr.width > 2 && r.width - tr.width > 24) {
-            return { l: Math.max(0, tr.left - r.left - 4), rt: Math.max(0, r.right - tr.right - 4) };
+          // the band is a CHILD positioned in LAYOUT px, but the rects are read
+          // under the camera transform — divide the gap by the camera scale so
+          // the inset matches layout (a zoom:2 frame otherwise doubles it and the
+          // censor bar lands short of the text).
+          const cs2 = (window.__cam && window.__cam.s) || 1;
+          if (tr.width > 2 && (r.width - tr.width) / cs2 > 24) {
+            return { l: Math.max(0, (tr.left - r.left) / cs2 - 4), rt: Math.max(0, (r.right - tr.right) / cs2 - 4) };
           }
         } catch (e) { /* no text — use box */ }
         return { l: 0, rt: 0 };
@@ -672,8 +682,11 @@ export function makeAnnotator(rctx) {
         try {
           const rng = document.createRange(); rng.selectNodeContents(el);
           const tr = rng.getBoundingClientRect();
-          if (tr.width > 2 && r.width - tr.width > 24) {
-            return { l: Math.max(0, tr.left - r.left - 4), rt: Math.max(0, r.right - tr.right - 4) };
+          // insets are layout px on a child; rects are under the camera transform
+          // — divide by the camera scale (a zoom:2 frame would otherwise double them).
+          const cs2 = (window.__cam && window.__cam.s) || 1;
+          if (tr.width > 2 && (r.width - tr.width) / cs2 > 24) {
+            return { l: Math.max(0, (tr.left - r.left) / cs2 - 4), rt: Math.max(0, (r.right - tr.right) / cs2 - 4) };
           }
         } catch (e) { /* no text content — use the box */ }
         return { l: 0, rt: 0 };
