@@ -593,10 +593,44 @@ export function makeAnnotator(rctx) {
   const applyHide = async (sel) => {
     await safeEval((s) => {
       document.querySelectorAll(s).forEach((el) => {
-        if (el.style.display === 'none') return;
-        el.style.transition = 'opacity .4s ease';
-        el.style.opacity = '0';
-        setTimeout(() => { el.style.display = 'none'; }, 420);
+        if (el.style.display === 'none' || el.dataset.srHiding) return;
+        el.dataset.srHiding = '1';
+        // COLLAPSE smoothly, never blink: fading then `display:none` snaps the
+        // row out and the rows below JUMP up (a visible flicker). Instead shrink
+        // the element's own height to 0 alongside the fade so the layout closes
+        // the gap gradually. Works for a <tr> too (set on the row; the cells
+        // inherit the collapse). Lock the current height first so the transition
+        // has a from-value, zero padding/border so nothing lingers at 0 height.
+        const TR = el.tagName === 'TR';
+        const EASE = 'cubic-bezier(.4,0,.2,1)';
+        if (TR) {
+          // a <tr> ignores animated height (display:table-row) — collapse via the
+          // CELLS instead: shrink their padding + line-height + font-size to 0 so
+          // the row's intrinsic height melts to nothing, fading in step. No snap.
+          el.style.transition = 'opacity .28s ease';
+          el.style.opacity = '0';
+          el.querySelectorAll('td,th').forEach((td) => {
+            td.style.overflow = 'hidden';
+            td.style.transition = 'padding .34s ' + EASE + ', line-height .34s ' + EASE + ', font-size .34s ' + EASE + ', border-width .34s ease';
+            void td.offsetHeight;
+            td.style.paddingTop = '0px'; td.style.paddingBottom = '0px';
+            td.style.lineHeight = '0'; td.style.fontSize = '0';
+            td.style.borderTopWidth = '0px'; td.style.borderBottomWidth = '0px';
+          });
+          setTimeout(() => { el.style.display = 'none'; }, 380);
+        } else {
+          const r = el.getBoundingClientRect();
+          el.style.overflow = 'hidden';
+          el.style.height = r.height + 'px';
+          void el.offsetHeight; // explicit height as the transition's start frame
+          el.style.transition = 'opacity .28s ease, height .34s ' + EASE + ', padding .34s ease, margin .34s ease, border-width .34s ease';
+          el.style.opacity = '0';
+          el.style.height = '0px';
+          el.style.paddingTop = '0px'; el.style.paddingBottom = '0px';
+          el.style.marginTop = '0px'; el.style.marginBottom = '0px';
+          el.style.borderTopWidth = '0px'; el.style.borderBottomWidth = '0px';
+          setTimeout(() => { el.style.display = 'none'; }, 380);
+        }
       });
     }, sel);
   };
