@@ -496,8 +496,14 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
   await page.mouse.move(120, 160, { steps: 6 });
   await clock.wait(ms(500));
 
+  // The scene accent persists across steps: an author sets `accent` once on the
+  // scene's opening step and every primitive in that scene should ride it. Track
+  // the current accent so a primitive in a later step (with no accent of its own)
+  // inherits the scene's colour instead of falling back to the amber default.
+  let sceneAccent = accent;
   for (let step of steps) {
     stepIndex++;
+    if (step.accent) sceneAccent = step.accent;
     // --auto-annotate: a bare click/fill/select gets a rect + the element's
     // visible label as a note, for free (author annotations always win).
     if (a.autoAnnotate) {
@@ -595,22 +601,22 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
       };
     };
     if (step.blur) await applyBlur(step.blur);
-    if (step.redact) await applyRedact(step.redact, step.accent || accent || null);
-    if (step.highlight) await applyHighlight(step.highlight, step.accent || accent || null);
-    if (step.confetti) await applyConfetti(typeof step.confetti === 'string' ? step.confetti : (step.confetti.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.confetti));
-    if (step.pulse) await applyPulse(typeof step.pulse === 'string' ? step.pulse : (step.pulse.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.pulse));
-    if (step.glow) await applyGlow(typeof step.glow === 'string' ? step.glow : step.glow.sel, step.accent || accent || null, effOpts(step.glow));
-    if (step.orbit) await applyOrbit(typeof step.orbit === 'string' ? step.orbit : (step.orbit.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.orbit));
-    if (step.progress) await applyProgress(typeof step.progress === 'string' ? step.progress : step.progress.sel, step.accent || accent || null, effOpts(step.progress));
-    if (step.shake) await applyShake(typeof step.shake === 'string' ? step.shake : (step.shake.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.shake));
+    if (step.redact) await applyRedact(step.redact, step.accent || sceneAccent || null);
+    if (step.highlight) await applyHighlight(step.highlight, step.accent || sceneAccent || null);
+    if (step.confetti) await applyConfetti(typeof step.confetti === 'string' ? step.confetti : (step.confetti.sel || step.click || step.glide || 'body'), step.accent || sceneAccent, effOpts(step.confetti));
+    if (step.pulse) await applyPulse(typeof step.pulse === 'string' ? step.pulse : (step.pulse.sel || step.click || step.glide || 'body'), step.accent || sceneAccent, effOpts(step.pulse));
+    if (step.glow) await applyGlow(typeof step.glow === 'string' ? step.glow : step.glow.sel, step.accent || sceneAccent || null, effOpts(step.glow));
+    if (step.orbit) await applyOrbit(typeof step.orbit === 'string' ? step.orbit : (step.orbit.sel || step.click || step.glide || 'body'), step.accent || sceneAccent, effOpts(step.orbit));
+    if (step.progress) await applyProgress(typeof step.progress === 'string' ? step.progress : step.progress.sel, step.accent || sceneAccent || null, effOpts(step.progress));
+    if (step.shake) await applyShake(typeof step.shake === 'string' ? step.shake : (step.shake.sel || step.click || step.glide || 'body'), step.accent || sceneAccent, effOpts(step.shake));
     if (step.reveal) await applyReveal(typeof step.reveal === 'string' ? step.reveal : step.reveal.sel, null, effOpts(step.reveal));
     if (step.typeon) await applyTypeon(step.typeon, effOpts(step.typeon));
     if (step.kenburns) await applyKenburns(typeof step.kenburns === 'string' ? step.kenburns : (step.kenburns.sel || step.click || step.glide || step.scrollTo || 'body'), effOpts(step.kenburns));
-    if (step.checkmark) await applyCheckmark(typeof step.checkmark === 'string' ? step.checkmark : (step.checkmark.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.checkmark));
-    if (step.ripple) await applyRipple(typeof step.ripple === 'string' ? step.ripple : (step.ripple.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.ripple));
-    if (step.trail) await applyTrail(typeof step.trail === 'string' ? step.trail : step.trail.from, typeof step.trail === 'string' ? null : step.trail.to, step.accent || accent || null, effOpts(step.trail));
+    if (step.checkmark) await applyCheckmark(typeof step.checkmark === 'string' ? step.checkmark : (step.checkmark.sel || step.click || step.glide || 'body'), step.accent || sceneAccent, effOpts(step.checkmark));
+    if (step.ripple) await applyRipple(typeof step.ripple === 'string' ? step.ripple : (step.ripple.sel || step.click || step.glide || 'body'), step.accent || sceneAccent, effOpts(step.ripple));
+    if (step.trail) await applyTrail(typeof step.trail === 'string' ? step.trail : step.trail.from, typeof step.trail === 'string' ? null : step.trail.to, step.accent || sceneAccent || null, effOpts(step.trail));
     if (step.countdown != null) await applyCountdown(typeof step.countdown === 'number' ? step.countdown : (typeof step.countdown === 'object' ? step.countdown : 3), typeof step.countdown === 'string' ? step.countdown : null, effOpts(step.countdown));
-    if (step.flash) await applyFlash(typeof step.flash === 'string' ? step.flash : (step.accent || null), effOpts(step.flash));
+    if (step.flash) await applyFlash(typeof step.flash === 'string' ? step.flash : (step.accent || sceneAccent), effOpts(step.flash));
     if (step.countup) await applyCountup(step.countup === true ? (step.click || step.scrollTo) : (typeof step.countup === 'string' ? step.countup : step.countup.sel), typeof step.countup === 'object' ? step.countup.to : null, effOpts(step.countup));
     if (step.sparkline) await applySparkline(typeof step.sparkline === 'string' ? step.sparkline : step.sparkline.sel, typeof step.sparkline === 'object' ? step.sparkline.points : null, effOpts(step.sparkline));
     // a hide note must anchor to where the row WAS: capture its rect BEFORE it
