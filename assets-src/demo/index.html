@@ -107,9 +107,13 @@
   li.stage.fail .badge{background:var(--fail);color:#fff}
   li.stage.fail .chip{background:rgba(242,85,85,.12);color:var(--fail);border-color:rgba(242,85,85,.3)}
   li.stage.done .chip{background:rgba(52,211,153,.12);color:var(--ok);border-color:rgba(52,211,153,.3)}
-  .deploy-progress{height:6px;border-radius:99px;background:var(--line);margin-top:18px;overflow:hidden}
+  .deploy-progress-wrap{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+  .deploy-progress-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+  .deploy-progress-label b{font-size:.78rem;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  .deploy-progress{height:5px;border-radius:99px;background:var(--sunken);overflow:hidden}
   .deploy-progress i{display:block;height:100%;width:0;border-radius:99px;
-    background:linear-gradient(90deg,var(--acc),var(--acc-2));box-shadow:0 0 8px rgba(91,140,255,.5);
+    background:linear-gradient(90deg,var(--acc),var(--acc-2));
     transition:width .3s ease}
 
   /* ───── log stream ───── */
@@ -168,11 +172,11 @@
   .timer.show{display:flex}
   .timer.warn{color:var(--fail);border-color:rgba(242,85,85,.3);background:rgba(242,85,85,.07)}
   .timer b{font-variant-numeric:tabular-nums;margin-left:auto}
-  .toast{font-family:var(--ui);position:absolute;left:50%;bottom:calc(100% + 12px);
-    transform:translate(-50%,8px);opacity:0;background:var(--ok);color:#06281c;font-weight:600;
+  .toast{font-family:var(--ui);position:absolute;left:calc(100% + 14px);top:50%;
+    transform:translate(0,-50%) translateX(8px);opacity:0;background:var(--ok);color:#06281c;font-weight:600;
     padding:10px 18px;border-radius:10px;white-space:nowrap;z-index:6;transition:all .3s ease;
     box-shadow:0 12px 30px rgba(52,211,153,.35);font-size:.85rem}
-  .toast.show{transform:translate(-50%,0);opacity:1}
+  .toast.show{transform:translate(0,-50%);opacity:1}
   .toast.grace{background:var(--raised);color:var(--ink);border:1px solid var(--line-2);
     font-family:var(--mono);font-size:.78rem;box-shadow:0 12px 30px rgba(0,0,0,.4)}
 
@@ -199,6 +203,13 @@
     color:var(--ink);padding:10px 12px;border-radius:8px;font-size:.88rem;outline:none;
     transition:border-color .18s,box-shadow .18s}
   .field input::placeholder{color:var(--faint)}
+  /* custom chevron: native arrow sits flush on the border — replace it with an
+     SVG inset from the right edge, and reserve right padding so the text never
+     runs under it. */
+  .field select{appearance:none;-webkit-appearance:none;-moz-appearance:none;
+    padding-right:40px;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%238A93A6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;background-position:right 14px center}
   .field input:focus,.field select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.15)}
   .cta-row--form{position:relative}
   .cta--form{width:auto;padding:11px 20px}
@@ -273,7 +284,10 @@
           <span class="badge">·</span><span class="stage-name">Deploy</span><span class="chip">ready</span>
         </li>
       </ul>
-      <div class="deploy-progress"><i></i></div>
+      <div class="deploy-progress-wrap">
+        <div class="deploy-progress-label"><span>Rollout</span><b id="rollout-pct">0%</b></div>
+        <div class="deploy-progress"><i></i></div>
+      </div>
     </section>
 
     <!-- LOG STREAM -->
@@ -283,7 +297,11 @@
         <div class="line"><span class="ts">10:42:01</span>queued release for lumen-web@main</div>
         <div class="line line--ok"><span class="ts">10:42:02</span>build cache hit · 312 tests passed</div>
         <div class="line"><span class="ts">10:42:03</span>image pushed → ghcr.io/lumen-web:a1f3c9d</div>
-        <div class="line"><span class="ts">10:42:04</span>awaiting deploy approval…</div>
+        <div class="line"><span class="ts">10:42:04</span>resolved 1,284 dependencies from lockfile</div>
+        <div class="line"><span class="ts">10:42:05</span>scanned image · 0 critical vulnerabilities</div>
+        <div class="line"><span class="ts">10:42:06</span>signed artifact · provenance attested</div>
+        <div class="line"><span class="ts">10:42:07</span>warmed edge cache across 4 regions</div>
+        <div class="line" id="log-approval"><span class="ts">10:42:08</span>awaiting deploy approval…</div>
       </div>
     </section>
   </div>
@@ -432,7 +450,8 @@
     dep.classList.add('running');dep.querySelector('.chip').textContent='deploying';
     // cancel grace window
     const cg=$('#cancel-toast');cg.classList.add('show');setTimeout(()=>cg.classList.remove('show'),1600);
-    let w=0;const t=setInterval(()=>{w=Math.min(100,w+8);bar.style.width=w+'%';
+    const pct=$('#rollout-pct');
+    let w=0;const t=setInterval(()=>{w=Math.min(100,w+8);bar.style.width=w+'%';if(pct)pct.textContent=w+'%';
       if(w>=100){clearInterval(t);
         b.classList.remove('loading');b.classList.add('done');lbl.textContent='Deployed';
         dep.classList.remove('running');dep.classList.add('done');
