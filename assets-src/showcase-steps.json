@@ -66,7 +66,6 @@
   { "glide": "#deploy", "wait": 400 },
   { "click": "#deploy", "wait": 900 },
   { "shake": "#deploy", "wait": 700 },
-  { "countdown": "#rollback-countdown", "wait": 800 },
   { "highlight": "#rollback-countdown", "note": "Auto-rollback armed while it recovers", "wait": 1500 },
   { "camera": "out", "wait": 700 },
 
@@ -75,6 +74,7 @@
   { "camera": "out", "wait": 1200 },
 
   { "camera": { "sel": "#deploy-panel", "zoom": 2 }, "accent": "#34D399", "wait": 1300 },
+  { "countdown": "#deploy", "wait": 1100 },
   { "glide": "#deploy", "wait": 400 },
   { "click": "#deploy", "wait": 700 },
   { "camera": { "sel": "#pipeline", "zoom": 2 }, "wait": 1300 },
