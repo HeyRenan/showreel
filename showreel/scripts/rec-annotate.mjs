@@ -306,7 +306,7 @@ export function makeAnnotator(rctx) {
         const p = pad != null ? pad : 12;
         const dim = T.spotlight || 'rgba(8,14,28,.66)';
         const W = innerWidth, H = innerHeight;
-        const L = b.x - p, Tp = b.y - p, R = b.x + b.w + p, B = b.y + b.h + p;
+        const L = b.x - p, Tp = b.y - p;
         const rad = 12;
         // DIM = one full-frame fill with a ROUNDED-RECT hole cut by clip-path
         // (even-odd: outer viewport rect minus an inner rounded rect). clip-path
@@ -711,7 +711,7 @@ export function makeAnnotator(rctx) {
           if (tr.width > 2 && (r.width - tr.width) / cs2 > 24) {
             return { l: Math.max(0, (tr.left - r.left) / cs2 - 4), rt: Math.max(0, (r.right - tr.right) / cs2 - 4) };
           }
-        } catch (e) { /* no text — use box */ }
+        } catch { /* no text — use box */ }
         return { l: 0, rt: 0 };
       };
       document.querySelectorAll(s).forEach((el, i) => {
@@ -795,7 +795,7 @@ export function makeAnnotator(rctx) {
           if (tr.width > 2 && (r.width - tr.width) / cs2 > 24) {
             return { l: Math.max(0, (tr.left - r.left) / cs2 - 4), rt: Math.max(0, (r.right - tr.right) / cs2 - 4) };
           }
-        } catch (e) { /* no text content — use the box */ }
+        } catch { /* no text content — use the box */ }
         return { l: 0, rt: 0 };
       };
       document.querySelectorAll(s).forEach((el) => {
@@ -1470,8 +1470,8 @@ const applyRipple = async (sel, color, opts) => {
         });
         // self-clean: cancel any running shake, remove the halo, restore the element.
         setTimeout(() => {
-          try { if (anim) anim.cancel(); } catch (e) {}
-          try { if (hanim) hanim.cancel(); } catch (e) {}
+          try { if (anim) anim.cancel(); } catch {}
+          try { if (hanim) hanim.cancel(); } catch {}
           host.remove();
           el.style.transform = prevInline;
           delete el.dataset.srShaking;
@@ -1592,7 +1592,7 @@ const applyRipple = async (sel, color, opts) => {
         const DRAW = Math.round(Math.min(520, LIFE * 0.4));   // check-stroke draw
         const HOLD = Math.round(LIFE * 0.34);                  // peak dwell
         const FADE = Math.round(Math.min(320, LIFE * 0.24));   // exit fade
-        await safeEval(({ s, col, SC, LIFE, DRAW, HOLD, FADE }) => {
+        await safeEval(({ s, col, SC, DRAW, HOLD, FADE }) => {
           const el = document.querySelector(s);
           if (!el) return;
           const r = el.getBoundingClientRect();
@@ -1704,7 +1704,7 @@ const applyRipple = async (sel, color, opts) => {
             disc.style.opacity = '0'; halo.style.opacity = '0'; ring.style.opacity = '0'; svg.style.opacity = '0';
           }, OUT);
           setTimeout(() => layer.remove(), OUT + FADE + 80);
-        }, { s: sel, col: color || '', SC, LIFE, DRAW, HOLD, FADE });
+        }, { s: sel, col: color || '', SC, DRAW, HOLD, FADE });
         // host life tracks the chosen duration: entrance + draw + hold + exit fade
         // so the full seal life is captured, not cut nor lingering into next step.
         await clock.wait(ms(200 + DRAW + HOLD + FADE + 80), true);
@@ -2045,7 +2045,7 @@ const applyTypeon = async (arg, opts) => {
       const clamp = (v, lo, hi, d) => (typeof v === 'number' && isFinite(v)) ? Math.max(lo, Math.min(hi, v)) : d;
       const DUR = ms(clamp(o.duration, 600, 8000, 2500));
       const ZOOM = 1 + (clamp(o.scale, 0.3, 3, 1) * 0.06); // default 1.06; scale multiplies the 6% push
-      const setup = await safeEval(({ s, durMs, acc, ZOOM }) => {
+      const setup = await safeEval(({ s, durMs, acc }) => {
         const el = document.querySelector(s);
         if (!el) return null;
         if (el.dataset.srKenburns) return null;
@@ -2087,7 +2087,7 @@ const applyTypeon = async (arg, opts) => {
         el.appendChild(view);
         requestAnimationFrame(() => { view.style.opacity = '1'; });
         return { dx: -Math.min(10, r.width * 0.012), dy: -Math.min(8, r.height * 0.012) };
-      }, { s: sel, durMs: DUR, acc: accent || '', ZOOM });
+      }, { s: sel, durMs: DUR, acc: accent || '' });
       if (!setup) { await clock.wait(DUR, true); return; }
       const { dx, dy } = setup;
       // DRIFT: set the transform each tick (virtual-clock native, can't snap).

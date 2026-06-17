@@ -24,7 +24,7 @@ const camSnippet = readFileSync(join(HERE, 'cam-inject.js'), 'utf8');
 export const FRAME = { FILL: 0.86, CAP: 2.4, MARGIN: 0.94, MAX: 3, ZOOM: 2 };
 
 export function makeCamera(rctx) {
-  const { page, safeEval, clock, ms, a } = rctx;
+  const { safeEval, clock, ms, a } = rctx;
 
   const ensureCam = async () => {
     const alive = await safeEval(() => !!window.__camTo);

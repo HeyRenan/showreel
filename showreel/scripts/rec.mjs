@@ -447,7 +447,7 @@ async function recordTake(browser, a, block, auth) {
   // (stage 5b). camBez is internal to it; the camera→cursor handoff is the
   // object camFrame returns (aim), not shared state.
   const motion = makeMotion(rctx);
-  const { glide, glideChase, scrollDeltaFor, smoothScroll, scrollContainer, visibilityOf, bringFullyIntoView, boxOf, ensureCursor, ripple } = motion;
+  const { glide, glideChase, scrollDeltaFor, smoothScroll, scrollContainer, bringFullyIntoView, boxOf, ensureCursor, ripple } = motion;
 
   // transient DOM overlays for one step (note/arrow/badge/rect/circle/modal),
   // faded out + removed on the next step. blur persists on the element itself.
@@ -458,7 +458,7 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
   // in rec-camera.mjs as a factory over rctx (stage 5c) — the load-bearing
   // piece. camFrame returns the element's final on-screen point (aim) which
   // glideChase rides; the handoff is the return value, not shared state.
-  const { ensureCam, camTo, camFrame, initialFit, panToInclude, camOut } = makeCamera(rctx);
+  const { ensureCam, camFrame, initialFit, panToInclude, camOut } = makeCamera(rctx);
 
   // form interactions (doFill/doSelect) live in rec-input.mjs as a factory
   // over rctx + the motion helpers (stage 5d).
