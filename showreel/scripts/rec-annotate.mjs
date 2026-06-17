@@ -2263,6 +2263,7 @@ const applyFlash = async (color, opts) => {
           const vmin = Math.min(innerWidth, innerHeight);
           let SZ;
           const el = selector ? document.querySelector(selector) : null;
+          let fitCap = Infinity;
           if (el) {
             const r = el.getBoundingClientRect();
             if (r.width && r.height) {
@@ -2271,9 +2272,17 @@ const applyFlash = async (color, opts) => {
               const long = Math.max(r.width, r.height);
               const base = short * 0.92 + long * 0.06;
               SZ = Math.max(56, Math.min(0.52 * vmin, base));
+              // NO-EXTRAPOLATE: a round disc taller than the target's SHORT side
+              // spills past a wide-but-short element (a full-width button bleeds
+              // the countdown ring above and below it). Cap the disc to the short
+              // side so it always sits INSIDE the element's box.
+              fitCap = short;
             } else { SZ = vmin * 0.22; }
           } else { SZ = vmin * 0.22; }
           SZ = Math.max(48, Math.min(0.6 * vmin, SZ * SC));
+          // the fit cap wins over the readability floor on a genuinely small
+          // target: better a slightly small digit than a ring spilling the box.
+          if (isFinite(fitCap)) SZ = Math.min(SZ, fitCap);
           const R = SZ * 0.455, C = 2 * Math.PI * R;
           const fontPx = Math.round(SZ * 0.48);
           const strokeW = Math.max(2, SZ * 0.019);
