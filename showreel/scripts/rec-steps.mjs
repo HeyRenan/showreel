@@ -560,8 +560,24 @@ export function auditScenes(steps) {
   if (!Array.isArray(steps)) return { warnings };
   let deployTriggered = false;
   let anyTrigger = false;
+  // zoom-churn: framing panel A, pulling OUT, then framing panel A again wastes
+  // a full zoom-out/zoom-in cycle the viewer reads as the camera "flickering" on
+  // the same element. Consecutive notes on one panel must keep the zoom and only
+  // swap the annotation — never `camera:"out"` between them. Track the last
+  // framed selector across an `out`; if the next frame returns to it, warn.
+  let lastFramed = null;
+  let outSinceFrame = false;
   steps.forEach((s, i) => {
     if (!s || typeof s !== 'object') return;
+    const camSel = stepCamera(s);
+    if (camSel === 'out') { outSinceFrame = true; }
+    else if (camSel) {
+      if (outSinceFrame && lastFramed && camSel === lastFramed) {
+        warnings.push({ step: i + 1, kind: 'zoom-churn',
+          message: `camera re-frames "${camSel}" right after pulling out from it — the viewer sees a redundant zoom-out/zoom-in flicker. Keep the zoom and just swap the note instead of "camera":"out" between beats on the same panel.` });
+      }
+      lastFramed = camSel; outSinceFrame = false;
+    }
     // record triggers seen so far (cumulative across the whole reel)
     if (typeof s.click === 'string') {
       anyTrigger = true;
