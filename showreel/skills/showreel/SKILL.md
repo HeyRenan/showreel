@@ -65,11 +65,11 @@ Whatever you pick: every label visibly connects to its target, and the final fra
 
 EVERY explanatory label must visibly connect to its target (arrow on the note, leader on the anchored modal, or centered modal narration) — never floating.
 
-**Before writing any rec steps beyond a straight preset swap, read `references/rec-cookbook.md` — THE CONTRACT:** the 33-key GRAMMAR TABLE (shape, required siblings, forbidden forms, element-vs-viewport anchor), the RENDER-MODE + ANCHORING gates, the authoring procedure, and the one binary pre-flight. Write every step against the table, never from memory. Takes open 1:1; establishing auto-fit is opt-in via `--fit`.
+**Before writing any rec steps beyond a straight preset swap, read `references/rec-cookbook.md` — THE CONTRACT:** the 55-key GRAMMAR TABLE (shape, required siblings, forbidden forms, element-vs-viewport anchor), the RENDER-MODE + ANCHORING gates, the authoring procedure, and the one binary pre-flight. Write every step against the table, never from memory. Takes open 1:1; establishing auto-fit is opt-in via `--fit`. Need to reveal something clipped inside an `overflow` div (log/list/chat)? Use `scrollIn` — see cookbook.
 
 ## Terminal recordings (`tape.mjs`)
 
-Wraps [charmbracelet/vhs](https://github.com/charmbracelet/vhs). Steps JSON → generated `.tape` → `vhs` renders a terminal gif. Step keys: `type` (string typed with realistic delay), `enter`, `sleep` (ms), `hide`/`show` (omit setup from the recording), `ctrl` (e.g. `"c"`). Options: `--width`, `--height`, `--font-size`, `--theme`, `--shell`. Raw passthrough: `node scripts/tape.mjs --tape file.tape out.gif`.
+Wraps [charmbracelet/vhs](https://github.com/charmbracelet/vhs). Steps JSON → generated `.tape` → `vhs` renders a terminal gif. Step keys: `type` (string typed with realistic delay), `enter`, `sleep`/`wait` (ms), `hide`/`show` (omit setup from the recording), `ctrl` (e.g. `"c"`). Options: `--width`, `--height`, `--font-size`, `--theme`, `--shell`. Raw passthrough: `node scripts/tape.mjs --tape file.tape out.gif`.
 
 Requires the `vhs` binary (`brew install vhs`) — preflight reports it; if missing, say so and offer the install command instead of failing silently.
 

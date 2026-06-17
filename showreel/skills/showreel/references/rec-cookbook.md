@@ -15,8 +15,8 @@ leaves the mask behind = the drift bug); `viewport` = fixed to frame; `page` = o
 | `click` | selector | — | — | — | element |
 | `glide` | selector | — | — | — | element (cursor) |
 | `scrollTo` | selector | — | — | — | — |
-| `scrollIn` | selector \| `{sel,to?,dur?}` | — | — | scrolls INSIDE an overflow div, not the page | element |
-| `to` | selector | **rides `scrollIn`** | ILLEGAL w/o `scrollIn` | the descendant to centre | — |
+| `scrollIn` | selector \| `{sel,to?,dur?}` — scrolls INSIDE an overflow div, not the page | — | — | — | element |
+| `to` | selector — the descendant to centre | **rides `scrollIn`** | ILLEGAL w/o `scrollIn` | — | — |
 | `wait` | number ms | — | — | ≥0 | — |
 | `note` | string | — | — | ≤12 words | element (w/ arrow) |
 | `arrow` | `true`/`"top"`/`"bottom"` | rides `note`/anchored `modal` | — | — | — |
@@ -268,7 +268,7 @@ explicit `out` + re-frame does, so just don't write it.
 - `--steps steps.json` or `--steps-json '[...]'` (inline, no temp file).
 - Output positional: `out.gif`, or `out.mp4` for **mp4-only** (skips the gif encode entirely — the fast default when no gif is needed). `--mp4 out.mp4` exports h264 alongside a gif; `--keep-webm out.webm` keeps the intermediate + `.timeline.json` sidecar (compose-video consumes it).
 - `steps.json` — selectors + text only; the script owns cursor motion, timing, and annotation placement.
-- Step keys (55) — the STEP GRAMMAR + DYNAMIC PRIMITIVES tables above are the authoritative list (unknown keys are rejected up front); count must equal `STEP_KEYS.size` in `rec-steps.mjs` (55). The **STEP GRAMMAR** table below is the authoritative shape contract — write every step against it, never from memory.
+- Step keys — the STEP GRAMMAR + DYNAMIC PRIMITIVES tables above are the authoritative list (unknown keys are rejected up front); count must equal `STEP_KEYS.size` in `rec-steps.mjs` (55). The **STEP GRAMMAR** table above is the authoritative shape contract — write every step against it, never from memory.
 - `spotlight` — `{"spotlight":".target","note":"..."}` dims the whole frame EXCEPT a lit window around the target, pulling the eye to one element (a soft accent ring traces the lit edge). `spotlight: true` rides the step's own click/fill anchor. Works under camera zoom. Use it instead of `rect` when the goal is focus, not just a box.
 
 ## Flags
