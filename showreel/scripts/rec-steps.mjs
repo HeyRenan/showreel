@@ -85,7 +85,11 @@ export function applyOfflineDefaults(a) {
 // click) before the dwell goes truly static. Offline rendering captures the
 // head frame by frame and collapses the static tail into one advance.
 export function hotHeadFor(step) {
-  const fade = (step && typeof step.fade === 'number' ? step.fade : 400);
+  // a step that declares fade:0 (or omits it) still gets the standard 400ms
+  // fade-in — the engine never renders an overlay with a zero fade (it would
+  // pop in with no animation). `|| 400` folds 0 and absent to the default, so a
+  // forgotten/zeroed fade can't shrink the hot head below the real fade window.
+  const fade = (step && typeof step.fade === 'number' && step.fade > 0 ? step.fade : 400);
   const g = step && step.glossary;
   const gOpt = g && typeof g === 'object' ? g : {};
   const STAG = gOpt.stagger != null ? gOpt.stagger : step && step.stagger != null ? step.stagger : 380;
