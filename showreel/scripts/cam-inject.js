@@ -136,6 +136,43 @@
     }
     window.__camFx = null;
   };
+  // A 1:1 (no-camera) scroll has no transform to break sticky, so the chrome
+  // stays correct — EXCEPT a translucent backdrop-filter header smears a dim,
+  // blurred ghost of the content scrolling under it (the h1 darkens crossing
+  // beneath it, then recovers). __camDegradeFx is the camera's veil-kill; this
+  // is the same kill scoped to a bare scroll: drop backdrop-filter and
+  // solidify the bg for the scroll's duration, restored after. No-op when a
+  // camera already degraded the chrome (__camFx live).
+  window.__scrollSoftenChrome = () => {
+    if (window.__camFx || window.__scrollFx) return;
+    window.__scrollFx = [];
+    for (const e of document.body.querySelectorAll('*')) {
+      const cs = getComputedStyle(e);
+      const bf = (cs.backdropFilter && cs.backdropFilter !== 'none') ||
+                 (cs.webkitBackdropFilter && cs.webkitBackdropFilter !== 'none');
+      if (!bf) continue;
+      const pos = cs.position;
+      if (pos !== 'sticky' && pos !== 'fixed') continue;
+      window.__scrollFx.push({ e, bf: e.style.backdropFilter,
+        wbf: e.style.webkitBackdropFilter, bg: e.style.backgroundColor,
+        trn: e.style.transition });
+      e.style.transition = (e.style.transition ? e.style.transition + ',' : '') +
+        'backdrop-filter .18s ease,background-color .18s ease';
+      e.style.backdropFilter = 'none';
+      e.style.webkitBackdropFilter = 'none';
+      const m = cs.backgroundColor.match(/rgba\((\d+),\s*(\d+),\s*(\d+)/);
+      if (m) e.style.backgroundColor = 'rgb(' + m[1] + ',' + m[2] + ',' + m[3] + ')';
+    }
+  };
+  window.__scrollRestoreChrome = () => {
+    for (const r of window.__scrollFx || []) {
+      r.e.style.backdropFilter = r.bf;
+      r.e.style.webkitBackdropFilter = r.wbf;
+      r.e.style.backgroundColor = r.bg;
+      r.e.style.transition = r.trn;
+    }
+    window.__scrollFx = null;
+  };
   window.__camTo = (s, tx, ty, ms) => {
     if (s !== 1 || tx || ty) window.__camDegradeFx();
     // the crop is anchored to the DOCUMENT while a camera holds the body —

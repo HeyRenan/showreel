@@ -131,10 +131,15 @@ export function makeMotion(rctx) {
       return { startY, dist, dur };
     }, { s: sel, durOverride: durOverride || 0 });
     if (plan) {
+      // a translucent backdrop-filter header veils the content scrolling under
+      // it (dim/blur ghost); soften the chrome for the scroll, restore after.
+      // No-op under a live camera (it already degraded the chrome).
+      await safeEval(() => window.__scrollSoftenChrome && window.__scrollSoftenChrome());
       await clock.motion(plan.dur, async (k) => {
         const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
         await safeEval((y) => scrollTo(0, y), plan.startY + plan.dist * e);
       });
+      await safeEval(() => window.__scrollRestoreChrome && window.__scrollRestoreChrome());
     }
     await clock.wait(ms(250));
   };
