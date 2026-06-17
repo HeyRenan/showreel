@@ -251,17 +251,30 @@ export function makeAnnotator(rctx) {
         add('left:' + (b.x - 4) + 'px;top:' + (b.y - 4) + 'px;width:' + (b.w + 8) + 'px;height:' + (b.h + 8) + 'px;' +
           'border:3px solid ' + GREEN + ';border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.35)');
       // spotlight: dim the whole frame EXCEPT a clear window around the target,
-      // pulling the eye to one element. A transparent box at the target rect
-      // with a viewport-spanning box-shadow spread paints the dim everywhere
-      // but the hole; a faint accent ring traces the lit edge. Sits at the
-      // backdrop level (z=1) so markers/notes still read on top of it.
+      // pulling the eye to one element.
+      //
+      // DIM = FOUR SOLID PANELS (top/bottom/left/right of the hole), NOT a single
+      // box-shadow:0 0 0 9999px spread. The huge-spread trick paints fine in a
+      // screenshot but DROPS OUT during video capture when the target sits in a
+      // container scrolled to an INTERMEDIATE offset (not top/not bottom): Chromium
+      // promotes that scroller to its own composited layer, and the 9999px shadow
+      // on an overlay outside it gets culled from the captured frame. Four plain
+      // opaque rects have no spread to cull — the compositor always rasterizes
+      // them — so the dim is rock-solid regardless of scroll/camera state.
+      // A separate ring div carries the accent edge + glow.
       const drawSpotlight = (b, pad) => {
         const p = pad != null ? pad : 12;
-        // dim the frame, cut a lit window, ring it in the accent with a soft
-        // outward glow so the focus reads as deliberate, not just a hole.
-        add('left:' + (b.x - p) + 'px;top:' + (b.y - p) + 'px;width:' + (b.w + p * 2) + 'px;height:' + (b.h + p * 2) + 'px;' +
-          'border-radius:12px;box-shadow:0 0 0 9999px ' + (T.spotlight || 'rgba(8,14,28,.66)') +
-          ',0 0 28px 4px ' + GREEN + '55,inset 0 0 0 2px ' + GREEN + 'cc', null, 1);
+        const dim = T.spotlight || 'rgba(8,14,28,.66)';
+        const W = innerWidth, H = innerHeight;
+        const L = b.x - p, Tp = b.y - p, R = b.x + b.w + p, B = b.y + b.h + p;
+        const panel = (css) => add(css + ';background:' + dim, null, 1);
+        panel('left:0;top:0;width:' + W + 'px;height:' + Math.max(0, Tp) + 'px');            // above
+        panel('left:0;top:' + B + 'px;width:' + W + 'px;height:' + Math.max(0, H - B) + 'px'); // below
+        panel('left:0;top:' + Math.max(0, Tp) + 'px;width:' + Math.max(0, L) + 'px;height:' + Math.max(0, B - Tp) + 'px'); // left
+        panel('left:' + R + 'px;top:' + Math.max(0, Tp) + 'px;width:' + Math.max(0, W - R) + 'px;height:' + Math.max(0, B - Tp) + 'px'); // right
+        // the lit window's accent ring + soft outward glow (no fill — the hole stays clear).
+        add('left:' + L + 'px;top:' + Tp + 'px;width:' + (b.w + p * 2) + 'px;height:' + (b.h + p * 2) + 'px;' +
+          'border-radius:12px;box-shadow:0 0 28px 4px ' + GREEN + '55,inset 0 0 0 2px ' + GREEN + 'cc', null, 1);
       };
       const drawCircle = (b) => {
         // a +10 ellipse passes INSIDE the corners of wide flat boxes and cuts
