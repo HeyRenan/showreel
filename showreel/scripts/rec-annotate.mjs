@@ -679,7 +679,12 @@ export function makeAnnotator(rctx) {
         // box so a small table cell doesn't bleed its censor bar into the next
         // column (-6px is huge on a narrow cell). Vertical overhang buries
         // ascenders/descenders; horizontal stays tight on small targets.
-        const ovY = Math.max(1, Math.min(3, r.height * 0.12));
+        // TABLE CELL: a td/th/row has hard neighbours above and below — ANY
+        // vertical overhang bleeds into the adjacent row (the censor bar looked
+        // taller than its cell and touched the next line). Hug the cell exactly:
+        // zero vertical overhang inside a table, full overhang elsewhere.
+        const inTable = /^(TD|TH|TR)$/.test(el.tagName) || !!el.closest('tr,td,th');
+        const ovY = inTable ? 0 : Math.max(1, Math.min(3, r.height * 0.12));
         const ovX = Math.max(1, Math.min(6, r.width * 0.03));
         // hug text horizontally on wide boxes; overhang vertically to bury glyphs
         const lIn = (ti.l - ovX).toFixed(1), rIn = (ti.rt - ovX).toFixed(1);
@@ -761,13 +766,24 @@ export function makeAnnotator(rctx) {
         const short = Math.min(r.width, r.height);
         const over = Math.max(1, Math.min(4, short * 0.12));
         const ring = Math.max(1, Math.min(2, short * 0.06));
-        const glow = Math.max(4, Math.min(16, short * 0.5));
+        // glow is an OUTSET box-shadow — it bleeds PAST the band on every side by
+        // its blur radius, so on a thin target (a full-width button ~52px tall) a
+        // fat halo spills above and below. Cap it to a fraction of the SHORT edge
+        // AND an absolute ceiling: ~18% of the short side keeps the halo hugging a
+        // thin control while a tall card still reads bold.
+        const glow = Math.max(3, Math.min(12, short * 0.18));
+        // TABLE CELL: hard neighbours above/below — zero vertical overhang so the
+        // band hugs its row exactly and never bleeds into the next line. Horizontal
+        // overhang stays (columns have gutters). Glow is clipped by overflow:hidden
+        // on the band, so it can't leak rows either.
+        const inTable = /^(TD|TH|TR)$/.test(el.tagName) || !!el.closest('tr,td,th');
+        const overY = inTable ? 0 : over;
         const band = document.createElement('div');
         band.className = '__sr_mask__';
         band.dataset.srFor = s;
         // horizontal edges hug the text when the box is wider than its content
         const lIn = (ti.l - over).toFixed(1), rIn = (ti.rt - over).toFixed(1);
-        band.style.cssText = 'position:absolute;top:-' + over.toFixed(1) + 'px;bottom:-' + over.toFixed(1) + 'px;left:' + lIn + 'px;right:' + rIn + 'px;z-index:2147483600;pointer-events:none;border-radius:6px;overflow:hidden;opacity:0;transition:opacity .35s ease;'
+        band.style.cssText = 'position:absolute;top:-' + overY.toFixed(1) + 'px;bottom:-' + overY.toFixed(1) + 'px;left:' + lIn + 'px;right:' + rIn + 'px;z-index:2147483600;pointer-events:none;border-radius:6px;overflow:hidden;opacity:0;transition:opacity .35s ease;'
           + 'box-shadow:0 0 0 ' + ring.toFixed(1) + 'px ' + (col || (dark ? 'rgba(250,204,21,0.9)' : 'rgba(202,138,4,0.8)')) + ',0 0 ' + glow.toFixed(1) + 'px 1px ' + (col || 'rgba(250,204,21,0.45)') + ';';
         requestAnimationFrame(() => { band.style.opacity = '1'; }); // fade IN
         // The ink swipe recolours the target — fine on a neutral surface, but on a
