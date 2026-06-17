@@ -14,7 +14,6 @@ import { readFileSync } from 'node:fs';
 import { loadChromium } from './rec-page.mjs';
 import {
   validateSteps, auditScenes, auditRosterLive, makeAuditBridge, offlineMotionConflicts,
-  STEP_KEYS,
 } from './rec-steps.mjs';
 
 const argv = process.argv.slice(2);

@@ -138,7 +138,6 @@ export async function convertOutputs(a, { webm, listPath, chrome, pageTheme, pag
     .filter((ev) => ev.t1 > ev.t0 + 0.05);
   const padTop = events.some((e) => e.lane === 'top') ? 44 : 0;
   const padBottom = events.some((e) => e.lane === 'bottom') ? 44 : 0;
-  const stripHex = pageTheme === 'dark' ? '0xf1f5f9' : '0x0f172a';
   const fadeOk = events.length ? ffmpegHasFade(ff) : false;
   const stripsAt = async (width) => {
     const evs = events.map((ev) => ({ ...ev }));

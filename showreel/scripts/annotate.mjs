@@ -24,7 +24,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { decodePNG, pixelAt, parseHexColor, colorMatches } from './pngread.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
