@@ -5,8 +5,7 @@
   { "screen": "Lumen — deploy console", "accent": "#5B8CFF", "wait": 1200 },
 
   { "camera": { "sel": ".status-dot", "zoom": 2 }, "accent": "#5B8CFF", "wait": 1300 },
-  { "pulse": "#live-dot", "wait": 500 },
-  { "highlight": "#live-dot", "note": "Breathes while the env is healthy", "wait": 1500 },
+  { "pulse": "#live-dot", "highlight": "#live-dot", "note": "Live and healthy", "wait": 1600 },
   { "camera": "out", "wait": 700 },
 
   { "camera": { "sel": "#pipeline", "zoom": 2 }, "accent": "#5B8CFF", "wait": 1300 },
@@ -16,7 +15,7 @@
       { "sel": "#stage-push .stage-name", "badge": "3", "text": "Push to the registry" },
       { "sel": "#stage-deploy .stage-name", "badge": "4", "text": "Release to production" }
     ],
-    "glossary": true, "stagger": 420, "wait": 6800 },
+    "glossary": true, "stagger": 420, "wait": 5200 },
   { "camera": "out", "wait": 700 },
 
   { "camera": { "sel": ".bar-actions", "zoom": 2 }, "accent": "#5B8CFF", "wait": 1300 },
@@ -39,10 +38,8 @@
   { "spotlight": "#svc-api", "note": "Routes production checkout traffic", "wait": 1500 },
   { "camera": "out", "wait": 700 },
 
-  { "follow": 2, "glide": "#svc-api", "accent": "#ef4444", "wait": 1600 },
-  { "glide": "#svc-worker", "wait": 1600 },
-  { "glide": "#svc-cdn", "wait": 1600 },
-  { "glide": "#svc-db", "wait": 1600 },
+  { "follow": 2, "glide": "#svc-api", "accent": "#ef4444", "wait": 1500 },
+  { "glide": "#svc-db", "note": "Traffic flows edge to data", "wait": 1700 },
   { "camera": "out", "wait": 700 },
 
   { "camera": { "sel": "#history" }, "accent": "#5B8CFF", "wait": 1300 },
@@ -50,10 +47,10 @@
   { "redact": "#email-1247", "wait": 800 },
   { "highlight": "#email-1246", "note": "Only owners see full addresses", "wait": 1500 },
   { "hide": "#row-1246", "note": "Filter out archived deploys", "wait": 1500 },
-  { "camera": "out", "wait": 1200 },
+  { "camera": "out", "wait": 900 },
 
   { "modal": "Same console, light surface.", "fade": 600, "wait": 1700 },
-  { "click": "#theme", "wait": 1600 },
+  { "click": "#theme", "wait": 2200 },
 
   { "camera": { "sel": "#invite-form" }, "accent": "#2B6CE6", "wait": 1300 },
   { "fill": "#iname", "text": "Dana Reyes", "delay": 45, "wait": 700 },
@@ -83,7 +80,7 @@
 
   { "camera": { "sel": "#stage-deploy", "zoom": 3 }, "accent": "#1E9E6A", "wait": 1300 },
   { "checkmark": "#stage-deploy .badge", "wait": 800 },
-  { "flash": "#stage-deploy .chip", "wait": 400 },
+  { "flash": "#stage-deploy .chip", "wait": 600 },
 
   { "camera": { "sel": "#deploy-panel", "zoom": 2 }, "accent": "#1E9E6A", "wait": 1300 },
   { "highlight": "#deploy", "note": "Shipped to production", "wait": 1500 },
@@ -113,6 +110,6 @@
   { "camera": "out", "wait": 700 },
 
   { "click": "#theme", "wait": 1400 },
-  { "camera": "out", "accent": "#34D399", "wait": 700 },
-  { "modal": "Blocked, fixed, shipped — safely.", "fade": 800, "wait": 2800 }
+  { "camera": "out", "wait": 700 },
+  { "modal": "Blocked, fixed, shipped — safely.", "accent": "#34D399", "fade": 800, "wait": 2800 }
 ]
