@@ -19,9 +19,24 @@ import {
 
 const argv = process.argv.slice(2);
 const strict = argv.includes('--strict');
-const [url, rosterPath] = argv.filter((a) => !a.startsWith('--'));
+const flagVal = (name, def) => {
+  const i = argv.indexOf(name);
+  return i >= 0 && argv[i + 1] ? Number(argv[i + 1]) : def;
+};
+// MUST match the render viewport or the reach/off-screen checks lie: a panel
+// that fits 1600x900 but not 1280x676 would pass here and BLOCK at render.
+// Default to rec.mjs's 16:9 capture so CI and a local render agree.
+const VW = flagVal('--width', 1280);
+const VH = flagVal('--height', 720);
+const VALUE_FLAGS = new Set(['--width', '--height']);
+const positionals = [];
+for (let i = 0; i < argv.length; i++) {
+  if (argv[i].startsWith('--')) { if (VALUE_FLAGS.has(argv[i])) i++; continue; }
+  positionals.push(argv[i]);
+}
+const [url, rosterPath] = positionals;
 if (!url || !rosterPath) {
-  console.error('usage: node scripts/audit-roster.mjs <url> <roster.json> [--strict]');
+  console.error('usage: node scripts/audit-roster.mjs <url> <roster.json> [--width N] [--height N] [--strict]');
   process.exit(2);
 }
 
@@ -37,7 +52,7 @@ const { warnings } = auditScenes(steps);
 // 2. live audit (off-screen, screen-breaker) — drives state as it walks
 const chromium = await loadChromium();
 const browser = await chromium.launch();
-const page = await (await browser.newContext({ viewport: { width: 1600, height: 900 } })).newPage();
+const page = await (await browser.newContext({ viewport: { width: VW, height: VH } })).newPage();
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(350);
 const bridge = {
@@ -51,13 +66,17 @@ const bridge = {
   fill: (sel, t) => page.evaluate(({ q, t }) => { const el = document.querySelector(q); if (el) { el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); } }, { q: sel, t }),
   select: (sel, o) => page.evaluate(({ q, o }) => { const el = document.querySelector(q); if (el) { const x = [...el.options].find((p) => p.text.trim() === o || p.value === o); if (x) { el.value = x.value; el.dispatchEvent(new Event('change', { bubbles: true })); } } }, { q: sel, o }),
   settle: (ms) => page.waitForTimeout(ms),
+  contains: (host, sel) => page.evaluate(({ h, s }) => {
+    const he = document.querySelector(h), se = document.querySelector(s);
+    return !!(he && se && he.contains(se));
+  }, { h: host, s: sel }),
   reach: (sel) => page.evaluate(({ q, vw, vh }) => {
     const el = document.querySelector(q); if (!el) return null;
     const r = el.getBoundingClientRect(); if (!r.width || !r.height) return null;
     const fit = Math.max(1, Math.min(2.4, Math.min(0.86 * vw / r.width, 0.86 * vh / r.height)));
     const noCrop = 0.94 * Math.min(vw / r.width, vh / r.height);
     return Math.max(1, Math.min(Math.min(3, fit * 2), noCrop));
-  }, { q: sel, vw: 1600, vh: 900 }),
+  }, { q: sel, vw: VW, vh: VH }),
 };
 const { errors } = await auditRosterLive(steps, bridge);
 await browser.close();

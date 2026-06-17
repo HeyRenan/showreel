@@ -27,4 +27,5 @@ jobs:
         run: |
           node showreel/scripts/audit-roster.mjs \
             "file://$PWD/assets-src/demo/index.html?gate=fail" \
-            assets-src/showcase-steps.json
+            assets-src/showcase-steps.json \
+            --width 1280 --height 676

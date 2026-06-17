@@ -23,6 +23,8 @@ export function parse(argv) {
     if (k === '--steps') a.steps = argv[++i];
     else if (k === '--steps-json') a.stepsJson = argv[++i];
     else if (k === '--pace') a.pace = argv[++i];
+    else if (k === '--storage-state') a.storageState = argv[++i];
+    else if (k === '--cookies') a.cookies = argv[++i];
     else if (k === '--dry') a.dry = true;
     else if (k === '--no-safeguards') a.noSafeguards = true;
     else if (k === '--stamp') a.stamp = true;
@@ -56,7 +58,7 @@ export function parse(argv) {
   return a;
 }
 
-export const STEP_KEYS = new Set(['click', 'scrollTo', 'wait', 'note', 'arrow', 'badge', 'rect', 'circle', 'blur', 'hide', 'modal', 'glide', 'marks', 'screen', 'zoom', 'topbar', 'bottombar', 'fill', 'text', 'delay', 'select', 'option', 'camera', 'glossary', 'stagger', 'accent', 'inset', 'follow', 'fade', 'speed', 'spotlight', 'redact', 'highlight', 'confetti', 'countup', 'sparkline', 'pulse', 'ripple', 'shake', 'glow', 'checkmark', 'typeon', 'reveal', 'orbit', 'kenburns', 'flash', 'progress', 'countdown', 'trail', 'size', 'dur', 'count', 'intensity']);
+export const STEP_KEYS = new Set(['click', 'scrollTo', 'scrollIn', 'to', 'wait', 'note', 'arrow', 'badge', 'rect', 'circle', 'blur', 'hide', 'modal', 'glide', 'marks', 'screen', 'zoom', 'topbar', 'bottombar', 'fill', 'text', 'delay', 'select', 'option', 'camera', 'glossary', 'stagger', 'accent', 'inset', 'follow', 'fade', 'speed', 'spotlight', 'redact', 'highlight', 'confetti', 'countup', 'sparkline', 'pulse', 'ripple', 'shake', 'glow', 'checkmark', 'typeon', 'reveal', 'orbit', 'kenburns', 'flash', 'progress', 'countdown', 'trail', 'size', 'dur', 'count', 'intensity']);
 
 export const GLOSSARY_POS = new Set(['auto', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
 export const MARK_KEYS = new Set(['sel', 'badge', 'rect', 'circle', 'text']);
@@ -108,6 +110,53 @@ export function selectSpec(step) {
   if (step.select == null) return null;
   if (typeof step.select === 'string') return { sel: step.select, option: step.option };
   return { sel: step.select.sel, option: step.select.value != null ? step.select.value : step.select.option };
+}
+
+// scrollIn: scroll INSIDE an overflow container. {scrollIn:"#log"} scrolls it to
+// the bottom; {scrollIn:"#log", to:"#row"} centres that descendant; the object
+// form {scrollIn:{sel,to,dur}} is equivalent. Returns {sel,to,dur} or null.
+export function scrollInSpec(step) {
+  if (step.scrollIn == null) return null;
+  if (typeof step.scrollIn === 'string')
+    return { sel: step.scrollIn, to: step.to || null, dur: step.dur || null };
+  if (typeof step.scrollIn === 'object')
+    return { sel: step.scrollIn.sel, to: step.scrollIn.to || step.to || null, dur: step.scrollIn.dur || step.dur || null };
+  return null;
+}
+
+// the selector an interaction step acts on (click/fill/select), or null.
+export function actionSel(step) {
+  if (typeof step.click === 'string') return step.click;
+  const f = fillSpec(step); if (f && f.sel) return f.sel;
+  const s = selectSpec(step); if (s && s.sel) return s.sel;
+  return null;
+}
+
+// Collapse a REDUNDANT bare-glide: a step whose only job is to glide the cursor
+// to a target, IMMEDIATELY followed by a step that acts (click/fill/select) on
+// the SAME target. The action does its own cursor glide, so the pre-glide is a
+// wasted second move — the pointer hops to the side, then again to the centre
+// ("the cursor moves twice for one action"). Drop the bare-glide and carry its
+// accent forward if the action lacks one. A glide that moves to a DIFFERENT
+// target (a follow tour, a glide with its own note) is kept untouched.
+export function collapseRedundantGlides(steps) {
+  if (!Array.isArray(steps)) return steps;
+  const isBareGlide = (s) => {
+    if (!s || typeof s !== 'object' || typeof s.glide !== 'string') return false;
+    // bare = glide + only cosmetic siblings; any real work keeps the step.
+    const allowed = new Set(['glide', 'wait', 'accent', 'speed']);
+    return Object.keys(s).every((k) => allowed.has(k));
+  };
+  const out = [];
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i], nxt = steps[i + 1];
+    if (isBareGlide(s) && nxt && actionSel(nxt) === s.glide) {
+      if (s.accent && nxt.accent == null) steps[i + 1] = { ...nxt, accent: s.accent };
+      continue; // drop the pre-glide; the action's own glide goes straight there
+    }
+    out.push(s);
+  }
+  return out;
 }
 
 // --auto-annotate: an interaction step (click/fill/select) that doesn't already
@@ -656,7 +705,12 @@ export async function auditRosterLive(steps, bridge) {
           const left = f.cx - f.w / 2 - 8, right = f.cx + f.w / 2 + 8;
           const top = f.cy - f.h / 2 - 8, bot = f.cy + f.h / 2 + 8;
           const inside = m.cx >= left && m.cx <= right && m.cy >= top && m.cy <= bot;
-          if (!inside) errors.push({ step: i + 1, kind: 'off-screen', message: `"${sel}" is outside the scene's camera frame "${framed}" — the action fires off-screen. Frame the panel that contains it (e.g. {"camera":{"sel":"<its panel>"}}) before this step, or move the step into the scene that frames it.` });
+          // a target clipped inside a scroll container WITHIN the framed panel is
+          // reachable — the runtime full-visibility gate scrolls that container to
+          // reveal it before marking. Its current (clipped) center reads outside
+          // the frame, but it is not off-screen. Treat descendants as in-frame.
+          const reachableInside = !inside && bridge.contains ? await bridge.contains(framed, sel) : false;
+          if (!inside && !reachableInside) errors.push({ step: i + 1, kind: 'off-screen', message: `"${sel}" is outside the scene's camera frame "${framed}" — the action fires off-screen. Frame the panel that contains it (e.g. {"camera":{"sel":"<its panel>"}}) before this step, or move the step into the scene that frames it.` });
         }
       }
     }

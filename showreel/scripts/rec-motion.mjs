@@ -150,6 +150,129 @@ export function makeMotion(rctx) {
     return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
   }, sel);
 
+  // Is the element FULLY visible? Not just "some of it shows" — the whole box
+  // must sit inside the viewport AND inside the visible (un-clipped) rect of
+  // every overflow ancestor (a card half-hidden in a scroll container counts as
+  // NOT fully visible). Returns { full, fits, clippers } — `fits` is false when
+  // the element is simply bigger than the viewport so no scroll can ever show it
+  // whole (the caller then frames it with the camera instead of scrolling).
+  const visibilityOf = async (sel) => safeEval((s) => {
+    const el = document.querySelector(s); if (!el) return { full: true, fits: true, clippers: 0 };
+    // layout-space rect: undo the body camera transform so scroll math is sane.
+    const cam = window.__cam || { s: 1, tx: 0, ty: 0 };
+    const cs = cam.s || 1;
+    const raw = el.getBoundingClientRect();
+    const br = document.body.getBoundingClientRect();
+    const b0x = br.x - cam.tx, b0y = br.y - cam.ty;
+    const top = b0y + (raw.top - cam.ty - b0y) / cs;
+    const bottom = b0y + (raw.bottom - cam.ty - b0y) / cs;
+    const left = b0x + (raw.left - cam.tx - b0x) / cs;
+    const right = b0x + (raw.right - cam.tx - b0x) / cs;
+    const vh = innerHeight / cs, vw = innerWidth / cs;
+    const PAD = 6;
+    let full = top >= PAD && bottom <= vh - PAD && left >= -PAD && right <= vw + PAD;
+    // walk overflow ancestors: any scroll/clip container whose visible rect cuts
+    // the element means part of it is hidden behind the container edge.
+    let clippers = 0, p = el.parentElement;
+    while (p && p !== document.body && p !== document.documentElement) {
+      const st = getComputedStyle(p);
+      if (/(auto|scroll|hidden|clip)/.test(st.overflow + st.overflowX + st.overflowY)) {
+        clippers++;
+        const cr = p.getBoundingClientRect();
+        const cTop = b0y + (cr.top - cam.ty - b0y) / cs, cBot = b0y + (cr.bottom - cam.ty - b0y) / cs;
+        const cLef = b0x + (cr.left - cam.tx - b0x) / cs, cRig = b0x + (cr.right - cam.tx - b0x) / cs;
+        if (top < cTop - PAD || bottom > cBot + PAD || left < cLef - PAD || right > cRig + PAD) full = false;
+      }
+      p = p.parentElement;
+    }
+    const fits = (bottom - top) <= vh - 2 * PAD && (right - left) <= vw - 2 * PAD;
+    return { full, fits, clippers };
+  }, sel);
+
+  // Bring the element FULLY into view before it is marked: scroll each overflow
+  // container that clips it so the whole box shows, then the page. Order matters
+  // — inner clippers first (page scroll can't reveal what a container hides),
+  // page last. Returns false when the element is bigger than the viewport (no
+  // scroll can show it whole — the caller frames it with the camera instead).
+  // cameraFramed = the camera already frames this element (or an ancestor), so
+  // the page-viewport fit is handled by the transform — we still reveal it from
+  // any INNER scroll container (the camera can't scroll a container), but we do
+  // NOT page-scroll or fail when its raw box exceeds the untransformed viewport.
+  const bringFullyIntoView = async (sel, cameraFramed = false) => {
+    const vis = await visibilityOf(sel);
+    if (vis.full) return true;
+    // 1. ALWAYS scroll every clipping ancestor to reveal the element inside it —
+    // a camera frame never scrolls a container, so a line clipped by an inner
+    // overflow box must be scrolled into the container's view regardless.
+    if (vis.clippers > 0) {
+      const containers = await safeEval((s) => {
+        const el = document.querySelector(s); if (!el) return [];
+        const out = []; let p = el.parentElement;
+        while (p && p !== document.body && p !== document.documentElement) {
+          const st = getComputedStyle(p);
+          if (/(auto|scroll|hidden|clip)/.test(st.overflow + st.overflowX + st.overflowY)
+            && (p.scrollHeight - p.clientHeight > 1 || p.scrollWidth - p.clientWidth > 1)) {
+            if (!p.id) p.dataset.srClipId = p.dataset.srClipId || ('srclip' + Math.floor(performance.now()));
+            out.push(p.id ? '#' + p.id : '[data-sr-clip-id="' + p.dataset.srClipId + '"]');
+          }
+          p = p.parentElement;
+        }
+        return out.reverse(); // innermost first
+      }, sel);
+      for (const cSel of containers) await scrollContainer(cSel, sel);
+    }
+    // the camera owns the viewport fit — inner reveal done, that's all we can/should do.
+    if (cameraFramed) return true;
+    if (!vis.fits) return false; // too big to ever fully fit + no camera — caller's problem
+    // 2. page scroll for the residual (element clipped by the window itself).
+    const after = await visibilityOf(sel);
+    if (!after.full) await smoothScroll(sel);
+    const fin = await visibilityOf(sel);
+    return fin.full;
+  };
+
+  // scroll INSIDE a container (overflow:auto/scroll div — a log, a list, a feed)
+  // rather than the page. window.scrollTo can't reach content clipped inside an
+  // overflow box; this animates the container's own scrollTop on the take's
+  // clock (same one-write-per-tick model as smoothScroll, immune to the paused
+  // virtual clock). Without a `to` target it scrolls the container to its
+  // BOTTOM (the common "follow the log as it grows" move). With `to`, it centres
+  // that descendant in the container's viewport. Camera-scale-agnostic: scrollTop
+  // is a layout property, unaffected by the body transform.
+  const scrollContainer = async (sel, toSel, durOverride) => {
+    const plan = await safeEval(({ s, toSel }) => {
+      const el = document.querySelector(s);
+      if (!el) return null;
+      const max = el.scrollHeight - el.clientHeight;
+      if (max <= 1) return null; // nothing to scroll
+      const startY = el.scrollTop;
+      let targetY;
+      if (toSel) {
+        const t = document.querySelector(toSel);
+        if (!t) return null;
+        // descendant offset within the container's scroll space, centred.
+        const er = el.getBoundingClientRect(), tr = t.getBoundingClientRect();
+        const rel = (tr.top - er.top) + el.scrollTop; // layout offset top-of-target
+        targetY = rel - (el.clientHeight - tr.height) / 2;
+      } else {
+        targetY = max; // bottom
+      }
+      targetY = Math.max(0, Math.min(max, targetY));
+      const dist = targetY - startY;
+      if (Math.abs(dist) < 2) return null;
+      return { startY, dist };
+    }, { s: sel, toSel: toSel || null });
+    if (plan) {
+      const dur = durOverride || Math.max(600, Math.min(1800, Math.abs(plan.dist) * 1.1));
+      await clock.motion(dur, async (k) => {
+        const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        await safeEval(({ s, y }) => { const el = document.querySelector(s); if (el) el.scrollTop = y; },
+          { s: sel, y: plan.startY + plan.dist * e });
+      });
+    }
+    await clock.wait(ms(200));
+  };
+
   // page.evaluate injections die on navigation (a click that routes away) —
   // restore the cursor so the next glide still has something to move.
   const ensureCursor = async () => {
@@ -167,5 +290,5 @@ export function makeMotion(rctx) {
     await page.evaluate(([px, py]) => { if (window.__ripple) window.__ripple(px, py); }, [x, y]);
   };
 
-  return { glide, glideChase, camBez, scrollDeltaFor, smoothScroll, boxOf, ensureCursor, ripple };
+  return { glide, glideChase, camBez, scrollDeltaFor, smoothScroll, scrollContainer, visibilityOf, bringFullyIntoView, boxOf, ensureCursor, ripple };
 }

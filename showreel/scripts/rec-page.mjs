@@ -40,6 +40,22 @@ export async function detectPageLook(page) {
   } catch { return { theme: 'light', bg: null }; }
 }
 
+// Cheap LIVE theme read for per-step adaptation (no screenshot): luminance of
+// the body background. Generic — keyed on pixels, never a page-specific class
+// like `.light`. Returns 'dark' | 'light', or null when the bg is transparent /
+// unparseable so the caller can fall back to the load-time seed.
+export async function readLiveTheme(page) {
+  try {
+    return await page.evaluate(() => {
+      const bg = getComputedStyle(document.body).backgroundColor;
+      const m = bg && bg.match(/[\d.]+/g);
+      if (!m || (m[3] !== undefined && Number(m[3]) === 0)) return null; // transparent
+      const L = (0.2126 * +m[0] + 0.7152 * +m[1] + 0.0722 * +m[2]) / 255;
+      return L < 0.5 ? 'dark' : 'light';
+    });
+  } catch { return null; }
+}
+
 // the canvas so nothing overlaps inside the strip.
 
 export async function loadChromium() {

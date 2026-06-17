@@ -7,7 +7,10 @@
 import { modalLayout } from './rec-steps.mjs';
 
 export function makeAnnotator(rctx) {
-  const { safeEval, clock, a, ms, pageTheme, accent } = rctx;
+  // pageTheme is read LIVE off rctx (not destructured) so a mid-reel theme
+  // toggle reaches every annotation built after it — rec.mjs refreshes
+  // rctx.pageTheme at each step from the page's actual body luminance.
+  const { safeEval, clock, a, ms, accent } = rctx;
 
   let lastFade = 400;
   const showAnnotations = async (box, step, sel) => {
@@ -601,7 +604,7 @@ export function makeAnnotator(rctx) {
       }
       requestAnimationFrame(() => { wrap.style.opacity = '1'; });
       return warns;
-    }, { box, step, modal, modalExplicit, theme: pageTheme, sel, accent });
+    }, { box, step, modal, modalExplicit, theme: rctx.pageTheme, sel, accent });
   };
   const clearAnnotations = async () => {
     await safeEval(() => {

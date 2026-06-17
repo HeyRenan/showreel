@@ -7,7 +7,12 @@
 //   node rec.mjs <url> --steps steps.json out.gif \
 //     [--steps-json '[...]'] [--stamp] [--width 900] [--height 1400] \
 //     [--gif-width 460] [--fps 18] [--mp4 out.mp4] [--keep-webm out.webm] \
-//     [--offline] [--auto-annotate] [--block-hosts [csv]]  |  node rec.mjs [url] --batch takes.json
+//     [--offline] [--auto-annotate] [--block-hosts [csv]] \
+//     [--storage-state auth.json] [--cookies cookies.json]  |  node rec.mjs [url] --batch takes.json
+//   --storage-state = Playwright storage-state JSON (cookies + localStorage) to
+//   record a LOGGED-IN page; passed to every context (render + safeguard audit).
+//   --cookies = JSON array of Playwright cookie objects, added before goto.
+//   Both hold live session secrets — keep the file OUTSIDE the repo, never commit.
 //   --auto-annotate = a bare click/fill/select step gets a rect outline on the
 //   target plus a note with the element's visible label, for free — author
 //   writes {click:"#deploy"} and the viewer sees "Deploy to production" boxed
@@ -84,7 +89,7 @@ import { execFileSync } from 'node:child_process';
 import { makeClock, buildConcatList } from './clock.mjs';
 import { num } from './cli-args.mjs';
 import { convertOutputs } from './rec-encode.mjs';
-import { cursorSnippet, endCardSnippet, detectPageLook, loadChromium, OFFLINE_ARGS } from './rec-page.mjs';
+import { cursorSnippet, endCardSnippet, detectPageLook, readLiveTheme, loadChromium, OFFLINE_ARGS } from './rec-page.mjs';
 import { makeAnnotator } from './rec-annotate.mjs';
 import { makeMotion } from './rec-motion.mjs';
 import { makeInput } from './rec-input.mjs';
@@ -111,7 +116,7 @@ import {
   selectSpec, autoAnnotateStep, camTransitionPlan, clampRelease, cameraSpec,
   modalLayout, screenPhase, stepLabel, padToRatio, deriveCaptureHeight,
   resolveCaptureHeight, validateSteps, validateBatch, offlineMotionConflicts,
-  auditScenes, auditRosterLive,
+  auditScenes, auditRosterLive, collapseRedundantGlides, scrollInSpec,
   STEP_KEYS, GLOSSARY_POS, MARK_KEYS, TAKE_KEYS, END_CARD_MODES, THEMES,
 } from "./rec-steps.mjs";
 export * from "./rec-steps.mjs";
@@ -131,6 +136,18 @@ async function main() {
     if (block && block.blocked.size)
       console.error('rec: blocked ' + block.blocked.size + ' hosts: ' + [...block.blocked].sort().join(', '));
   };
+
+  // --storage-state / --cookies: seed the recording context with auth so a take
+  // can film a LOGGED-IN page. storageState is a Playwright-native JSON path
+  // (cookies + localStorage) passed by reference into every newContext; cookies
+  // is a JSON array applied via addCookies after each context opens, before goto.
+  // Both apply to the render AND safeguard/audit contexts — the audit drives the
+  // real page, so deslogado it would false-fail every logged-in anchor.
+  const auth = {
+    storageState: a.storageState || undefined,
+    cookies: a.cookies ? parseJsonOrDie(readFileSync(a.cookies, 'utf8'), a.cookies) : null,
+  };
+  const applyCookies = async (ctx) => { if (auth.cookies) await ctx.addCookies(auth.cookies); };
 
   // --batch takes.json: ONE chromium, one context per take (recordVideo is
   // per-context), a 3-wide pool, conversion as each take finishes.
@@ -155,7 +172,7 @@ async function main() {
       while (next < vb.takes.length) {
         const t = vb.takes[next++];
         t.offline = a.offline;
-        const art = await recordTake(browser, t, block);
+        const art = await recordTake(browser, t, block, auth);
         const sizeMB = await convertOutputs(t, art);
         console.log(`OK ${t.out} (${sizeMB}MB)`);
         done++;
@@ -211,7 +228,9 @@ async function main() {
   // skips it for the rare authored exception.
   if (!a.noSafeguards) {
     const sgBrowser = await chromium.launch();
-    const sgPage = await (await sgBrowser.newContext({ viewport: { width: a.width, height: a.height } })).newPage();
+    const sgCtx = await sgBrowser.newContext({ viewport: { width: a.width, height: a.height }, ...(auth.storageState ? { storageState: auth.storageState } : {}) });
+    await applyCookies(sgCtx);
+    const sgPage = await sgCtx.newPage();
     await sgPage.goto(a.url, { waitUntil: 'domcontentloaded' });
     await sgPage.waitForTimeout(350);
     const bridge = {
@@ -227,6 +246,13 @@ async function main() {
       fill: (sel, text) => sgPage.evaluate(({ q, t }) => { const el = document.querySelector(q); if (el) { el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); } }, { q: sel, t: text }),
       select: (sel, opt) => sgPage.evaluate(({ q, o }) => { const el = document.querySelector(q); if (el) { const x = [...el.options].find((p) => p.text.trim() === o || p.value === o); if (x) { el.value = x.value; el.dispatchEvent(new Event('change', { bubbles: true })); } } }, { q: sel, o: opt }),
       settle: (ms) => sgPage.waitForTimeout(ms),
+      // is `sel` a descendant of `host`? a target clipped inside a scroll
+      // container WITHIN the framed panel is reachable (the runtime gate scrolls
+      // the container to reveal it) — so it is NOT off-screen, just not-yet-shown.
+      contains: (host, sel) => sgPage.evaluate(({ h, s }) => {
+        const he = document.querySelector(h), se = document.querySelector(s);
+        return !!(he && se && he.contains(se));
+      }, { h: host, s: sel }),
       // achievable camera scale for an element (mirrors camFrame: auto-fit * zoom
       // clamped by the no-crop ceiling). < ~1.15 means "zoom can't magnify this".
       reach: (sel) => sgPage.evaluate(({ q, vw, vh }) => {
@@ -250,7 +276,9 @@ async function main() {
   // no waits — the cheap authoring loop before the one real take.
   if (a.dry) {
     const browser = await chromium.launch();
-    const pg = await (await browser.newContext({ viewport: { width: a.width, height: a.height } })).newPage();
+    const dryCtx = await browser.newContext({ viewport: { width: a.width, height: a.height }, ...(auth.storageState ? { storageState: auth.storageState } : {}) });
+    await applyCookies(dryCtx);
+    const pg = await dryCtx.newPage();
     await pg.goto(a.url, { waitUntil: 'domcontentloaded' });
     let missing = 0;
     let resolved = 0;
@@ -297,7 +325,7 @@ async function main() {
   const browser = await chromium.launch(a.offline ? { args: OFFLINE_ARGS } : undefined);
   let art;
   try {
-    art = await recordTake(browser, t, block);
+    art = await recordTake(browser, t, block, auth);
   } finally {
     await browser.close();
   }
@@ -309,16 +337,20 @@ async function main() {
 // One take = one browser context (recordVideo rides the context). The param
 // keeps the historical name `a` so the recording runtime below reads as the
 // single-take code it grew from.
-async function recordTake(browser, a, block) {
-  const steps = a.steps;
+async function recordTake(browser, a, block, auth) {
+  const steps = collapseRedundantGlides(a.steps);
   const offline = !!a.offline;
   const vidDir = mkdtempSync(join(tmpdir(), 'showreel-rec-'));
   // offline renders stills on the virtual clock — recordVideo would tape a
   // paused page in wall time, pure waste.
   const ctx = await browser.newContext({
     viewport: { width: a.width, height: a.height },
+    ...(auth && auth.storageState ? { storageState: auth.storageState } : {}),
     ...(offline ? {} : { recordVideo: { dir: vidDir, size: { width: a.width, height: a.height } } }),
   });
+  // seed logged-in cookies before the page navigates (storageState above covers
+  // cookies + localStorage; addCookies augments when only cookies were given).
+  if (auth && auth.cookies) await ctx.addCookies(auth.cookies);
   if (block) {
     let pageHost = '';
     try { pageHost = new URL(a.url).host; } catch { /* bare path */ }
@@ -445,7 +477,7 @@ async function recordTake(browser, a, block) {
   // (stage 5b). camBez is internal to it; the camera→cursor handoff is the
   // object camFrame returns (aim), not shared state.
   const motion = makeMotion(rctx);
-  const { glide, glideChase, scrollDeltaFor, smoothScroll, boxOf, ensureCursor, ripple } = motion;
+  const { glide, glideChase, scrollDeltaFor, smoothScroll, scrollContainer, visibilityOf, bringFullyIntoView, boxOf, ensureCursor, ripple } = motion;
 
   // transient DOM overlays for one step (note/arrow/badge/rect/circle/modal),
   // faded out + removed on the next step. blur persists on the element itself.
@@ -501,9 +533,23 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
   // the current accent so a primitive in a later step (with no accent of its own)
   // inherits the scene's colour instead of falling back to the amber default.
   let sceneAccent = accent;
+  // the selector the camera currently frames (persists across steps until an
+  // `out`/screen/modal). The full-visibility gate trusts the camera: a target
+  // that IS the framed element (or lives inside it) is already shown by the
+  // frame even if its raw geometry exceeds the untransformed viewport — don't
+  // force a useless scroll on it.
+  let framedSel = null;
   for (let step of steps) {
     stepIndex++;
     if (step.accent) sceneAccent = step.accent;
+    if ('screen' in step || 'modal' in step) framedSel = null;
+    // LIVE THEME: a mid-reel theme toggle (the page flips its own colours) must
+    // re-colour every annotation built from here on. Re-read the page's actual
+    // body luminance once per step (cheap, no screenshot) and overwrite the
+    // shared context the annotator reads; fall back to the load-time seed when
+    // the bg is transparent/unreadable. Generic — keyed on pixels, not a class.
+    const liveTheme = await readLiveTheme(page);
+    rctx.pageTheme = liveTheme || pageTheme;
     // --auto-annotate: a bare click/fill/select gets a rect + the element's
     // visible label as a note, for free (author annotations always win).
     if (a.autoAnnotate) {
@@ -563,9 +609,18 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
         await safeEval(() => window.__camScrollClamp && window.__camScrollClamp(false));
       }
     } else if (step.scrollTo) await smoothScroll(step.scrollTo);
-    // NEVER fire an effect at an off-screen element — it would animate where the
-    // viewer can't see it. Collect every effect/anchor target this step touches
-    // and, if its top is outside the viewport, smooth-scroll it into view first.
+    // scrollIn: scroll INSIDE an overflow container (a log/list/feed div) — the
+    // page-level scroll above can't reach content clipped inside it.
+    {
+      const si = scrollInSpec(step);
+      if (si && si.sel) await scrollContainer(si.sel, si.to, si.dur);
+    }
+    // FULL-VISIBILITY GATE: an element may be marked ONLY when its WHOLE box is
+    // on screen — never a card half off the viewport, never one half-clipped by
+    // an inner scroll container. Before any effect/marker fires, bring each
+    // target FULLY into view (scroll its overflow containers, then the page). If
+    // it is simply bigger than the viewport (can't ever fit), the camera frames
+    // it elsewhere; we don't scroll uselessly, just warn once.
     {
       const tgts = [
         typeof step.confetti === 'string' && step.confetti, typeof step.pulse === 'string' && step.pulse,
@@ -573,16 +628,25 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
         typeof step.shake === 'string' && step.shake, step.reveal, (typeof step.typeon === 'string' ? step.typeon : step.typeon && step.typeon.sel),
         typeof step.kenburns === 'string' && step.kenburns, typeof step.checkmark === 'string' && step.checkmark,
         typeof step.ripple === 'string' && step.ripple, step.blur, step.redact, step.highlight,
+        typeof step.spotlight === 'string' && step.spotlight, typeof step.rect === 'string' && step.rect,
+        typeof step.circle === 'string' && step.circle, typeof step.inset === 'string' && step.inset,
         (typeof step.sparkline === 'string' ? step.sparkline : step.sparkline && step.sparkline.sel),
         (typeof step.countup === 'string' ? step.countup : step.countup && step.countup !== true && step.countup.sel),
       ].filter((x) => typeof x === 'string' && x);
       for (const tg of tgts) {
-        const onscreen = await safeEval((q) => {
-          const el = document.querySelector(q); if (!el) return true;
-          const r = el.getBoundingClientRect();
-          return r.bottom > 24 && r.top < innerHeight - 24 && r.height > 0;
-        }, tg);
-        if (!onscreen) { await smoothScroll(tg); break; }
+        // is this target already framed by the camera (it IS the framed element
+        // or a descendant)? then the viewport fit is the camera's job — but inner
+        // overflow containers must STILL be scrolled (the camera can't do that),
+        // so we pass the hint, not skip the call.
+        let cameraFramed = false;
+        if (framedSel) {
+          cameraFramed = await safeEval(({ h, s }) => {
+            const he = document.querySelector(h), se = document.querySelector(s);
+            return !!(he && se && (he === se || he.contains(se)));
+          }, { h: framedSel, s: tg });
+        }
+        const ok = await bringFullyIntoView(tg, cameraFramed);
+        if (!ok) console.error(`rec: step ${stepIndex} target "${tg}" cannot be shown whole (larger than the viewport or clipped) — frame it with camera before marking`);
       }
     }
     // DINAMICIDADE: every primitive accepts {duration,count,scale,intensity}.
@@ -635,9 +699,11 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
     const cam = cameraSpec(step);
     if (cam || step.follow === false) followOn = 0; // explicit camera takes the wheel
     if (cam) {
-      if (cam.out) { await clearMasks(); await camOut(); } // wipe masks BEFORE pulling out so they don't linger through the zoom
-      else await camFrame(cam.sel, cam.zoom ? Math.max(1, Math.min(3, cam.zoom)) : 0, 800, true);
+      if (cam.out) { await clearMasks(); await camOut(); framedSel = null; } // wipe masks BEFORE pulling out so they don't linger through the zoom
+      else { await camFrame(cam.sel, cam.zoom ? Math.max(1, Math.min(3, cam.zoom)) : 0, 800, true); framedSel = cam.sel; }
     } else if (step.follow === false) await camOut();
+    if (step.zoom === 'out') framedSel = null;
+    else if (typeof step.zoom === 'string') framedSel = step.zoom;
     // follow: bind ONCE and the camera re-aims at every step target from here
     // on — one smooth camFrame per move, cursor and camera arrive together —
     // until {"camera":...}, {"camera":"out"} or {"follow":false} takes it
@@ -750,8 +816,12 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
       box = await boxOf(step.click); // post-zoom rect = where glide/click must land
     }
     if (step.glide && box && !step.click && !followAimed) {
-      const gx = Math.min(a.width - 16, Math.max(16, box.x + box.w + 22));
-      const gy = Math.min(a.height - 16, Math.max(16, box.y + box.h + 22));
+      // Land the cursor just off the RIGHT edge at the element's VERTICAL CENTER
+      // — a small, natural arrival beside the target, not a diagonal hop to the
+      // far bottom-right corner (which read as the cursor overshooting then
+      // doubling back). Small gap so the pointer doesn't cover the content.
+      const gx = Math.min(a.width - 16, Math.max(16, box.x + box.w + 10));
+      const gy = Math.min(a.height - 16, Math.max(16, box.y + box.h / 2));
       await glide(gx, gy, 700);
       await clock.wait(ms(150));
     }
