@@ -38,7 +38,7 @@
   { "spotlight": "#svc-api", "note": "Routes production checkout traffic", "wait": 1500 },
   { "camera": "out", "wait": 700 },
 
-  { "follow": 2, "glide": "#svc-api", "accent": "#ef4444", "wait": 1500 },
+  { "follow": 2, "glide": "#svc-api", "accent": "#8b5cf6", "wait": 1500 },
   { "glide": "#svc-db", "note": "Traffic flows edge to data", "wait": 1700 },
   { "camera": "out", "wait": 700 },
 
@@ -82,7 +82,7 @@
   { "checkmark": "#stage-deploy .badge", "wait": 800 },
   { "flash": "#stage-deploy .chip", "wait": 600 },
 
-  { "camera": { "sel": "#deploy-panel", "zoom": 2 }, "accent": "#1E9E6A", "wait": 1300 },
+  { "camera": { "sel": "#deploy-panel", "zoom": 2.4 }, "accent": "#1E9E6A", "wait": 1300 },
   { "highlight": "#deploy", "note": "Shipped to production", "wait": 1500 },
   { "confetti": "#deploy", "wait": 900 },
 
