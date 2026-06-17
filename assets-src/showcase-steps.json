@@ -4,20 +4,24 @@
 
   { "screen": "Lumen — deploy console", "accent": "#5B8CFF", "wait": 1200 },
 
-  { "camera": { "sel": "header.console-bar", "zoom": 2 }, "accent": "#5B8CFF", "wait": 1300 },
+  { "camera": { "sel": ".status-dot", "zoom": 2 }, "accent": "#5B8CFF", "wait": 1300 },
   { "pulse": "#live-dot", "wait": 500 },
+  { "highlight": "#live-dot", "note": "Breathes while the env is healthy", "wait": 1500 },
+  { "camera": "out", "wait": 700 },
+
+  { "camera": { "sel": ".bar-actions", "zoom": 2 }, "accent": "#5B8CFF", "wait": 1300 },
   { "glide": "#menu", "wait": 400 },
   { "click": "#menu", "wait": 800 },
-  { "camera": { "sel": "#drawer" }, "wait": 1300 },
+  { "camera": { "sel": "#drawer", "zoom": 1.6 }, "wait": 1300 },
   { "highlight": ".nav-item:nth-child(2)", "note": "Every workspace action lives here", "wait": 1500 },
-  { "camera": { "sel": "header.console-bar", "zoom": 2 }, "wait": 1300 },
+  { "camera": { "sel": ".bar-actions", "zoom": 2 }, "wait": 1300 },
   { "click": "#menu", "wait": 800 },
   { "camera": "out", "wait": 700 },
 
-  { "camera": { "sel": "header.console-bar", "zoom": 2 }, "accent": "#34D399", "wait": 1300 },
+  { "camera": { "sel": ".bar-actions", "zoom": 2 }, "accent": "#34D399", "wait": 1300 },
   { "glide": "#theme", "wait": 400 },
   { "click": "#theme", "wait": 800 },
-  { "highlight": "#live-dot", "note": "Breathes while the env is healthy", "wait": 1500 },
+  { "highlight": "#theme", "note": "One toggle re-themes the surface", "wait": 1500 },
   { "click": "#theme", "wait": 800 },
   { "camera": "out", "wait": 700 },
 
@@ -81,7 +85,7 @@
   { "camera": "out", "wait": 700 },
 
   { "camera": { "sel": "#deploy-panel", "zoom": 2 }, "accent": "#34D399", "wait": 1300 },
-  { "rect": "#toast", "note": "Shipped — build #1249 live", "wait": 1500 },
+  { "highlight": "#deploy", "note": "Shipped to production", "wait": 1500 },
   { "camera": "out", "wait": 700 },
 
   { "camera": { "sel": "#deploy-log", "zoom": 2 }, "accent": "#34D399", "wait": 1300 },

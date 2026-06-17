@@ -51,10 +51,15 @@
   .btn:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.14)}
   .btn:focus-visible{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.3)}
 
-  nav.drawer{position:fixed;right:-300px;top:61px;bottom:0;width:280px;z-index:7;
-    background:linear-gradient(180deg,var(--panel),var(--sunken));border-left:1px solid var(--line-2);
-    padding:20px 16px;transition:right .3s cubic-bezier(.4,0,.2,1);box-shadow:-30px 0 60px rgba(0,0,0,.5)}
-  nav.drawer.open{right:0}
+  /* floating, content-height menu (not a full-height rail) so a camera can
+     actually frame+magnify it — a 280x839 full-height panel can't be zoomed
+     without cropping, which made the menu scene render wide. */
+  nav.drawer{position:fixed;right:18px;top:70px;width:248px;z-index:7;
+    background:linear-gradient(180deg,var(--panel),var(--sunken));border:1px solid var(--line-2);
+    border-radius:14px;padding:10px;transition:opacity .25s ease,transform .25s cubic-bezier(.4,0,.2,1);
+    box-shadow:0 24px 60px rgba(0,0,0,.55);opacity:0;transform:translateY(-8px) scale(.98);
+    transform-origin:top right;pointer-events:none}
+  nav.drawer.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
   .nav-item{display:flex;align-items:center;gap:11px;color:var(--mut);text-decoration:none;
     padding:12px 14px;border-radius:9px;font-size:.92rem;border-left:2px solid transparent;
     transition:all .16s ease}
@@ -154,8 +159,10 @@
   @keyframes sr-pop{from{transform:scale(0)}to{transform:scale(1)}}
   @keyframes sr-shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}
     30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
-  .cta.blocked{animation:sr-shake .5s cubic-bezier(.36,.07,.19,.97);
-    background:linear-gradient(92deg,var(--fail),#c0392b);box-shadow:0 8px 22px rgba(242,85,85,.32)}
+  /* .blocked = persistent error colour (stays for the whole guard scene);
+     .shaking = the one-shot shake animation (removed after it plays) */
+  .cta.blocked{background:linear-gradient(92deg,var(--fail),#c0392b);box-shadow:0 8px 22px rgba(242,85,85,.32)}
+  .cta.shaking{animation:sr-shake .5s cubic-bezier(.36,.07,.19,.97)}
   .timer{font-family:var(--mono);font-size:.78rem;color:var(--mut);display:none;align-items:center;gap:9px;
     padding:10px 13px;background:var(--raised);border:1px solid var(--line-2);border-radius:9px}
   .timer.show{display:flex}
@@ -409,10 +416,10 @@
     const dep=$('#stage-deploy'),btn=$('#deploy');
     dep.classList.add('fail');dep.querySelector('.badge').textContent='!';
     dep.querySelector('.chip').textContent='gate failed';
-    btn.classList.add('blocked');
+    btn.classList.add('blocked');btn.classList.add('shaking');
     const rb=$('#rollback-countdown');rb.classList.add('show');tick(rb);
     $('#log-body').insertAdjacentHTML('beforeend','<div class="line line--err"><span class="ts">10:42:05</span>deploy gate FAILED · health check threshold</div>');
-    setTimeout(()=>btn.classList.remove('blocked'),600); // shake plays once; red stays
+    setTimeout(()=>btn.classList.remove('shaking'),600); // shake plays once; red (.blocked) STAYS for the scene
   }
 
   // ── successful deploy flow: clears any fail, runs the pipeline, lands history

@@ -183,6 +183,29 @@ Always-on primitives (`pulse` on a live dot, `kenburns` on an image) need no tri
 things in one breath — the off-screen gate will catch the second one. Close with
 `camera:"out"` between distinct frames.
 
+**5. Zoom only what can be magnified (ERROR).** `camera:{sel,zoom:N>1}` on an element
+too wide or tall to enlarge without cropping (a full-width header, a full-height rail)
+is clamped to ~1x by the no-crop ceiling — the scene renders WIDE and the zoom reads as
+a random pan. The audit errors when the achievable scale is < 1.15x. Frame a SMALLER
+sub-element (a button group, a field, a row, a content-height dropdown), not the wide
+container. If you must show a wide element, frame it with NO zoom number (fit), and
+expect a wide shot.
+
+## AUTHORING RULES the engine now enforces or the design must honour
+
+- **Markers hug their content, not the box** (engine, automatic). highlight/redact/blur
+  measure the real text run and size to it; a marker on a wide table cell no longer
+  bleeds into neighbours. You don't need to wrap text in a span — the motor does it.
+- **State must persist for its scene** (page-design rule). A failure/success state the
+  reel narrates (a blocked button, a failed stage) must STAY for the whole scene, not
+  flash for 600ms. Separate the one-shot ANIMATION (e.g. a `.shaking` class) from the
+  STATE COLOUR (`.blocked` red) — remove the animation, keep the colour until the next
+  real transition. An error the viewer can't dwell on reads as a glitch.
+- **A note never repeats a visible label or rides an ephemeral toast.** Don't `rect` a
+  toast that auto-fades or sits in a cramped slot — point the note at the durable result
+  (the button that now says "Deployed"). `note` states the WHY, ≤8 words, never echoes
+  on-screen text.
+
 ## Inputs
 
 - `--steps steps.json` or `--steps-json '[...]'` (inline, no temp file).
