@@ -51,9 +51,9 @@
   .btn{font-family:var(--ui);background:var(--raised);border:1px solid var(--line-2);color:var(--ink);
     padding:8px 16px;border-radius:9px;font-size:.86rem;font-weight:500;cursor:pointer;
     transition:border-color .18s,box-shadow .18s,background .18s}
-  .btn:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.14)}
+  .btn:hover{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
   #theme{min-width:92px;text-align:left}
-  .btn:focus-visible{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.3)}
+  .btn:focus-visible{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring)}
 
   /* floating, content-height menu (not a full-height rail) so a camera can
      actually frame+magnify it — a 280x839 full-height panel can't be zoomed
@@ -67,7 +67,7 @@
   .nav-item{display:flex;align-items:center;gap:11px;color:var(--mut);text-decoration:none;
     padding:12px 14px;border-radius:9px;font-size:.92rem;border-left:2px solid transparent;
     transition:all .16s ease}
-  .nav-item:hover{background:rgba(91,140,255,.09);color:var(--ink);border-left-color:var(--acc)}
+  .nav-item:hover{background:var(--acc-soft);color:var(--ink);border-left-color:var(--acc)}
   .nav-item b{font-family:var(--mono);font-size:.7rem;color:var(--mut);margin-left:auto;font-weight:500;
     padding:1px 6px;border-radius:5px;background:var(--sunken)}
 
@@ -133,7 +133,6 @@
   /* ───── metrics cluster ───── */
   .kpi{background:var(--raised);border:1px solid var(--line-2);border-radius:12px;padding:16px}
   .metrics .kpi + .kpi{margin-top:12px}
-  .kpi b.value .u{font-size:.78rem;color:var(--mut);font-weight:500;margin-left:3px}
   .kpi__label{font-size:.74rem;color:var(--mut);display:flex;align-items:center;justify-content:space-between}
   .kpi b.value{font-family:var(--mono);font-size:1.55rem;font-weight:700;display:block;margin-top:6px;
     font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -146,7 +145,7 @@
   .topo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative}
   .svc-node{background:var(--raised);border:1px solid var(--line-2);border-radius:12px;padding:12px 16px;
     display:flex;align-items:center;gap:11px;position:relative;transition:border-color .2s,box-shadow .2s}
-  .svc-node:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.10)}
+  .svc-node:hover{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
   .svc-node .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 4px var(--ok);flex:none;transition:all .2s}
   .svc-node .nm{font-family:var(--mono);font-size:.8rem}
   .svc-node .st{font-family:var(--mono);font-size:.66rem;color:var(--ok);margin-left:auto}
@@ -161,8 +160,8 @@
     border-radius:11px;font-size:1rem;font-weight:600;cursor:pointer;width:100%;
     box-shadow:0 8px 22px rgba(91,140,255,.28);transition:transform .14s,box-shadow .2s,filter .2s}
   body.light .cta{box-shadow:0 8px 22px rgba(43,82,201,.22)}
-  .cta:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(91,140,255,.4)}
-  .cta:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(91,140,255,.4)}
+  .cta:hover{transform:translateY(-1px);box-shadow:0 12px 28px var(--ring)}
+  .cta:focus-visible{outline:none;box-shadow:0 0 0 3px var(--ring)}
   .cta .spin{display:none;width:15px;height:15px;border:2px solid rgba(255,255,255,.45);
     border-top-color:#fff;border-radius:50%;animation:sr-spin .7s linear infinite}
   @keyframes sr-spin{to{transform:rotate(360deg)}}
@@ -203,7 +202,7 @@
   .deploy-history tr:last-child td{border-bottom:none}
   .pill{font-family:var(--mono);padding:2px 10px;border-radius:99px;font-size:.7rem}
   .pill.ok{background:rgba(52,211,153,.12);color:var(--ok);border:1px solid rgba(52,211,153,.25)}
-  .pill.run{background:rgba(91,140,255,.12);color:var(--acc);border:1px solid rgba(91,140,255,.25)}
+  .pill.run{background:var(--acc-soft);color:var(--acc);border:1px solid rgba(91,140,255,.25)}
   tr.row--new{display:none}
   tr.row--new.show{display:table-row}
 
@@ -223,7 +222,7 @@
     padding-right:40px;cursor:pointer;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%238A93A6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
     background-repeat:no-repeat;background-position:right 14px center}
-  .field input:focus,.field select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.15)}
+  .field input:focus,.field select:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
   .cta-row--form{position:relative}
   .cta--form{width:auto;padding:11px 20px}
 

@@ -131,8 +131,9 @@
       r.e.style.backgroundColor = r.bg;
       r.e.style.top = r.top;
       r.e.style.left = r.left;
+      r.e.style.transition = r.trn;
       if (r.sticky || r.fixed) r.e.style.translate = r.tl || '';
-      if (r.sticky) { r.e.style.opacity = r.op; r.e.style.transition = r.trn; }
+      if (r.sticky) r.e.style.opacity = r.op;
     }
     window.__camFx = null;
   };

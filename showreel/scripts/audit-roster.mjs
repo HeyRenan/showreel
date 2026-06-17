@@ -10,7 +10,7 @@
 // missing). Warnings (arbitrary-primitive, random-camera) print but don't fail
 // unless --strict. Coverage prints which primitives/features the roster uses.
 
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 import { loadChromium } from './rec-page.mjs';
 import {
   validateSteps, auditScenes, auditRosterLive, makeAuditBridge, offlineMotionConflicts,

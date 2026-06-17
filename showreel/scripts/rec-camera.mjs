@@ -7,9 +7,9 @@
 // camFrame returns the element's final on-screen point (aim) for rec-motion's
 // glideChase; the handoff is the return value, not shared state.
 
-import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const camSnippet = readFileSync(join(HERE, 'cam-inject.js'), 'utf8');
@@ -140,7 +140,7 @@ export function makeCamera(rctx) {
   // compose on top; "out" returns HERE, not identity.
   const initialFit = async () => {
     if (FIT_MAX <= 1) return;
-    const fitted = await safeEval(({ vw, fitMax }) => {
+    const fitted = await safeEval(({ vw, fitMax, cap }) => {
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       const lefts = [], rights = [];
       for (let t = walker.nextNode(); t && lefts.length < 800; t = walker.nextNode()) {
@@ -169,7 +169,7 @@ export function makeCamera(rctx) {
       L = Math.max(0, L - 24); R = Math.min(innerWidth, R + 24);
       const span = R - L;
       if (!(span > 0)) return false;
-      const s = Math.min(fitMax, vw * 0.94 / span);
+      const s = Math.min(fitMax, vw * cap.MARGIN / span);
       if (s < 1.06) return false;
       const br = document.body.getBoundingClientRect();
       const tx = (vw - s * span) / 2 - br.x - s * (L - br.x);
@@ -177,7 +177,7 @@ export function makeCamera(rctx) {
       window.__camScrollSync();
       window.__camTo(s, tx, 0, 700);
       return true;
-    }, { vw: a.width, fitMax: FIT_MAX });
+    }, { vw: a.width, fitMax: FIT_MAX, cap: FRAME });
     if (fitted) { await clock.wait(ms(700), true); await clock.wait(ms(50)); }
   };
 
