@@ -21,7 +21,21 @@ export function makeInput(rctx, motion) {
     // actionability on the page's rAF, which never fires on a paused clock —
     // page.type would hang an offline take forever. The per-char wait keeps
     // the typing rhythm on the take's clock in both modes.
-    await safeEval((q) => document.querySelector(q)?.focus(), sel);
+    // wipe any prior value before typing — re-filling a field that was filled
+    // earlier must not stack content. clear via the DOM (works on a paused
+    // clock) then fire input so the page reacts to the empty state first.
+    await safeEval((q) => {
+      const el = document.querySelector(q);
+      if (!el) return;
+      el.focus();
+      if ('value' in el && el.value) {
+        el.value = '';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (el.isContentEditable && el.textContent) {
+        el.textContent = '';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }, sel);
     const perChar = Math.max(1, Math.round(delay * PACE));
     for (const ch of String(text ?? '')) {
       await page.keyboard.type(ch);
