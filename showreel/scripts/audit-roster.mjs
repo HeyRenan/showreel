@@ -51,6 +51,13 @@ const bridge = {
   fill: (sel, t) => page.evaluate(({ q, t }) => { const el = document.querySelector(q); if (el) { el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); } }, { q: sel, t }),
   select: (sel, o) => page.evaluate(({ q, o }) => { const el = document.querySelector(q); if (el) { const x = [...el.options].find((p) => p.text.trim() === o || p.value === o); if (x) { el.value = x.value; el.dispatchEvent(new Event('change', { bubbles: true })); } } }, { q: sel, o }),
   settle: (ms) => page.waitForTimeout(ms),
+  reach: (sel) => page.evaluate(({ q, vw, vh }) => {
+    const el = document.querySelector(q); if (!el) return null;
+    const r = el.getBoundingClientRect(); if (!r.width || !r.height) return null;
+    const fit = Math.max(1, Math.min(2.4, Math.min(0.86 * vw / r.width, 0.86 * vh / r.height)));
+    const noCrop = 0.94 * Math.min(vw / r.width, vh / r.height);
+    return Math.max(1, Math.min(Math.min(3, fit * 2), noCrop));
+  }, { q: sel, vw: 1600, vh: 900 }),
 };
 const { errors } = await auditRosterLive(steps, bridge);
 await browser.close();

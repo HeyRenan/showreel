@@ -227,6 +227,15 @@ async function main() {
       fill: (sel, text) => sgPage.evaluate(({ q, t }) => { const el = document.querySelector(q); if (el) { el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); } }, { q: sel, t: text }),
       select: (sel, opt) => sgPage.evaluate(({ q, o }) => { const el = document.querySelector(q); if (el) { const x = [...el.options].find((p) => p.text.trim() === o || p.value === o); if (x) { el.value = x.value; el.dispatchEvent(new Event('change', { bubbles: true })); } } }, { q: sel, o: opt }),
       settle: (ms) => sgPage.waitForTimeout(ms),
+      // achievable camera scale for an element (mirrors camFrame: auto-fit * zoom
+      // clamped by the no-crop ceiling). < ~1.15 means "zoom can't magnify this".
+      reach: (sel) => sgPage.evaluate(({ q, vw, vh }) => {
+        const el = document.querySelector(q); if (!el) return null;
+        const r = el.getBoundingClientRect(); if (!r.width || !r.height) return null;
+        const fit = Math.max(1, Math.min(2.4, Math.min(0.86 * vw / r.width, 0.86 * vh / r.height)));
+        const noCrop = 0.94 * Math.min(vw / r.width, vh / r.height);
+        return Math.max(1, Math.min(Math.min(3, fit * 2), noCrop));
+      }, { q: sel, vw: a.width, vh: a.height }),
     };
     const { errors } = await auditRosterLive(steps, bridge);
     await sgBrowser.close();

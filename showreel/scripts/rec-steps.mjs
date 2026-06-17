@@ -608,7 +608,21 @@ export async function auditRosterLive(steps, bridge) {
     if ('screen' in s || 'modal' in s) { framed = null; followActive = false; continue; }
     const cam = stepCamera(s);
     if (cam === 'out') { framed = null; followActive = false; }
-    else if (cam) { framed = cam; followActive = false; }
+    else if (cam) {
+      framed = cam; followActive = false;
+      // zoom-reach gate: a camera asking to magnify (zoom>1) an element too
+      // wide/tall to enlarge without cropping is silently clamped to ~1x by the
+      // no-crop ceiling — the scene renders WIDE and the "zoom" reads as a
+      // random pan. Frame a smaller sub-element instead.
+      const z = (s.camera && typeof s.camera === 'object' && typeof s.camera.zoom === 'number') ? s.camera.zoom : null;
+      if (z && z > 1 && bridge.reach) {
+        const reach = await bridge.reach(cam);
+        if (reach != null && reach < 1.15) {
+          errors.push({ step: i + 1, kind: 'zoom-unreachable',
+            message: `camera zoom:${z} on "${cam}" can only reach ~${reach.toFixed(2)}x — the element is too wide/tall to magnify without cropping, so the scene renders WIDE (reads as a random pan). Frame a smaller sub-element (a control/field/row inside it), or drop the zoom.` });
+        }
+      }
+    }
     else if ('follow' in s) { followActive = true; }
 
     // check anchors BEFORE driving this step's triggers (the marker fires on the
