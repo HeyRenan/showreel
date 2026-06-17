@@ -10,6 +10,7 @@ import {
   collapseRedundantGlides, autoAnnotateStep, cameraSpec, modalLayout, screenPhase,
   padToRatio, deriveCaptureHeight, resolveCaptureHeight, validateSteps, validateBatch,
   applyOfflineDefaults, looksLikeHostCsv, stepAnchors, stepCamera, auditScenes,
+  STEP_KEYS,
 } from '../rec-steps.mjs';
 import { FRAME } from '../rec-camera.mjs';
 
@@ -392,6 +393,36 @@ test('validateBatch: unknown take key is named in the error', () => {
   const r = validateBatch([{ steps: [{ wait: 1 }], bogus: 1 }]);
   assert.equal(r.ok, false);
   assert.ok(r.errors.some((e) => /bogus/.test(e)));
+});
+
+test('validateBatch: hostile shapes never throw (null/number/null-steps)', () => {
+  for (const b of [null, [null], [5], [{ steps: null }], [{ steps: [null] }], [{}]]) {
+    assert.doesNotThrow(() => validateBatch(b), 'batch ' + JSON.stringify(b));
+  }
+});
+
+// META-GUARD: every step key, fed a hostile value, must return a clean verdict —
+// never throw. A new key added without a null/shape guard will trip this.
+test('validateSteps: NO step key crashes on null/number/array/true/empty-object', () => {
+  for (const k of STEP_KEYS) {
+    for (const bad of [null, 5, [1], true, {}]) {
+      assert.doesNotThrow(() => validateSteps([{ [k]: bad }]),
+        `key "${k}" with value ${JSON.stringify(bad)} threw`);
+    }
+  }
+});
+
+test('validateSteps: nested bad subfields on object-form effects never crash', () => {
+  const nested = [
+    { camera: { sel: null, zoom: 'x' } }, { fill: {} }, { select: {} },
+    { marks: [{}, { sel: null }] }, { trail: {} }, { confetti: { sel: [1] } },
+    { countup: { to: [1] } }, { sparkline: { points: 'x' } },
+    { modal: { header: null, footer: [1] } }, { glossary: { items: 'x' } },
+    { scrollIn: { sel: null } },
+  ];
+  for (const step of nested) {
+    assert.doesNotThrow(() => validateSteps([step]), JSON.stringify(step));
+  }
 });
 
 // ── stepAnchors: selector extraction + hex-color filtering ─────────────────
