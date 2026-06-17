@@ -3,6 +3,7 @@
 // these stay unit-testable in isolation. rec.mjs re-exports everything here.
 
 import { num } from './cli-args.mjs';
+import { FRAME } from './rec-camera.mjs';
 
 const HOST_CSV = /^[a-z0-9*.:_-]+(,[a-z0-9*.:_-]+)*$/i;
 export function looksLikeHostCsv(v) {
@@ -674,13 +675,13 @@ export function makeAuditBridge(page, vw, vh) {
       const he = document.querySelector(h), se = document.querySelector(s);
       return !!(he && se && he.contains(se));
     }, { h: host, s: sel }),
-    reach: (sel) => page.evaluate(({ q, vw, vh }) => {
+    reach: (sel) => page.evaluate(({ q, vw, vh, cap }) => {
       const el = document.querySelector(q); if (!el) return null;
       const r = el.getBoundingClientRect(); if (!r.width || !r.height) return null;
-      const fit = Math.max(1, Math.min(2.4, Math.min(0.86 * vw / r.width, 0.86 * vh / r.height)));
-      const noCrop = 0.94 * Math.min(vw / r.width, vh / r.height);
-      return Math.max(1, Math.min(Math.min(3, fit * 2), noCrop));
-    }, { q: sel, vw, vh }),
+      const fit = Math.max(1, Math.min(cap.CAP, Math.min(cap.FILL * vw / r.width, cap.FILL * vh / r.height)));
+      const noCrop = cap.MARGIN * Math.min(vw / r.width, vh / r.height);
+      return Math.max(1, Math.min(Math.min(cap.MAX, fit * cap.ZOOM), noCrop));
+    }, { q: sel, vw, vh, cap: FRAME }),
   };
 }
 

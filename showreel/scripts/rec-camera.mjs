@@ -14,6 +14,15 @@ import { fileURLToPath } from 'url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const camSnippet = readFileSync(join(HERE, 'cam-inject.js'), 'utf8');
 
+// Single source of the framing math, shared with the audit's `reach` estimate
+// (rec-steps makeAuditBridge) so the two can never drift. FILL = fraction of
+// the viewport auto-fit aims to fill; CAP = auto-fit ceiling; MARGIN = no-crop
+// breathing room (element never flush to the edge); MAX = hard scale ceiling an
+// explicit zoom can reach; ZOOM = the default zoom the audit assumes when it
+// asks "can a zoom magnify this?". Both run inside page.evaluate (no module
+// scope), so they receive this object as an argument rather than closing over it.
+export const FRAME = { FILL: 0.86, CAP: 2.4, MARGIN: 0.94, MAX: 3, ZOOM: 2 };
+
 export function makeCamera(rctx) {
   const { page, safeEval, clock, ms, a } = rctx;
 
@@ -30,7 +39,7 @@ export function makeCamera(rctx) {
   // viewport point immediately — the caller can ride a cursor glide on the
   // same clock so camera and pointer travel together.
   const camFrame = async (sel, fixed, ms, clampPan, raw, settle = true, scrollDy = 0) => {
-    const ok = await safeEval(({ sel, fixed, ms, vw, vh, clampPan, raw, scrollDy }) => {
+    const ok = await safeEval(({ sel, fixed, ms, vw, vh, clampPan, raw, scrollDy, cap }) => {
       const el = document.querySelector(sel);
       if (!el) return false;
       // degrade BEFORE measuring: the freeze is position-preserving, so rects
@@ -52,7 +61,7 @@ export function makeCamera(rctx) {
       // 1.3 is invisible on wide viewports where the element already fits.
       // auto-fit caps at 2.4: filling 86% of the viewport with a small button
       // amputates its surroundings — explicit zoom can still push to 3.
-      const fit = Math.max(1, Math.min(2.4, Math.min(0.86 * vw / lw, 0.86 * vh / lh)));
+      const fit = Math.max(1, Math.min(cap.CAP, Math.min(cap.FILL * vw / lw, cap.FILL * vh / lh)));
       // NO-CROP CEILING (correct-by-construction): zoom is "free" up to a hard
       // ceiling that the script enforces so a too-big zoom can never crop the
       // element it is supposed to show. The ceiling is a fit that leaves a
@@ -60,9 +69,8 @@ export function makeCamera(rctx) {
       // the edge) — a wide row (.stats/.cards/table) at zoom:2 would otherwise
       // amputate half its items. Any explicit zoom is clamped to this; it may
       // tighten toward the margin but never past it. No author/agent can crop.
-      const MARGIN = 0.94; // ~3% breathing room each side; element never flush
-      const noCrop = MARGIN * Math.min(vw / lw, vh / lh);
-      const s2raw = raw ? Math.max(1, Math.min(3, fixed)) : fixed ? Math.max(1, Math.min(3, fit * fixed)) : fit;
+      const noCrop = cap.MARGIN * Math.min(vw / lw, vh / lh); // never flush to edge
+      const s2raw = raw ? Math.max(1, Math.min(cap.MAX, fixed)) : fixed ? Math.max(1, Math.min(cap.MAX, fit * fixed)) : fit;
       const s2 = Math.max(1, Math.min(s2raw, noCrop));
       let tx2 = vw / 2 - bx - s2 * (lx + lw / 2 - bx);
       let ty2 = vh / 2 - by - s2 * (ly + lh / 2 - by);
@@ -112,7 +120,7 @@ export function makeCamera(rctx) {
           : ty2 + by + s2 * (ly + lh / 2 - by),
         cam: { s0: s, tx0: tx, ty0: ty, s1: s2, tx1: tx2, ty1: ty2, bx, by, cx: lx + lw / 2, cy: ly + lh / 2, bar },
       };
-    }, { sel, fixed, ms, vw: a.width, vh: a.height, clampPan: !!clampPan, scrollDy });
+    }, { sel, fixed, ms, vw: a.width, vh: a.height, clampPan: !!clampPan, scrollDy, cap: FRAME });
     // settle = the camera's CSS transition (hot) plus a dead 50ms margin.
     if (ok && settle) { await clock.wait(ms, true); await clock.wait(50); }
     return ok;
