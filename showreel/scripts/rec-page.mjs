@@ -24,7 +24,7 @@ export async function detectPageLook(page) {
     for (let y = 0; y < png.height; y += stepY)
       for (let x = 0; x < png.width; x += stepX) {
         const i = (y * png.width + x) * ch;
-        sum += png.data[i] * 0.2126 + png.data[i + 1] * 0.7152 + png.data[i + 2] * 0.0722;
+        sum += png.data[i] * 0.299 + png.data[i + 1] * 0.587 + png.data[i + 2] * 0.114;
         n++;
       }
     const rs = [], gs = [], bs = [];
@@ -50,7 +50,7 @@ export async function readLiveTheme(page) {
       const bg = getComputedStyle(document.body).backgroundColor;
       const m = bg && bg.match(/[\d.]+/g);
       if (!m || (m[3] !== undefined && Number(m[3]) === 0)) return null; // transparent
-      const L = (0.2126 * +m[0] + 0.7152 * +m[1] + 0.0722 * +m[2]) / 255;
+      const L = (0.299 * +m[0] + 0.587 * +m[1] + 0.114 * +m[2]) / 255;
       return L < 0.5 ? 'dark' : 'light';
     });
   } catch { return null; }
