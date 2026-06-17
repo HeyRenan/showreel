@@ -664,6 +664,11 @@ export function makeAnnotator(rctx) {
       // the content and bleeds into neighbours. Measure the real text run with a
       // Range; return left/right insets to pull the band tight to the glyphs.
       const textInset = (el, r) => {
+        // only for plain text containers (a table cell, a label). Interactive
+        // controls (button/link/input) have icon spans + centered text — hugging
+        // their Range mis-sizes the band (a stray streak); use the whole box.
+        if (/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return { l: 0, rt: 0 };
+        if (el.querySelector && el.querySelector('*')) return { l: 0, rt: 0 }; // has element children — not a plain text run
         try {
           const rng = document.createRange(); rng.selectNodeContents(el);
           const tr = rng.getBoundingClientRect();
@@ -705,14 +710,22 @@ export function makeAnnotator(rctx) {
         band.style.cssText = 'position:absolute;top:-' + over.toFixed(1) + 'px;bottom:-' + over.toFixed(1) + 'px;left:' + lIn + 'px;right:' + rIn + 'px;z-index:2147483600;pointer-events:none;border-radius:6px;overflow:hidden;opacity:0;transition:opacity .35s ease;'
           + 'box-shadow:0 0 0 ' + ring.toFixed(1) + 'px ' + (col || (dark ? 'rgba(250,204,21,0.9)' : 'rgba(202,138,4,0.8)')) + ',0 0 ' + glow.toFixed(1) + 'px 1px ' + (col || 'rgba(250,204,21,0.45)') + ';';
         requestAnimationFrame(() => { band.style.opacity = '1'; }); // fade IN
-        const ink = document.createElement('div');
-        ink.style.cssText = 'width:100%;height:100%;mix-blend-mode:' + (dark ? 'screen' : 'multiply') + ';border-radius:6px;'
-          + 'background:' + accent + ';opacity:' + (dark ? '0.5' : '1') + ';'
-          + 'transform:scaleX(0);transform-origin:left center;'
-          + 'transition:transform .5s cubic-bezier(.22,1,.36,1);';
-        band.appendChild(ink);
+        // The ink swipe recolours the target — fine on a neutral surface, but on a
+        // SATURATED control (a green "Deployed" CTA, a coloured pill) it fights the
+        // element's own meaningful colour and leaves an off-hue streak. On those,
+        // the ring + glow alone mark it; skip the ink fill.
+        const bgm = (cs.backgroundColor || '').match(/\d+/g);
+        const saturated = bgm && bgm.length >= 3 && (Math.max(+bgm[0], +bgm[1], +bgm[2]) - Math.min(+bgm[0], +bgm[1], +bgm[2])) > 60;
         el.appendChild(band);
-        requestAnimationFrame(() => { ink.style.transform = 'scaleX(1)'; });
+        if (!saturated) {
+          const ink = document.createElement('div');
+          ink.style.cssText = 'width:100%;height:100%;mix-blend-mode:' + (dark ? 'screen' : 'multiply') + ';border-radius:6px;'
+            + 'background:' + accent + ';opacity:' + (dark ? '0.5' : '1') + ';'
+            + 'transform:scaleX(0);transform-origin:left center;'
+            + 'transition:transform .5s cubic-bezier(.22,1,.36,1);';
+          band.appendChild(ink);
+          requestAnimationFrame(() => { ink.style.transform = 'scaleX(1)'; });
+        }
       });
     }, sel, color || '');
   };
@@ -1576,8 +1589,11 @@ const applyTypeon = async (arg, opts) => {
       const setup = await safeEval((s, ov, ac) => {
         const el = document.querySelector(s);
         if (!el || el.dataset.srTyping) return null;
-        const full = ov != null ? ov : (el.textContent || '');
+        // innerText (not textContent) so block children — log lines, list items —
+        // keep their line breaks; textContent glues them ("threshold10:42:09deploy").
+        const full = ov != null ? ov : (el.innerText || el.textContent || '');
         if (!full) return null;
+        const multiline = /\n/.test(full);
         const accent = ac || '#16a34a';
         // surface luminance: own bg, else walk up to a painted ancestor.
         const lum = (c) => { const m = c && c.match(/\d+/g); return m ? (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) / 255 : 0.1; };
@@ -1585,8 +1601,9 @@ const applyTypeon = async (arg, opts) => {
         while ((!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') && p.parentElement) { p = p.parentElement; bg = getComputedStyle(p).backgroundColor; }
         const dark = lum(bg || 'rgb(11,19,34)') < 0.5;
         el.dataset.srTyping = '1';
-        el.dataset.srOrig = el.textContent || '';
+        el.dataset.srOrigHtml = el.innerHTML; // restore the real markup, not flat text
         el.textContent = '';
+        if (multiline) el.style.whiteSpace = 'pre-wrap'; // honour the line breaks
         // settled trail keeps the element's own ink; only the writing HEAD carries
         // the accent glow, then settles — same accent-glow language as the rings,
         // not a flat band over the whole string.
@@ -1649,9 +1666,9 @@ const applyTypeon = async (arg, opts) => {
       await safeEval((s) => {
         const el = document.querySelector(s);
         if (!el) return;
-        const orig = el.dataset.srOrig != null ? el.dataset.srOrig : '';
-        el.textContent = orig;
-        delete el.dataset.srTyping; delete el.dataset.srOrig;
+        if (el.dataset.srOrigHtml != null) el.innerHTML = el.dataset.srOrigHtml; // restore real markup
+        el.style.whiteSpace = '';
+        delete el.dataset.srTyping; delete el.dataset.srOrigHtml;
       }, sel);
       await clock.wait(ms(120), true);
     };

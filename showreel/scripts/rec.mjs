@@ -596,7 +596,7 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
     };
     if (step.blur) await applyBlur(step.blur);
     if (step.redact) await applyRedact(step.redact, step.accent || accent || null);
-    if (step.highlight) await applyHighlight(step.highlight, null);
+    if (step.highlight) await applyHighlight(step.highlight, step.accent || accent || null);
     if (step.confetti) await applyConfetti(typeof step.confetti === 'string' ? step.confetti : (step.confetti.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.confetti));
     if (step.pulse) await applyPulse(typeof step.pulse === 'string' ? step.pulse : (step.pulse.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.pulse));
     if (step.glow) await applyGlow(typeof step.glow === 'string' ? step.glow : step.glow.sel, step.accent || accent || null, effOpts(step.glow));
