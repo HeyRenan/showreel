@@ -455,6 +455,30 @@ export function validateSteps(steps) {
   return { ok: !errors.length, errors };
 }
 
+// Primitives whose motion is a transform/stroke CSS transition: under the
+// paused virtual clock (--offline) the engine resolves the transition to its
+// end pose without sampling the in-between, so the burst never appears on the
+// captured frames (proven: confetti chips and the sparkline draw both render
+// blank offline, perfect realtime). flash is opacity-on-a-static-layer and
+// survives. These belong in a realtime take — same spirit as the cookbook's
+// "moving reel = realtime" rule, now enforced instead of just documented.
+export const OFFLINE_INCOMPATIBLE = new Set(['confetti', 'sparkline']);
+
+// Gate: with --offline set, flag any step carrying an offline-incompatible
+// motion primitive. rec.mjs turns a non-empty list into a hard error before a
+// browser launches (a silently-blank burst is worse than a refusal).
+export function offlineMotionConflicts(steps) {
+  if (!Array.isArray(steps)) return [];
+  const hits = [];
+  steps.forEach((s, i) => {
+    if (!s || typeof s !== 'object') return;
+    for (const k of Object.keys(s)) {
+      if (OFFLINE_INCOMPATIBLE.has(k)) hits.push({ step: i + 1, key: k });
+    }
+  });
+  return hits;
+}
+
 // Sidecar step label: the human note when present, otherwise the take's first
 // authored action key — enough for compose tooling to name segments.
 export function stepLabel(step) {

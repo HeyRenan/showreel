@@ -80,6 +80,13 @@ intensity}` (overrides the shared keys for that one effect). `scale` (object for
 > effect (rings, particles, comet dots, orbit laps, countdown seconds). All knobs clamp — out-of-range
 > is rejected by the validator, never silently coerced.
 
+> **`confetti` and `sparkline` are realtime-only.** Their motion is a transform / stroke-dashoffset
+> CSS transition; under the paused virtual clock (`--offline`) the engine jumps the transition to its
+> end pose without sampling the in-between, so the burst captures BLANK. `rec` now refuses these steps
+> under `--offline` with a hard error (a silent blank burst is worse than a refusal). Record any take
+> carrying them realtime (`--fps 30`, no `--offline`). `flash` is opacity-on-a-static-layer and renders
+> fine offline.
+
 ### FORBIDDEN FORMS — rejected; never write them
 ```jsonc
 {"camera":"out","follow":false}        // follow:false is INVALID — release is a BARE camera:out

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateSteps, STEP_KEYS, MARK_KEYS, dwellMs, fillSpec, selectSpec, cameraSpec } from '../rec.mjs';
+import { validateSteps, STEP_KEYS, MARK_KEYS, dwellMs, fillSpec, selectSpec, cameraSpec, offlineMotionConflicts, OFFLINE_INCOMPATIBLE } from '../rec.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -564,4 +564,28 @@ test('autoAnnotateStep: a step that already declares spotlight is left alone', a
   assert.equal(out.spotlight, true);
   assert.ok(!('rect' in out), 'auto adds no rect when spotlight is the author visual');
   assert.ok(!('note' in out), 'auto adds no note either');
+});
+
+test('offlineMotionConflicts flags confetti and sparkline, ignores flash/static', () => {
+  const steps = [
+    { wait: 300 },
+    { confetti: '.stat:nth-child(1)' },
+    { flash: true },
+    { sparkline: '.stat:nth-child(2)' },
+    { note: 'x', rect: '.card' },
+  ];
+  const hits = offlineMotionConflicts(steps);
+  assert.deepEqual(hits, [
+    { step: 2, key: 'confetti' },
+    { step: 4, key: 'sparkline' },
+  ]);
+});
+
+test('offlineMotionConflicts is empty for a static/text-only reel', () => {
+  const steps = [{ wait: 400 }, { note: 'hello' }, { rect: '.card' }, { flash: '#16a34a' }];
+  assert.equal(offlineMotionConflicts(steps).length, 0);
+});
+
+test('every OFFLINE_INCOMPATIBLE key is a real step key', () => {
+  for (const k of OFFLINE_INCOMPATIBLE) assert.ok(STEP_KEYS.has(k), k + ' must be a known step key');
 });

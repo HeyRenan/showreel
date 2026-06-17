@@ -110,7 +110,7 @@ import {
   looksLikeHostCsv, parse, dwellMs, applyOfflineDefaults, hotHeadFor, fillSpec,
   selectSpec, autoAnnotateStep, camTransitionPlan, clampRelease, cameraSpec,
   modalLayout, screenPhase, stepLabel, padToRatio, deriveCaptureHeight,
-  resolveCaptureHeight, validateSteps, validateBatch,
+  resolveCaptureHeight, validateSteps, validateBatch, offlineMotionConflicts,
   STEP_KEYS, GLOSSARY_POS, MARK_KEYS, TAKE_KEYS, END_CARD_MODES, THEMES,
 } from "./rec-steps.mjs";
 export * from "./rec-steps.mjs";
@@ -141,6 +141,11 @@ async function main() {
     if (!vb.ok) {
       vb.errors.forEach((e) => console.error('rec: ' + e));
       process.exit(2);
+    }
+    if (a.offline) {
+      const conflicts = vb.takes.flatMap((t, ti) =>
+        offlineMotionConflicts(t.steps).map((c) => `rec: take ${ti + 1} step ${c.step}: "${c.key}" does not render under --offline (blank burst). Record this take realtime (--fps 30).`));
+      if (conflicts.length) { conflicts.forEach((e) => console.error(e)); process.exit(2); }
     }
     const chromium = await loadChromium();
     const browser = await chromium.launch(a.offline ? { args: OFFLINE_ARGS } : undefined);
@@ -176,6 +181,14 @@ async function main() {
   if (!v.ok) {
     v.errors.forEach((e) => console.error('rec: ' + e));
     process.exit(2);
+  }
+  if (a.offline) {
+    const conflicts = offlineMotionConflicts(steps);
+    if (conflicts.length) {
+      conflicts.forEach((c) => console.error(
+        `rec: step ${c.step}: "${c.key}" does not render under --offline (its transform/stroke transition never samples on the paused virtual clock — blank burst). Record this take realtime (drop --offline, --fps 30).`));
+      process.exit(2);
+    }
   }
   {
     const rh = resolveCaptureHeight(a.width, a.height, a.ratio, steps, a.stamp);
