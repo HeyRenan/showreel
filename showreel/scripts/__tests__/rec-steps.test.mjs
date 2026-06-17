@@ -32,6 +32,7 @@ test('every documented step key is accepted', () => {
       : k === 'progress' ? '#card'
       : k === 'trail' ? { from: '#a', to: '#b' }
       : k === 'countdown' ? 3
+      : k === 'modal' ? 'Shipped to production.'
       : k === 'size' ? 1.2
       : k === 'dur' ? 1200
       : k === 'count' ? 4

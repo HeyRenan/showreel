@@ -226,7 +226,10 @@ export function cameraSpec(step) {
 }
 
 export function modalLayout(modal, box, vp) {
-  const m = typeof modal === 'string' ? { text: modal } : modal;
+  // a string is THE text; anything not a plain object (null/number/array) has no
+  // fields to read — coerce to an empty card so .position et al never throw.
+  const m = typeof modal === 'string' ? { text: modal }
+    : (modal && typeof modal === 'object' && !Array.isArray(modal)) ? modal : {};
   let pos = m.position;
   if (!pos) {
     if (box) {
@@ -324,10 +327,23 @@ export function validateSteps(steps) {
     if (s.marks) {
       if (!Array.isArray(s.marks)) errors.push(n + ': marks must be an array');
       else s.marks.forEach((m, j) => {
+        if (!m || typeof m !== 'object' || Array.isArray(m)) {
+          errors.push(n + ' mark ' + (j + 1) + ' must be an object {sel, badge?, text?}');
+          return;
+        }
         if (!m.sel) errors.push(n + ' mark ' + (j + 1) + ': missing sel');
         const mb = Object.keys(m).filter((k) => !MARK_KEYS.has(k));
         if (mb.length) errors.push(n + ' mark ' + (j + 1) + ' has unknown keys: ' + mb.join(', ') + ' (known: ' + [...MARK_KEYS].join(', ') + ')');
       });
+    }
+    if ('modal' in s) {
+      const md = s.modal;
+      // modal = the text string, or {header,html,footer,pos?,backdrop?}. null /
+      // number / array reach modalLayout and crash on .position at render time.
+      const okStr = typeof md === 'string' && md;
+      const okObj = md && typeof md === 'object' && !Array.isArray(md);
+      if (!okStr && !okObj)
+        errors.push(n + ': modal must be the text string, or {header,html,footer,pos?,backdrop?}');
     }
     if ('size' in s && (typeof s.size !== 'number' || !(s.size > 0 && s.size <= 4)))
       errors.push(n + ': size must be a positive number scale (0,4] — proportional multiplier for effects');

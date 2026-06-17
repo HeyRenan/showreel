@@ -9,7 +9,7 @@ import {
   parse, dwellMs, hotHeadFor, fillSpec, selectSpec, scrollInSpec, actionSel,
   collapseRedundantGlides, autoAnnotateStep, cameraSpec, modalLayout, screenPhase,
   padToRatio, deriveCaptureHeight, resolveCaptureHeight, validateSteps, validateBatch,
-  applyOfflineDefaults, looksLikeHostCsv,
+  applyOfflineDefaults, looksLikeHostCsv, stepAnchors, stepCamera, auditScenes,
 } from '../rec-steps.mjs';
 import { FRAME } from '../rec-camera.mjs';
 
@@ -226,6 +226,29 @@ test('modalLayout: header/footer/html rich form + title/text fallback', () => {
   assert.equal(m.html, '<b>x</b>');
 });
 
+test('modalLayout: null / number / array coerce to an empty card, never crash', () => {
+  // used to throw "Cannot read properties of null (reading position)" at render
+  assert.equal(modalLayout(null, null, { w: 10, h: 10 }).pos, 'center');
+  assert.equal(modalLayout(5, null, { w: 10, h: 10 }).pos, 'center');
+  assert.equal(modalLayout([1, 2], null, { w: 10, h: 10 }).pos, 'center');
+});
+
+test('validateSteps: modal must be a string or plain object', () => {
+  assert.equal(validateSteps([{ modal: null }]).ok, false);
+  assert.equal(validateSteps([{ modal: 5 }]).ok, false);
+  assert.equal(validateSteps([{ modal: [1] }]).ok, false);
+  assert.equal(validateSteps([{ modal: '' }]).ok, false);
+  assert.equal(validateSteps([{ modal: 'Deployed.' }]).ok, true);
+  assert.equal(validateSteps([{ modal: { header: 'H' } }]).ok, true);
+});
+
+test('validateSteps: a null mark entry is rejected, never crashes', () => {
+  const r = validateSteps([{ marks: [null] }]);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => /must be an object/.test(e)));
+  assert.equal(validateSteps([{ marks: ['#a'] }]).ok, false); // string mark too
+});
+
 // ── screenPhase ────────────────────────────────────────────────────────────
 test('screenPhase: before vs afterClick vs null', () => {
   assert.equal(screenPhase({ screen: 'X' }), 'before');
@@ -369,4 +392,68 @@ test('validateBatch: unknown take key is named in the error', () => {
   const r = validateBatch([{ steps: [{ wait: 1 }], bogus: 1 }]);
   assert.equal(r.ok, false);
   assert.ok(r.errors.some((e) => /bogus/.test(e)));
+});
+
+// ── stepAnchors: selector extraction + hex-color filtering ─────────────────
+test('stepAnchors: extracts selectors, filters hex colors and "true"', () => {
+  assert.deepEqual(stepAnchors({ rect: '#deploy' }), ['#deploy']); // letters p,l,y -> selector
+  assert.deepEqual(stepAnchors({ arrow: 'true' }), []);            // "true" sentinel filtered
+  assert.deepEqual(stepAnchors({ rect: '#ff0000' }), []);          // 6-hex color filtered
+  assert.deepEqual(stepAnchors({ rect: '#f00' }), []);             // 3-hex color filtered
+  assert.deepEqual(stepAnchors({ marks: [{ sel: '#a' }, { badge: 1 }] }), ['#a']);
+  assert.deepEqual(stepAnchors({ trail: { from: '#a', to: '#b' } }), ['#a', '#b']);
+  assert.deepEqual(stepAnchors(null), []);
+});
+
+test('stepAnchors: KNOWN heuristic — a hex-shaped id like #cafe reads as a color', () => {
+  // documented trade-off: anchor keys far more often hold a leaked color than an
+  // element literally id'd #abc/#cafe. The heuristic favors filtering colors.
+  assert.deepEqual(stepAnchors({ rect: '#cafe' }), []);
+  assert.deepEqual(stepAnchors({ rect: '#abc' }), []);
+});
+
+// ── stepCamera ─────────────────────────────────────────────────────────────
+test('stepCamera: string, out, object.sel, and null forms', () => {
+  assert.equal(stepCamera({ camera: '#a' }), '#a');
+  assert.equal(stepCamera({ camera: 'out' }), 'out');
+  assert.equal(stepCamera({ camera: { sel: '#b', zoom: 2 } }), '#b');
+  assert.equal(stepCamera({ camera: { zoom: 2 } }), null); // no sel
+  assert.equal(stepCamera({ note: 'x' }), null);
+  assert.equal(stepCamera(null), null);
+});
+
+// ── auditScenes: cumulative trigger state across the reel ───────────────────
+test('auditScenes: a deploy-state primitive before any deploy warns', () => {
+  const w = auditScenes([{ confetti: '#x' }]).warnings;
+  assert.equal(w.length, 1);
+  assert.equal(w[0].kind, 'arbitrary-primitive');
+});
+
+test('auditScenes: the same primitive after a deploy click is clean', () => {
+  assert.equal(auditScenes([{ click: '#deploy' }, { confetti: '#x' }]).warnings.length, 0);
+  // ship/release also count as deploy triggers
+  assert.equal(auditScenes([{ click: '#ship-btn' }, { glow: '#s' }]).warnings.length, 0);
+});
+
+test('auditScenes: a null step mid-array does not crash the audit', () => {
+  assert.equal(auditScenes([{ click: '#deploy' }, null, { confetti: '#x' }]).warnings.length, 0);
+  assert.deepEqual(auditScenes('nope').warnings, []);
+});
+
+test('auditScenes: zoom-churn — out then re-frame the same panel warns', () => {
+  const w = auditScenes([
+    { camera: { sel: '#panel', zoom: 2 } },
+    { camera: 'out' },
+    { camera: { sel: '#panel', zoom: 2 } },
+  ]).warnings;
+  assert.ok(w.some((x) => x.kind === 'zoom-churn'));
+});
+
+test('auditScenes: framing a DIFFERENT panel after out is not churn', () => {
+  const w = auditScenes([
+    { camera: { sel: '#a', zoom: 2 } },
+    { camera: 'out' },
+    { camera: { sel: '#b', zoom: 2 } },
+  ]).warnings;
+  assert.ok(!w.some((x) => x.kind === 'zoom-churn'));
 });
