@@ -83,11 +83,9 @@
 // next one; blur persists; scrolling is smooth. The take ends with an injected
 // END card so the looping gif has a clear stop. Prints `OK <gif> (<MB>)`.
 
-import { readFileSync, mkdtempSync, writeFileSync, copyFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
 import { makeClock, buildConcatList } from './clock.mjs';
-import { num } from './cli-args.mjs';
 import { convertOutputs } from './rec-encode.mjs';
 import { cursorSnippet, endCardSnippet, detectPageLook, readLiveTheme, loadChromium, OFFLINE_ARGS } from './rec-page.mjs';
 import { makeAnnotator } from './rec-annotate.mjs';
@@ -95,10 +93,8 @@ import { makeMotion } from './rec-motion.mjs';
 import { makeInput } from './rec-input.mjs';
 import { makeCamera } from './rec-camera.mjs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { readFileSync as rf } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -111,19 +107,20 @@ function parseJsonOrDie(text, src) {
 
 // Pure step/arg helpers live in rec-steps.mjs (extracted for readability +
 // isolation). Re-exported so existing importers of rec.mjs keep working.
+// only the names used INSIDE this file are imported by name; everything else
+// rec-steps exports reaches downstream importers via the `export *` below.
 import {
-  looksLikeHostCsv, parse, dwellMs, applyOfflineDefaults, hotHeadFor, fillSpec,
-  selectSpec, autoAnnotateStep, camTransitionPlan, clampRelease, cameraSpec,
-  modalLayout, screenPhase, stepLabel, padToRatio, deriveCaptureHeight,
+  parse, dwellMs, applyOfflineDefaults, hotHeadFor, fillSpec,
+  selectSpec, autoAnnotateStep, cameraSpec,
+  screenPhase, stepLabel,
   resolveCaptureHeight, validateSteps, validateBatch, offlineMotionConflicts,
   auditScenes, auditRosterLive, collapseRedundantGlides, scrollInSpec,
-  STEP_KEYS, GLOSSARY_POS, MARK_KEYS, TAKE_KEYS, END_CARD_MODES, THEMES,
 } from "./rec-steps.mjs";
 export * from "./rec-steps.mjs";
 
 // camera = a CSS transform on <body>; every recorder overlay rides on <html>
 // so its position:fixed stays in true viewport space while the page moves.
-const camSnippet = rf(join(HERE, 'cam-inject.js'), 'utf8');
+const camSnippet = readFileSync(join(HERE, 'cam-inject.js'), 'utf8');
 
 async function main() {
   const a = applyOfflineDefaults(parse(process.argv.slice(2)));
@@ -455,7 +452,7 @@ async function recordTake(browser, a, block, auth) {
   const clock = makeClock({ offline, fps: a.fps, io, wallStart: recStart });
   if (offline) page.on('framenavigated', (f) => { if (f === page.mainFrame()) clock.markNav(); });
 
-  const canvasSrc = rf(join(HERE, 'annotate-canvas.js'), 'utf8');
+  const canvasSrc = readFileSync(join(HERE, 'annotate-canvas.js'), 'utf8');
 
   const safeEval = async (fn, arg) => {
     for (let i = 0; ; i++) {

@@ -56,8 +56,6 @@ export async function readLiveTheme(page) {
   } catch { return null; }
 }
 
-// the canvas so nothing overlaps inside the strip.
-
 export async function loadChromium() {
   ensureDeps({ quiet: true, needGif: true });
   Object.assign(process.env, { PLAYWRIGHT_BROWSERS_PATH: depsEnv().PLAYWRIGHT_BROWSERS_PATH });
@@ -68,6 +66,7 @@ export async function loadChromium() {
 // Compositor-thread animations (transform/opacity) ignore the renderer's
 // virtual time budget — without these flags the camera would finish on the
 // compositor's wall clock while everything else ran virtual. Offline forces
+// every animation onto the main thread so the virtual clock owns all of them.
 
 export const OFFLINE_ARGS = [
   '--disable-threaded-animation',
