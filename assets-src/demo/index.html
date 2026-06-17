@@ -14,6 +14,9 @@
     --ink:#E6EAF2; --mut:#8A93A6; --faint:#4a5468;
     --acc:#5B8CFF; --acc-2:#7C5CF6;
     --run:#FFB84D; --ok:#34D399; --fail:#F25555;
+    /* soft tints + focus ring — one source for the alphas that recurred inline */
+    --acc-soft:rgba(91,140,255,.12); --ring:rgba(91,140,255,.3);
+    --ok-soft:rgba(52,211,153,.12); --fail-soft:rgba(242,85,85,.12);
     --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
     --ui:"Inter",-apple-system,"Segoe UI",Roboto,sans-serif;
     font-size:16px;
@@ -76,6 +79,7 @@
     box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 18px 40px rgba(0,0,0,.28)}
   .panel__head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
   .panel__head h2{font-size:1rem;font-weight:600;letter-spacing:-.015em}
+  .pipeline .panel__head h2{font-size:1.12rem}
   .panel__head .tag{font-family:var(--mono);font-size:.68rem;color:var(--mut);text-transform:uppercase;
     letter-spacing:.08em}
 
@@ -153,9 +157,10 @@
   /* ───── deploy panel ───── */
   .deploy-panel{display:flex;flex-direction:column;gap:14px}
   .cta{font-family:var(--ui);display:inline-flex;align-items:center;justify-content:center;gap:9px;
-    background:linear-gradient(92deg,var(--acc),var(--acc-2));color:#fff;border:none;padding:13px 22px;
-    border-radius:11px;font-size:.92rem;font-weight:600;cursor:pointer;width:100%;
+    background:linear-gradient(92deg,var(--acc),var(--acc-2));color:#fff;border:none;padding:16px 24px;
+    border-radius:11px;font-size:1rem;font-weight:600;cursor:pointer;width:100%;
     box-shadow:0 8px 22px rgba(91,140,255,.28);transition:transform .14s,box-shadow .2s,filter .2s}
+  body.light .cta{box-shadow:0 8px 22px rgba(43,82,201,.22)}
   .cta:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(91,140,255,.4)}
   .cta:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(91,140,255,.4)}
   .cta .spin{display:none;width:15px;height:15px;border:2px solid rgba(255,255,255,.45);
@@ -233,9 +238,11 @@
   body.light{
     --bg:#F6F8FB; --panel:#FFFFFF; --raised:#F1F4F9; --sunken:#EEF1F7;
     --line:#E3E8F0; --line-2:#D5DCE8;
-    --ink:#1A1F2C; --mut:#5A6478; --faint:#9AA4B6;
+    --ink:#1A1F2C; --mut:#5A6478; --faint:#7A8499;
     --acc:#2B52C9; --acc-2:#5B3BCE;
     --run:#E08A1E; --ok:#0FA968; --fail:#E0383C;
+    --acc-soft:rgba(43,82,201,.10); --ring:rgba(43,82,201,.28);
+    --ok-soft:rgba(15,169,104,.12); --fail-soft:rgba(224,56,60,.10);
   }
   body.light{background:
     radial-gradient(1200px 600px at 85% -10%,rgba(52,97,230,.12) 0%,transparent 55%),
