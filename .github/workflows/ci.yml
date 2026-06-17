@@ -14,3 +14,17 @@ jobs:
         run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
       - name: unit suite
         run: node --test showreel/scripts/__tests__/*.test.mjs
+
+  roster-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: install chromium for the live audit
+        run: cd showreel/scripts && node ensure-deps.mjs
+      - name: audit the showcase roster (off-screen / broken-anchor gate)
+        run: |
+          node showreel/scripts/audit-roster.mjs \
+            "file://$PWD/assets-src/demo/index.html?gate=fail" \
+            assets-src/showcase-steps.json

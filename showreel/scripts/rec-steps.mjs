@@ -24,6 +24,7 @@ export function parse(argv) {
     else if (k === '--steps-json') a.stepsJson = argv[++i];
     else if (k === '--pace') a.pace = argv[++i];
     else if (k === '--dry') a.dry = true;
+    else if (k === '--no-safeguards') a.noSafeguards = true;
     else if (k === '--stamp') a.stamp = true;
     else if (k === '--theme') a.theme = argv[++i];
     else if (k === '--accent') a.accent = argv[++i];
@@ -477,6 +478,169 @@ export function offlineMotionConflicts(steps) {
     }
   });
   return hits;
+}
+
+// ── SAFEGUARDS against AI misuse (off-screen / arbitrary / state-mismatch) ──
+// The recorder is driven by an AI authoring a JSON roster. The failure modes
+// seen in practice are: firing a primitive on an element the scene's camera
+// doesn't frame (off-screen), firing a state primitive on a resting element
+// (arbitrary/decorative), and panning to several targets in one breath (camera
+// reads as random). These helpers turn those mistakes into pre-render
+// diagnostics instead of silent bugs in the video.
+
+// State primitives assert a transition (running/done/fail/sent). Authored with
+// no preceding trigger (click/fill/select) in the SAME scene, they animate over
+// a resting element — the "arbitrary primitive" failure. checkmark/flash/etc.
+const STATE_PRIMITIVES = new Set([
+  'orbit', 'glow', 'trail', 'progress', 'checkmark', 'flash', 'ripple',
+  'countup', 'sparkline', 'reveal', 'confetti', 'countdown', 'typeon',
+]);
+// Steps that establish/refresh real state a state primitive can ride.
+const TRIGGER_KEYS = new Set(['click', 'fill', 'select', 'option']);
+// The selector-bearing keys an action/primitive anchors to (for the off-screen
+// gate). Color-only flash and bare `true` are excluded by the reader.
+const ANCHOR_KEYS = [
+  'pulse', 'spotlight', 'blur', 'redact', 'highlight', 'shake', 'countdown',
+  'orbit', 'glow', 'progress', 'typeon', 'checkmark', 'flash', 'ripple',
+  'sparkline', 'countup', 'reveal', 'confetti', 'kenburns', 'inset', 'hide',
+  'rect', 'circle', 'badge', 'click', 'fill', 'select', 'glide', 'marks', 'arrow',
+];
+
+// Pull every concrete CSS selector a step anchors to. Skips bare `true`, CSS
+// color literals (flash:"#16a34a"), and numbers. marks/trail expand to many.
+export function stepAnchors(s) {
+  const out = [];
+  if (!s || typeof s !== 'object') return out;
+  const push = (v) => {
+    if (typeof v === 'string' && v !== 'true' && !/^#[0-9a-fA-F]{3,8}$/.test(v)) out.push(v);
+    else if (v && typeof v === 'object' && typeof v.sel === 'string') out.push(v.sel);
+  };
+  for (const k of ANCHOR_KEYS) {
+    if (!(k in s)) continue;
+    if (k === 'marks' && Array.isArray(s.marks)) s.marks.forEach((m) => m && m.sel && out.push(m.sel));
+    else push(s[k]);
+  }
+  if (s.trail && typeof s.trail === 'object') { if (s.trail.from) out.push(s.trail.from); if (s.trail.to) out.push(s.trail.to); }
+  return out;
+}
+
+// The camera target of a step: a selector string, "out", or null (no camera).
+export function stepCamera(s) {
+  if (!s || !('camera' in s)) return null;
+  const c = s.camera;
+  if (c === 'out') return 'out';
+  if (typeof c === 'string') return c;
+  if (c && typeof c === 'object' && typeof c.sel === 'string') return c.sel;
+  return null;
+}
+
+// State primitives keyed to the trigger that legitimizes them. A primitive in
+// this map is "arbitrary" ONLY if its required trigger never fired earlier in
+// the WHOLE reel (state persists across scenes — a deploy clicked once stays
+// done for every later payoff). Primitives NOT in this map (pulse on a live
+// dot, kenburns on an image) are always-on and never flagged.
+const PRIMITIVE_NEEDS_TRIGGER = {
+  orbit: 'deploy', trail: 'deploy', glow: 'deploy', progress: 'deploy',
+  checkmark: 'deploy', flash: 'deploy', ripple: 'deploy', countup: 'deploy',
+  sparkline: 'deploy', reveal: 'deploy', confetti: 'deploy', typeon: 'deploy',
+  countdown: 'deploy',
+};
+
+// Static scene audit (no browser): the only thing static analysis can judge
+// reliably is whether a state primitive ever had its triggering action fire
+// earlier in the reel. (Off-screen and screen-breaker are judged live by
+// auditRosterLive against the real DOM; random-camera is judged live too —
+// a multi-frame scene is fine as long as each event is in-frame, which the
+// live gate verifies, so we don't second-guess camera choreography here.)
+// A "deploy" trigger = a click on a deploy/ship control; once seen, all
+// deploy-state primitives are legitimate for the rest of the reel.
+// Returns { warnings: [{step, kind, message}] } — surfaced, never fatal.
+export function auditScenes(steps) {
+  const warnings = [];
+  if (!Array.isArray(steps)) return { warnings };
+  let deployTriggered = false;
+  let anyTrigger = false;
+  steps.forEach((s, i) => {
+    if (!s || typeof s !== 'object') return;
+    // record triggers seen so far (cumulative across the whole reel)
+    if (typeof s.click === 'string') {
+      anyTrigger = true;
+      if (/deploy|ship|release/i.test(s.click)) deployTriggered = true;
+    }
+    if (Object.keys(s).some((k) => TRIGGER_KEYS.has(k))) anyTrigger = true;
+    for (const k of Object.keys(s)) {
+      if (!STATE_PRIMITIVES.has(k)) continue;
+      const need = PRIMITIVE_NEEDS_TRIGGER[k];
+      const satisfied = need === 'deploy' ? deployTriggered : anyTrigger;
+      if (!satisfied) {
+        warnings.push({ step: i + 1, kind: 'arbitrary-primitive',
+          message: `"${k}" is a state primitive but no ${need || 'triggering'} action (e.g. a click on the deploy/ship control) fired earlier in the reel — it animates a resting element. Trigger the real state first, or use an always-on primitive.` });
+      }
+    }
+  });
+  return { warnings };
+}
+
+// Live audit (needs a page): walks the roster against the REAL rendered DOM and
+// returns hard ERRORS for the two failures static analysis can't see:
+//  - off-screen: an action/primitive anchored to an element whose center is
+//    outside the scene's current camera frame (the element exists but the
+//    viewer never sees the event).
+//  - screen-breaker: an anchor that is display:none / zero-area / detached, so
+//    the marker paints on nothing (or a stray box on empty space).
+// To judge visibility at the RIGHT moment, the audit DRIVES the page as it
+// walks: it executes click/fill/select steps (which reveal toasts, new rows,
+// timers via the demo's own JS) before checking later anchors — so an element
+// revealed by an earlier trigger is correctly seen as visible, not a false
+// "broken". `bridge` exposes { measure(sel), click(sel), fill(sel,text),
+// select(sel,option), settle(ms) }; rec.mjs wires it to the page. Scenes that
+// pan (follow) skip the off-screen check (the frame re-aims per glide).
+// Returns { errors: [{step, kind, message}] }.
+export async function auditRosterLive(steps, bridge) {
+  const errors = [];
+  if (!Array.isArray(steps)) return { errors };
+  const measure = bridge.measure;
+  let framed = null;          // current camera selector or null (full page)
+  let followActive = false;
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    if (!s || typeof s !== 'object') continue;
+    if ('screen' in s || 'modal' in s) { framed = null; followActive = false; continue; }
+    const cam = stepCamera(s);
+    if (cam === 'out') { framed = null; followActive = false; }
+    else if (cam) { framed = cam; followActive = false; }
+    else if ('follow' in s) { followActive = true; }
+
+    // check anchors BEFORE driving this step's triggers (the marker fires on the
+    // pre-action element for highlight/rect; click resolves its own target).
+    for (const sel of stepAnchors(s)) {
+      const m = await measure(sel);
+      if (!m) { errors.push({ step: i + 1, kind: 'missing', message: `anchor "${sel}" matches no element — the step fires on nothing.` }); continue; }
+      if (!m.visible || m.w < 2 || m.h < 2) {
+        errors.push({ step: i + 1, kind: 'broken', message: `anchor "${sel}" is hidden or zero-area (display:none / collapsed) — the marker paints on nothing or leaves a stray box. Reveal it first, or target a visible element.` });
+        continue;
+      }
+      if (framed && !followActive) {
+        const f = await measure(framed);
+        if (f && f.visible) {
+          const left = f.cx - f.w / 2 - 8, right = f.cx + f.w / 2 + 8;
+          const top = f.cy - f.h / 2 - 8, bot = f.cy + f.h / 2 + 8;
+          const inside = m.cx >= left && m.cx <= right && m.cy >= top && m.cy <= bot;
+          if (!inside) errors.push({ step: i + 1, kind: 'off-screen', message: `"${sel}" is outside the scene's camera frame "${framed}" — the action fires off-screen. Frame the panel that contains it (e.g. {"camera":{"sel":"<its panel>"}}) before this step, or move the step into the scene that frames it.` });
+        }
+      }
+    }
+
+    // drive real state so later anchors see the post-action DOM
+    try {
+      // a click can kick off an async flow (deploy progress reveals toast/new
+      // row ~2s later); settle long enough for those reveals before later checks.
+      if (typeof s.click === 'string') { await bridge.click(s.click); await bridge.settle(2300); }
+      const fl = s.fill; if (typeof fl === 'string' && typeof s.text === 'string') { await bridge.fill(fl, s.text); }
+      if (typeof s.select === 'string' && typeof s.option === 'string') { await bridge.select(s.select, s.option); }
+    } catch { /* driving is best-effort; a failed click just leaves state as-is */ }
+  }
+  return { errors };
 }
 
 // Sidecar step label: the human note when present, otherwise the take's first

@@ -589,3 +589,51 @@ test('offlineMotionConflicts is empty for a static/text-only reel', () => {
 test('every OFFLINE_INCOMPATIBLE key is a real step key', () => {
   for (const k of OFFLINE_INCOMPATIBLE) assert.ok(STEP_KEYS.has(k), k + ' must be a known step key');
 });
+
+import { auditScenes, stepAnchors, stepCamera } from '../rec.mjs';
+
+test('stepAnchors pulls selectors, skips bare-true and color literals', () => {
+  assert.deepEqual(stepAnchors({ highlight: '#x', note: 'hi' }), ['#x']);
+  assert.deepEqual(stepAnchors({ flash: '#16a34a' }), []);          // color, not selector
+  assert.deepEqual(stepAnchors({ confetti: 'true' }), []);          // bare true
+  assert.deepEqual(stepAnchors({ inset: { sel: '.s', zoom: 2 } }), ['.s']);
+  assert.deepEqual(stepAnchors({ trail: { from: '#a', to: '#b' } }), ['#a', '#b']);
+  assert.deepEqual(stepAnchors({ marks: [{ sel: '.a' }, { sel: '.b' }] }), ['.a', '.b']);
+});
+
+test('stepCamera reads selector / out / object form / none', () => {
+  assert.equal(stepCamera({ camera: '#m' }), '#m');
+  assert.equal(stepCamera({ camera: 'out' }), 'out');
+  assert.equal(stepCamera({ camera: { sel: '.x', zoom: 2 } }), '.x');
+  assert.equal(stepCamera({ note: 'x' }), null);
+});
+
+test('auditScenes flags a deploy-state primitive with no prior deploy click', () => {
+  const w = auditScenes([
+    { camera: { sel: '#pipeline' } },
+    { checkmark: '#stage-deploy .badge' },
+  ]).warnings;
+  assert.equal(w.length, 1);
+  assert.equal(w[0].kind, 'arbitrary-primitive');
+});
+
+test('auditScenes clears once the deploy click fired earlier (state persists across scenes)', () => {
+  const w = auditScenes([
+    { camera: { sel: '#deploy-panel' } },
+    { click: '#deploy' },
+    { camera: 'out' },
+    { camera: { sel: '#stage-deploy' } },
+    { checkmark: '#stage-deploy .badge' },
+    { flash: '#stage-deploy .chip' },
+  ]).warnings;
+  assert.equal(w.length, 0, 'deploy clicked earlier legitimizes later payoff primitives');
+});
+
+test('auditScenes never flags always-on primitives (pulse/kenburns)', () => {
+  const w = auditScenes([
+    { camera: { sel: 'header' } },
+    { pulse: '#live-dot' },
+    { kenburns: '.artifact' },
+  ]).warnings;
+  assert.equal(w.length, 0);
+});

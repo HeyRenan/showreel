@@ -148,6 +148,41 @@ position), OR clear the overlay before any later scroll/camera move. Never scrol
 while an element-anchored overlay from an EARLIER step is still meant to be visible — that is
 exactly how masks slide off their target.
 
+## SAFEGUARDS — the recorder REFUSES these (don't fight the gate, author it right)
+
+`rec` runs a live pre-flight before any render and **exits with an error** on the
+failures below (override only with `--no-safeguards`, for a deliberate exception).
+Run `node scripts/audit-roster.mjs <url> <roster.json>` to check a roster without rendering.
+
+**1. Off-screen action (ERROR).** Every action/primitive must anchor to an element
+INSIDE the current scene's camera frame. Firing on an element the camera doesn't
+show = the viewer never sees it.
+```jsonc
+WRONG: { "camera": {"sel":"#metrics","zoom":2} }, { "click": "#deploy" }   // #deploy is in another panel
+RIGHT: { "camera": {"sel":"#deploy-panel","zoom":2} }, { "click": "#deploy" } // frame the panel that holds it
+```
+Multi-panel beat? Frame panel A, act, `camera:"out"` or re-frame panel B, then act there. One event, one frame.
+
+**2. Screen-breaker (ERROR).** An anchor that is `display:none` / zero-area when the
+step fires paints on nothing (or leaves a stray box). Reveal it first (the page's
+own JS, e.g. a `click` that un-hides a toast/row) BEFORE the step references it.
+The audit drives clicks as it walks, so a toast revealed by an earlier `click` is fine.
+
+**3. Arbitrary state primitive (WARN).** State primitives (`orbit glow trail progress
+checkmark flash ripple countup sparkline reveal confetti typeon countdown`) must ride a
+REAL state change — a `click` on the deploy/ship control earlier in the reel. Firing one
+on a resting element is decoration, the thing this whole grammar exists to prevent.
+```jsonc
+WRONG: { "camera": {"sel":"#pipeline"} }, { "orbit": "#stage-deploy .stage-ring" }  // stage is idle
+RIGHT: …{ "click": "#deploy" }… (earlier) … then { "orbit": "#stage-deploy .stage-ring" } // stage is running
+```
+State persists across scenes: one deploy click legitimizes every later payoff (checkmark, confetti…).
+Always-on primitives (`pulse` on a live dot, `kenburns` on an image) need no trigger.
+
+**4. One camera target per event.** Don't pan to a new selector mid-beat expecting two
+things in one breath — the off-screen gate will catch the second one. Close with
+`camera:"out"` between distinct frames.
+
 ## Inputs
 
 - `--steps steps.json` or `--steps-json '[...]'` (inline, no temp file).

@@ -111,6 +111,7 @@ import {
   selectSpec, autoAnnotateStep, camTransitionPlan, clampRelease, cameraSpec,
   modalLayout, screenPhase, stepLabel, padToRatio, deriveCaptureHeight,
   resolveCaptureHeight, validateSteps, validateBatch, offlineMotionConflicts,
+  auditScenes, auditRosterLive,
   STEP_KEYS, GLOSSARY_POS, MARK_KEYS, TAKE_KEYS, END_CARD_MODES, THEMES,
 } from "./rec-steps.mjs";
 export * from "./rec-steps.mjs";
@@ -182,6 +183,12 @@ async function main() {
     v.errors.forEach((e) => console.error('rec: ' + e));
     process.exit(2);
   }
+  // SAFEGUARDS (static): scene-level heuristics for arbitrary-primitive and
+  // random-camera misuse. Warnings, not refusals — surfaced unless --no-safeguards.
+  if (!a.noSafeguards) {
+    const { warnings } = auditScenes(steps);
+    warnings.forEach((w) => console.error(`rec: WARN step ${w.step} [${w.kind}]: ${w.message}`));
+  }
   if (a.offline) {
     const conflicts = offlineMotionConflicts(steps);
     if (conflicts.length) {
@@ -196,6 +203,39 @@ async function main() {
     a.height = rh.height;
   }
   const chromium = await loadChromium();
+
+  // SAFEGUARDS (live): off-screen + screen-breaker gate. Renders the page once
+  // and refuses (exit 2) if any action/primitive anchors outside its scene's
+  // camera frame or to a hidden/zero-area element — the off-screen and
+  // breaks-the-screen failures that PLACE warnings can't catch. --no-safeguards
+  // skips it for the rare authored exception.
+  if (!a.noSafeguards) {
+    const sgBrowser = await chromium.launch();
+    const sgPage = await (await sgBrowser.newContext({ viewport: { width: a.width, height: a.height } })).newPage();
+    await sgPage.goto(a.url, { waitUntil: 'domcontentloaded' });
+    await sgPage.waitForTimeout(350);
+    const bridge = {
+      measure: (sel) => sgPage.evaluate((q) => {
+        const el = document.querySelector(q);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        const visible = cs.visibility !== 'hidden' && cs.display !== 'none' && parseFloat(cs.opacity || '1') > 0.02;
+        return { w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2, visible };
+      }, sel),
+      click: (sel) => sgPage.evaluate((q) => { const el = document.querySelector(q); if (el) el.click(); }, sel),
+      fill: (sel, text) => sgPage.evaluate(({ q, t }) => { const el = document.querySelector(q); if (el) { el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); } }, { q: sel, t: text }),
+      select: (sel, opt) => sgPage.evaluate(({ q, o }) => { const el = document.querySelector(q); if (el) { const x = [...el.options].find((p) => p.text.trim() === o || p.value === o); if (x) { el.value = x.value; el.dispatchEvent(new Event('change', { bubbles: true })); } } }, { q: sel, o: opt }),
+      settle: (ms) => sgPage.waitForTimeout(ms),
+    };
+    const { errors } = await auditRosterLive(steps, bridge);
+    await sgBrowser.close();
+    if (errors.length) {
+      errors.forEach((e) => console.error(`rec: step ${e.step} [${e.kind}]: ${e.message}`));
+      console.error(`rec: ${errors.length} safeguard error(s) — fix the roster, or pass --no-safeguards to override.`);
+      process.exit(2);
+    }
+  }
 
   // --dry: resolve every selector against the live page and report, no video,
   // no waits — the cheap authoring loop before the one real take.
