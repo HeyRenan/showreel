@@ -4,7 +4,7 @@ Read this before writing any rec step JSON beyond a straight preset swap. This f
 **THE CONTRACT** — the only file you need to write VALID JSON. Craft (arc, easing numbers)
 lives in `cinematic-grammar.md` + `motion-design.md`; open those only for a hero/cinematic reel.
 
-## STEP GRAMMAR — correct by construction (all 53 keys)
+## STEP GRAMMAR — correct by construction (all 55 keys)
 
 Write every step against this table. **ANCHOR**: `element` = pinned to the target, travels
 with it on scroll/camera (keep the element framed for the overlay's whole life — moving away
@@ -15,6 +15,8 @@ leaves the mask behind = the drift bug); `viewport` = fixed to frame; `page` = o
 | `click` | selector | — | — | — | element |
 | `glide` | selector | — | — | — | element (cursor) |
 | `scrollTo` | selector | — | — | — | — |
+| `scrollIn` | selector \| `{sel,to?,dur?}` | — | — | scrolls INSIDE an overflow div, not the page | element |
+| `to` | selector | **rides `scrollIn`** | ILLEGAL w/o `scrollIn` | the descendant to centre | — |
 | `wait` | number ms | — | — | ≥0 | — |
 | `note` | string | — | — | ≤12 words | element (w/ arrow) |
 | `arrow` | `true`/`"top"`/`"bottom"` | rides `note`/anchored `modal` | — | — | — |
@@ -163,6 +165,17 @@ RIGHT: { "camera": {"sel":"#deploy-panel","zoom":2} }, { "click": "#deploy" } //
 ```
 Multi-panel beat? Frame panel A, act, `camera:"out"` or re-frame panel B, then act there. One event, one frame.
 
+**1b. Partial visibility — mark the WHOLE element, never a sliver (engine, automatic + RULE).**
+An element may be highlighted/redacted/spotlit/circled ONLY when its ENTIRE box is on
+screen. Never mark a card half off the viewport, and never mark one half-clipped by an
+inner scroll container — a marker drawn over a sliver, with the rest cut by the fold or a
+container edge, is broken. The motor now brings every mark target FULLY into view before it
+fires: it scrolls the target's overflow containers (inner-first) THEN the page, so the whole
+box shows. If the element is bigger than the viewport (can never fully fit), the motor refuses
+to scroll uselessly and logs an error — you must frame it with `camera` first, or mark a
+smaller sub-element. Don't fight this: anchor marks to things that fit, and let the gate do
+the scrolling. (Inner-scroll reveal uses the same machinery as `scrollIn`.)
+
 **2. Screen-breaker (ERROR).** An anchor that is `display:none` / zero-area when the
 step fires paints on nothing (or leaves a stray box). Reveal it first (the page's
 own JS, e.g. a `click` that un-hides a toast/row) BEFORE the step references it.
@@ -191,6 +204,20 @@ sub-element (a button group, a field, a row, a content-height dropdown), not the
 container. If you must show a wide element, frame it with NO zoom number (fit), and
 expect a wide shot.
 
+**6. Zoom-churn (WARN).** Framing panel A, `camera:"out"`, then framing panel A again
+is a wasted zoom-out/zoom-in cycle the viewer reads as the camera flickering on the same
+element. Multiple notes on ONE panel must KEEP the zoom and only swap the annotation —
+the camera holds, the label cross-fades (the engine cross-fades note→note automatically).
+```jsonc
+WRONG: { "camera":{"sel":"#card"} }, {"note":"A","highlight":"#card"}, { "camera":"out" },
+       { "camera":{"sel":"#card"} }, {"note":"B","highlight":"#card"}   // out + re-zoom = flicker
+RIGHT: { "camera":{"sel":"#card"} }, {"note":"A","highlight":"#card"},
+       {"note":"B","highlight":"#card"}                                  // zoom held, note swaps
+```
+`camera:"out"` belongs only at the END of a panel's story, when the next beat is a
+DIFFERENT panel. The engine never re-zooms an unchanged frame on its own — only an
+explicit `out` + re-frame does, so just don't write it.
+
 ## AUTHORING RULES the engine now enforces or the design must honour
 
 - **Markers hug their content, not the box** (engine, automatic). highlight/redact/blur
@@ -205,13 +232,43 @@ expect a wide shot.
   toast that auto-fades or sits in a cramped slot — point the note at the durable result
   (the button that now says "Deployed"). `note` states the WHY, ≤8 words, never echoes
   on-screen text.
+- **`fill` wipes the field before typing** (engine, automatic). Re-filling a field that
+  was filled earlier in the reel clears it first, then types — content never stacks. You
+  can revisit an input freely; the motor resets it.
+- **Notes cross-fade, never hard-cut** (engine, automatic). A new note fades the previous
+  one out as it rises, so consecutive labels on a held frame dissolve into each other
+  instead of popping. This is why rule 6 (keep the zoom, swap the note) looks smooth — let
+  it; don't `camera:"out"` to "reset" between notes.
+- **Markers never bleed a table cell** (engine, automatic). redact/highlight on a `td`/`th`/
+  row use ZERO vertical overhang so the bar hugs its row and can't touch the line above or
+  below. Elsewhere the overhang stays. You don't manage this — just anchor to the real cell.
+- **Countdown disc fits its target** (engine, automatic). The countdown ring is capped to
+  the target's SHORT side, so circling a wide-but-short control (a full-width button) keeps
+  the disc INSIDE the box instead of spilling above and below it.
+- **Don't pre-`glide` before a `click`/`fill`/`select` on the same target** (engine collapses
+  it, but author it clean). A bare `{"glide":"#x"}` immediately followed by an action on `#x`
+  is a wasted second cursor move — the action already glides there. The motor drops the
+  pre-glide and carries its accent forward, but don't write it. `glide` is for a cursor TOUR
+  (consecutive glides to DIFFERENT targets, e.g. a `follow` walk) or a glide with its own note.
+- **Theme is read LIVE per step** (engine, automatic). A mid-reel `click` on a theme toggle
+  re-colours every annotation built afterward — the motor re-reads the page's body luminance
+  each step. An author accent that would wash out on the new surface is auto-mixed toward
+  contrast (the 0.32 floor). So a half-dark/half-light reel just works: toggle the theme with
+  the camera pulled OUT (so the viewer sees the surface re-theme), then keep authoring.
+- **`scrollIn` scrolls INSIDE a container, `scrollTo` scrolls the PAGE.** When the element you
+  want is clipped inside an `overflow:auto/scroll` div (a log viewer, a list, a chat feed),
+  `scrollTo`/`smoothScroll` move the window and never reveal it — the content is inside the
+  box, not the page. Use `{"scrollIn":"#log"}` to scroll that container to its bottom (the
+  "follow the log as it grows" move) or `{"scrollIn":"#log","to":"#row-42"}` to centre a
+  specific descendant. Animated on the take's clock, camera-scale-agnostic (scrollTop is
+  layout). Pair with `camera` framing the container first so the scroll is visible.
 
 ## Inputs
 
 - `--steps steps.json` or `--steps-json '[...]'` (inline, no temp file).
 - Output positional: `out.gif`, or `out.mp4` for **mp4-only** (skips the gif encode entirely — the fast default when no gif is needed). `--mp4 out.mp4` exports h264 alongside a gif; `--keep-webm out.webm` keeps the intermediate + `.timeline.json` sidecar (compose-video consumes it).
 - `steps.json` — selectors + text only; the script owns cursor motion, timing, and annotation placement.
-- Step keys (53) — the STEP GRAMMAR + DYNAMIC PRIMITIVES tables above are the authoritative list (unknown keys are rejected up front); count must equal `STEP_KEYS.size` in `rec-steps.mjs` (53). The **STEP GRAMMAR** table below is the authoritative shape contract — write every step against it, never from memory.
+- Step keys (55) — the STEP GRAMMAR + DYNAMIC PRIMITIVES tables above are the authoritative list (unknown keys are rejected up front); count must equal `STEP_KEYS.size` in `rec-steps.mjs` (55). The **STEP GRAMMAR** table below is the authoritative shape contract — write every step against it, never from memory.
 - `spotlight` — `{"spotlight":".target","note":"..."}` dims the whole frame EXCEPT a lit window around the target, pulling the eye to one element (a soft accent ring traces the lit edge). `spotlight: true` rides the step's own click/fill anchor. Works under camera zoom. Use it instead of `rect` when the goal is focus, not just a box.
 
 ## Flags
@@ -225,6 +282,12 @@ expect a wide shot.
 - `--pace fast` — trims scripted holds/fades ~45%. **NOT for a cinematic/motion reel** — it collapses the easing you authored. Use only for quick proofs, never a hero reel (see RENDER MODE gate).
 - `--gif-width`, `--fps`, `--width/--height` (defaults are 900x1400 portrait = mobile breakpoint; desktop = `--width 1440 --height 900`). Cinematic ~16:9: `--width 1600 --height 812` + both bars = 1600×900.
 - `--block-hosts` — allowlist external hosts.
+- `--storage-state <file.json>` — record a LOGGED-IN page. Playwright storage-state JSON
+  (cookies + localStorage) seeded into EVERY context (render + safeguard audit + dry), so the
+  audit drives the page logged in too (deslogado it would false-fail every authed anchor).
+- `--cookies <file.json>` — JSON array of Playwright cookie objects, added before `goto`.
+  Combine with `--storage-state` (state at context creation, cookies augment after).
+  ⚠️ Both files hold LIVE session secrets — keep them OUTSIDE the repo, never commit.
 - `--auto-annotate` — every bare `click`/`fill`/`select` step gets a rect outline on the target + a note with the element's visible label (aria-label > placeholder > title > text/value), for free. Lets the agent write `{click:"#deploy"}` and still get "Deploy to production" boxed — no per-step `rect`/`note` verbosity. Author-declared rect/note/circle/badge/modal on a step always wins (auto adds nothing there).
 
 **Per-step `speed` (OFFLINE ONLY — slow-mo / fast-forward):**
@@ -279,7 +342,7 @@ expect a wide shot.
 
 ```
 GRAMMAR  (all enforced by the validator; this is what it checks)
-[ ] Only known keys appear (53 total; see grammar tables). No FORBIDDEN FORM (see table): no follow:false/0; follow rides
+[ ] Only known keys appear (55 total; see grammar tables). No FORBIDDEN FORM (see table): no follow:false/0; follow rides
     click/glide/fill/select; text/delay only with fill; option only with select; option = LABEL
     not value; stagger only with marks/glossary; zoom-number only with camera; zoom:true only
     with click; NO speed anywhere (realtime reel).
