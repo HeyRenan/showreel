@@ -311,9 +311,16 @@ export function makeAnnotator(rctx) {
         panel('left:0;top:' + B + 'px;width:' + W + 'px;height:' + Math.max(0, H - B) + 'px'); // below
         panel('left:0;top:' + Math.max(0, Tp) + 'px;width:' + Math.max(0, L) + 'px;height:' + Math.max(0, B - Tp) + 'px'); // left
         panel('left:' + R + 'px;top:' + Math.max(0, Tp) + 'px;width:' + Math.max(0, W - R) + 'px;height:' + Math.max(0, B - Tp) + 'px'); // right
-        // the lit window's accent ring + soft outward glow (no fill — the hole stays clear).
-        add('left:' + L + 'px;top:' + Tp + 'px;width:' + (b.w + p * 2) + 'px;height:' + (b.h + p * 2) + 'px;' +
-          'border-radius:12px;box-shadow:0 0 28px 4px ' + GREEN + '55,inset 0 0 0 2px ' + GREEN + 'cc', null, 1);
+        // the lit window's accent ring. The EDGE is a real CSS `border`, not an
+        // inset box-shadow: a box-shadow (inset OR outset) is culled by the video
+        // capture in the same composited-scroll case that killed the 9999px dim,
+        // so the ring vanished while the dim stayed. A border always rasterizes.
+        // The soft outward glow rides a box-shadow on top — if IT gets culled the
+        // ring still reads; the glow is decoration, the border is the signal.
+        // border grows the box by 2px each side, so pull the rect in by 2 to keep
+        // the lit hole the same size as the dim's window.
+        add('left:' + (L - 2) + 'px;top:' + (Tp - 2) + 'px;width:' + (b.w + p * 2) + 'px;height:' + (b.h + p * 2) + 'px;' +
+          'border:2px solid ' + GREEN + ';border-radius:12px;box-shadow:0 0 28px 4px ' + GREEN + '55', null, 1);
       };
       const drawCircle = (b) => {
         // a +10 ellipse passes INSIDE the corners of wide flat boxes and cuts
