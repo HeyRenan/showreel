@@ -650,6 +650,40 @@ export function auditScenes(steps) {
   return { warnings };
 }
 
+// The audit bridge: the small set of page-driving ops auditRosterLive needs to
+// walk a roster against the live DOM (measure/click/fill/select/settle/contains/
+// reach). It was duplicated byte-for-byte in rec.mjs (safeguard pre-pass) and
+// audit-roster.mjs, differing only in which page + viewport it closed over —
+// factored here so the two can't drift. AUDIT-ONLY: nothing here touches the
+// recorded frames, so consolidating it cannot change render output.
+//   `reach` mirrors camFrame's achievable scale (auto-fit * zoom clamped by the
+//   no-crop ceiling); < ~1.15 means a zoom can't magnify the element.
+export function makeAuditBridge(page, vw, vh) {
+  return {
+    measure: (sel) => page.evaluate((q) => {
+      const el = document.querySelector(q); if (!el) return null;
+      const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
+      const visible = cs.visibility !== 'hidden' && cs.display !== 'none' && parseFloat(cs.opacity || '1') > 0.02;
+      return { w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2, visible };
+    }, sel),
+    click: (sel) => page.evaluate((q) => { const el = document.querySelector(q); if (el) el.click(); }, sel),
+    fill: (sel, t) => page.evaluate(({ q, t }) => { const el = document.querySelector(q); if (el) { el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); } }, { q: sel, t }),
+    select: (sel, o) => page.evaluate(({ q, o }) => { const el = document.querySelector(q); if (el) { const x = [...el.options].find((p) => p.text.trim() === o || p.value === o); if (x) { el.value = x.value; el.dispatchEvent(new Event('change', { bubbles: true })); } } }, { q: sel, o }),
+    settle: (ms) => page.waitForTimeout(ms),
+    contains: (host, sel) => page.evaluate(({ h, s }) => {
+      const he = document.querySelector(h), se = document.querySelector(s);
+      return !!(he && se && he.contains(se));
+    }, { h: host, s: sel }),
+    reach: (sel) => page.evaluate(({ q, vw, vh }) => {
+      const el = document.querySelector(q); if (!el) return null;
+      const r = el.getBoundingClientRect(); if (!r.width || !r.height) return null;
+      const fit = Math.max(1, Math.min(2.4, Math.min(0.86 * vw / r.width, 0.86 * vh / r.height)));
+      const noCrop = 0.94 * Math.min(vw / r.width, vh / r.height);
+      return Math.max(1, Math.min(Math.min(3, fit * 2), noCrop));
+    }, { q: sel, vw, vh }),
+  };
+}
+
 // Live audit (needs a page): walks the roster against the REAL rendered DOM and
 // returns hard ERRORS for the two failures static analysis can't see:
 //  - off-screen: an action/primitive anchored to an element whose center is

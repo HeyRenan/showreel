@@ -114,7 +114,7 @@ import {
   selectSpec, autoAnnotateStep, cameraSpec,
   screenPhase, stepLabel,
   resolveCaptureHeight, validateSteps, validateBatch, offlineMotionConflicts,
-  auditScenes, auditRosterLive, collapseRedundantGlides, scrollInSpec,
+  auditScenes, auditRosterLive, makeAuditBridge, collapseRedundantGlides, scrollInSpec,
 } from "./rec-steps.mjs";
 export * from "./rec-steps.mjs";
 
@@ -230,36 +230,9 @@ async function main() {
     const sgPage = await sgCtx.newPage();
     await sgPage.goto(a.url, { waitUntil: 'domcontentloaded' });
     await sgPage.waitForTimeout(350);
-    const bridge = {
-      measure: (sel) => sgPage.evaluate((q) => {
-        const el = document.querySelector(q);
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        const cs = getComputedStyle(el);
-        const visible = cs.visibility !== 'hidden' && cs.display !== 'none' && parseFloat(cs.opacity || '1') > 0.02;
-        return { w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2, visible };
-      }, sel),
-      click: (sel) => sgPage.evaluate((q) => { const el = document.querySelector(q); if (el) el.click(); }, sel),
-      fill: (sel, text) => sgPage.evaluate(({ q, t }) => { const el = document.querySelector(q); if (el) { el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); } }, { q: sel, t: text }),
-      select: (sel, opt) => sgPage.evaluate(({ q, o }) => { const el = document.querySelector(q); if (el) { const x = [...el.options].find((p) => p.text.trim() === o || p.value === o); if (x) { el.value = x.value; el.dispatchEvent(new Event('change', { bubbles: true })); } } }, { q: sel, o: opt }),
-      settle: (ms) => sgPage.waitForTimeout(ms),
-      // is `sel` a descendant of `host`? a target clipped inside a scroll
-      // container WITHIN the framed panel is reachable (the runtime gate scrolls
-      // the container to reveal it) — so it is NOT off-screen, just not-yet-shown.
-      contains: (host, sel) => sgPage.evaluate(({ h, s }) => {
-        const he = document.querySelector(h), se = document.querySelector(s);
-        return !!(he && se && he.contains(se));
-      }, { h: host, s: sel }),
-      // achievable camera scale for an element (mirrors camFrame: auto-fit * zoom
-      // clamped by the no-crop ceiling). < ~1.15 means "zoom can't magnify this".
-      reach: (sel) => sgPage.evaluate(({ q, vw, vh }) => {
-        const el = document.querySelector(q); if (!el) return null;
-        const r = el.getBoundingClientRect(); if (!r.width || !r.height) return null;
-        const fit = Math.max(1, Math.min(2.4, Math.min(0.86 * vw / r.width, 0.86 * vh / r.height)));
-        const noCrop = 0.94 * Math.min(vw / r.width, vh / r.height);
-        return Math.max(1, Math.min(Math.min(3, fit * 2), noCrop));
-      }, { q: sel, vw: a.width, vh: a.height }),
-    };
+    // audit-only bridge (measure/click/fill/select/settle/contains/reach),
+    // factored into rec-steps so rec.mjs and audit-roster.mjs share one copy.
+    const bridge = makeAuditBridge(sgPage, a.width, a.height);
     const { errors } = await auditRosterLive(steps, bridge);
     await sgBrowser.close();
     if (errors.length) {
