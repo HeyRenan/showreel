@@ -1,12 +1,12 @@
 [
-  { "camera": { "sel": ".stats", "zoom": 1.4 } },
+  { "camera": { "sel": "#topology", "zoom": 1.4 } },
   {
     "marks": [
-      { "sel": ".cards .card:nth-child(1)", "badge": "1.1" },
-      { "sel": ".cards .card:nth-child(2)", "badge": "1.2" },
-      { "sel": ".cards .card:nth-child(3)", "badge": "1.3" }
+      { "sel": "#svc-api", "badge": "1.1" },
+      { "sel": "#svc-db", "badge": "1.2" },
+      { "sel": "#svc-cdn", "badge": "1.3" }
     ],
-    "note": "Each service tracks its own rollout"
+    "note": "Each service tracks its own health"
   },
   { "camera": "out" }
 ]
