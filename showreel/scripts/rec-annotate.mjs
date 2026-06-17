@@ -37,7 +37,8 @@ export function makeAnnotator(rctx) {
       // one) is mixed 45% toward the opposite pole so it always reads. One rule,
       // applied to the accent before any marker uses it — readability is not
       // optional, the author colour is honoured whenever it already contrasts.
-      const __lum = (c) => { const m = c && String(c).match(/[\d.]+/g); if (!m) return 0.1; return (0.2126 * +m[0] + 0.7152 * +m[1] + 0.0722 * +m[2]) / 255; };
+      // luma weights match every other lum() in this file (Rec.601) so the
+      // contrast floor and the markers judge "light vs dark surface" the same way.
       const __toRGB = (c) => {
         if (!c) return null;
         if (/^#/.test(c)) { let h = c.slice(1); if (h.length === 3) h = h.split('').map((x) => x + x).join(''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
@@ -45,7 +46,7 @@ export function makeAnnotator(rctx) {
       };
       const safeAccent = (col, surfaceLum) => {
         const rgb = __toRGB(col); if (!rgb) return col;
-        const cl = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+        const cl = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
         if (Math.abs(cl - surfaceLum) >= 0.32) return col; // already contrasts
         const pole = surfaceLum < 0.5 ? [255, 255, 255] : [15, 23, 42];
         const k = 0.45;
