@@ -208,6 +208,7 @@
   tr.row--new.show{display:table-row}
 
   /* ───── form ───── */
+  #invite-panel{margin-top:16px}
   .invite{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:end}
   .field label{display:block;color:var(--mut);font-size:.76rem;margin-bottom:6px;font-weight:500}
   .field input,.field select{width:100%;font-family:var(--ui);background:var(--sunken);border:1px solid var(--line-2);
@@ -374,7 +375,7 @@
   </section>
 
   <!-- INVITE / CONFIG FORM -->
-  <section class="panel" id="invite-panel" style="margin-top:16px">
+  <section class="panel" id="invite-panel">
     <div class="panel__head"><h2>Invite a teammate</h2><span class="tag">access</span></div>
     <form class="invite" id="invite-form" onsubmit="return false">
       <div class="field"><label for="iname">Name</label><input id="iname" data-cursor-stop type="text" placeholder="Dana Reeves" autocomplete="off"></div>
@@ -396,7 +397,7 @@
   </section>
 
   <!-- DEPLOY DETAIL (kenburns) -->
-  <section class="panel deploy-detail" id="deploy-detail" style="margin-top:16px">
+  <section class="panel deploy-detail" id="deploy-detail">
     <div class="artifact-frame">
       <img class="artifact-preview" data-kenburns alt="Deployed lumen-web app preview"
         src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='800' height='400'&gt;&lt;defs&gt;&lt;linearGradient id='g' x1='0' y1='0' x2='1' y2='1'&gt;&lt;stop offset='0' stop-color='%235B8CFF'/&gt;&lt;stop offset='1' stop-color='%237C5CF6'/&gt;&lt;/linearGradient&gt;&lt;/defs&gt;&lt;rect width='800' height='400' fill='%230c1018'/&gt;&lt;rect width='800' height='400' fill='url(%23g)' opacity='.22'/&gt;&lt;circle cx='620' cy='90' r='150' fill='%235B8CFF' opacity='.18'/&gt;&lt;rect x='60' y='250' width='320' height='16' rx='8' fill='%23E6EAF2' opacity='.9'/&gt;&lt;rect x='60' y='285' width='480' height='10' rx='5' fill='%238A93A6' opacity='.7'/&gt;&lt;rect x='60' y='305' width='400' height='10' rx='5' fill='%238A93A6' opacity='.5'/&gt;&lt;text x='60' y='150' fill='%23E6EAF2' font-family='monospace' font-size='34' font-weight='700'&gt;lumen-web&lt;/text&gt;&lt;/svg&gt;">
