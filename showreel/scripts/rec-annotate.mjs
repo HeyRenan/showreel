@@ -306,21 +306,29 @@ export function makeAnnotator(rctx) {
         const dim = T.spotlight || 'rgba(8,14,28,.66)';
         const W = innerWidth, H = innerHeight;
         const L = b.x - p, Tp = b.y - p, R = b.x + b.w + p, B = b.y + b.h + p;
-        const panel = (css) => add(css + ';background:' + dim, null, 1);
-        panel('left:0;top:0;width:' + W + 'px;height:' + Math.max(0, Tp) + 'px');            // above
-        panel('left:0;top:' + B + 'px;width:' + W + 'px;height:' + Math.max(0, H - B) + 'px'); // below
-        panel('left:0;top:' + Math.max(0, Tp) + 'px;width:' + Math.max(0, L) + 'px;height:' + Math.max(0, B - Tp) + 'px'); // left
-        panel('left:' + R + 'px;top:' + Math.max(0, Tp) + 'px;width:' + Math.max(0, W - R) + 'px;height:' + Math.max(0, B - Tp) + 'px'); // right
-        // the lit window's accent ring. The EDGE is a real CSS `border`, not an
-        // inset box-shadow: a box-shadow (inset OR outset) is culled by the video
-        // capture in the same composited-scroll case that killed the 9999px dim,
-        // so the ring vanished while the dim stayed. A border always rasterizes.
-        // The soft outward glow rides a box-shadow on top — if IT gets culled the
-        // ring still reads; the glow is decoration, the border is the signal.
-        // border grows the box by 2px each side, so pull the rect in by 2 to keep
-        // the lit hole the same size as the dim's window.
-        add('left:' + (L - 2) + 'px;top:' + (Tp - 2) + 'px;width:' + (b.w + p * 2) + 'px;height:' + (b.h + p * 2) + 'px;' +
-          'border:2px solid ' + GREEN + ';border-radius:12px;box-shadow:0 0 28px 4px ' + GREEN + '55', null, 1);
+        const rad = 12;
+        // DIM = one full-frame fill with a ROUNDED-RECT hole cut by clip-path
+        // (even-odd: outer viewport rect minus an inner rounded rect). clip-path
+        // is a compositor clip, NOT a box-shadow — it survives video capture in
+        // the composited-scroll case that culled the old 9999px-spread shadow,
+        // AND its hole is a true rounded rectangle, so the lit window and the
+        // accent ring share the EXACT same geometry + corner radius (the four
+        // flat panels left a square hole that didn't match the round ring).
+        const rr = (x, y, w, h, r) => 'M' + (x + r) + ' ' + y + ' H' + (x + w - r) +
+          ' A' + r + ' ' + r + ' 0 0 1 ' + (x + w) + ' ' + (y + r) +
+          ' V' + (y + h - r) + ' A' + r + ' ' + r + ' 0 0 1 ' + (x + w - r) + ' ' + (y + h) +
+          ' H' + (x + r) + ' A' + r + ' ' + r + ' 0 0 1 ' + x + ' ' + (y + h - r) +
+          ' V' + (y + r) + ' A' + r + ' ' + r + ' 0 0 1 ' + (x + r) + ' ' + y + ' Z';
+        const clip = 'path(evenodd, "M0 0 H' + W + ' V' + H + ' H0 Z ' +
+          rr(L, Tp, b.w + p * 2, b.h + p * 2, rad) + '");';
+        add('left:0;top:0;width:' + W + 'px;height:' + H + 'px;background:' + dim +
+          ';clip-path:' + clip + ';-webkit-clip-path:' + clip, null, 1);
+        // accent ring — a real CSS border (cull-proof, unlike an inset box-shadow)
+        // on a box that is EXACTLY the clip hole, so edge and hole line up to the
+        // pixel and share the 12px radius. Border sits inside via box-sizing so it
+        // doesn't grow the rect. Soft outward glow is decoration on top.
+        add('left:' + L + 'px;top:' + Tp + 'px;width:' + (b.w + p * 2) + 'px;height:' + (b.h + p * 2) + 'px;' +
+          'box-sizing:border-box;border:2px solid ' + GREEN + ';border-radius:' + rad + 'px;box-shadow:0 0 28px 4px ' + GREEN + '55', null, 1);
       };
       const drawCircle = (b) => {
         // a +10 ellipse passes INSIDE the corners of wide flat boxes and cuts
