@@ -256,6 +256,16 @@ export function validateSteps(steps) {
   if (!Array.isArray(steps)) return { ok: false, errors: ['steps.json must be an array'] };
   steps.forEach((s, i) => {
     const n = 'step ' + (i + 1);
+    // a step must be a plain object — null/string/array would crash the key
+    // checks below, and an empty {} is a silent no-op that renders nothing.
+    if (!s || typeof s !== 'object' || Array.isArray(s)) {
+      errors.push(n + ' must be an object (a step like {"note":"…"} or {"click":"#x"})');
+      return;
+    }
+    if (Object.keys(s).length === 0) {
+      errors.push(n + ' is empty — every step needs at least one key (e.g. wait, note, click)');
+      return;
+    }
     const bad = Object.keys(s).filter((k) => !STEP_KEYS.has(k));
     if (bad.length) errors.push(n + ' has unknown keys: ' + bad.join(', ') + ' (known: ' + [...STEP_KEYS].join(', ') + ')');
     if ('zoom' in s) {
