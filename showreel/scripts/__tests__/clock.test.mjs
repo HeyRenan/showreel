@@ -214,3 +214,25 @@ test('setRate defaults to 1 and realtime clock has a no-op setRate', () => {
   assert.equal(typeof rt.setRate, 'function');
   rt.setRate(0.5); // must not throw
 });
+
+// motion with a degenerate duration must render the end pose once and return,
+// never spin: ms<=0 or NaN made k never reach 1 and the pump loop hung forever.
+test('offline motion: ms 0 / negative / NaN call fn(1) once, no hang', async () => {
+  const { io } = stubIO();
+  const c = makeClock({ offline: true, fps: 10, io });
+  for (const ms of [0, -100, NaN]) {
+    const ks = [];
+    await c.motion(ms, async (k) => ks.push(k));
+    assert.deepEqual(ks, [1], `ms=${ms} should yield a single k=1 call`);
+  }
+});
+
+test('realtime motion: ms 0 / negative / NaN call fn(1) once, no hang', async () => {
+  const { io } = stubIO();
+  const c = makeClock({ offline: false, io, wallStart: 0 });
+  for (const ms of [0, -100, NaN]) {
+    const ks = [];
+    await c.motion(ms, async (k) => ks.push(k));
+    assert.deepEqual(ks, [1], `ms=${ms} should yield a single k=1 call`);
+  }
+});

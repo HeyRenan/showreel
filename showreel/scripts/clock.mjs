@@ -36,6 +36,9 @@ export function makeClock({ offline = false, fps = 15, io, wallStart }) {
       wait: (ms) => io.wait(ms),
       tick: () => io.wait(12),
       motion: async (ms, fn) => {
+        // non-positive/non-finite duration -> end pose once, no spin (NaN would
+        // make k never reach 1 and loop forever; realtime has no frame cap).
+        if (!(ms > 0)) { await fn(1); return; }
         const m0 = Date.now();
         for (;;) {
           const k = Math.min(1, (Date.now() - m0) / ms);
@@ -132,6 +135,10 @@ export function makeClock({ offline = false, fps = 15, io, wallStart }) {
       // STEP*rate, so slow-mo (rate<1) takes more pumps to reach k=1 = more
       // sampled frames = smooth slow motion. Rate lives in pump1 (shared with
       // hot waits: camera transitions, fades, staggers all slow together).
+      // a non-positive or non-finite duration has no animation window: render
+      // the end pose once and return. Without this, ms<=0/NaN makes k never
+      // reach 1 and the pump loop spins forever (a silent render hang).
+      if (!(ms > 0)) { await fn(1); return; }
       const t0 = vt;
       for (;;) {
         const k = Math.min(1, (vt - t0) / ms);
