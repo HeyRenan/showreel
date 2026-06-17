@@ -1,0 +1,76 @@
+[
+  { "modal": "Your UI, on its showreel.", "wait": 2500 },
+  { "scrollTo": ".hero h1", "wait": 1200 },
+
+  { "screen": "Lumen — ship dashboard", "accent": "#3b82f6", "wait": 1200 },
+
+  { "camera": { "sel": ".stats", "zoom": 2 }, "accent": "#f59e0b", "wait": 1300 },
+  { "marks": [
+      { "sel": ".stat:nth-child(1)", "badge": "1", "text": "Uptime over 30 days" },
+      { "sel": ".stat:nth-child(2)", "badge": "2", "text": "p95 response time" },
+      { "sel": ".stat:nth-child(3)", "badge": "3", "text": "Deploys this quarter" },
+      { "sel": ".stat:nth-child(4)", "badge": "4", "text": "Apex quality score" }
+    ],
+    "glossary": true, "stagger": 360, "wait": 5940 },
+  { "camera": "out", "wait": 700 },
+
+  { "camera": { "sel": "#menu", "zoom": 2 }, "accent": "#ef4444", "wait": 1300 },
+  { "glide": "#menu", "wait": 400 },
+  { "click": "#menu", "wait": 800 },
+  { "highlight": "#drawer", "note": "Every workspace action lives here", "wait": 1500 },
+  { "click": "#menu", "wait": 800 },
+  { "camera": "out", "wait": 700 },
+
+  { "camera": { "sel": ".card:nth-child(1)", "zoom": 3 }, "accent": "#22c55e", "wait": 1300 },
+  { "spotlight": ".card:nth-child(1)", "note": "Edge caching resizes on the fly", "wait": 1500 },
+  { "camera": "out", "wait": 700 },
+
+  { "camera": { "sel": "table", "zoom": 2 }, "accent": "#8b5cf6", "wait": 1300 },
+  { "blur": "tbody tr:nth-child(2) .email", "wait": 800 },
+  { "redact": "tbody tr:nth-child(3) .email", "wait": 800 },
+  { "highlight": "tbody tr:nth-child(1) .email", "note": "Only owners see full addresses", "wait": 1500 },
+  { "camera": "out", "wait": 700 },
+
+  { "camera": { "sel": "#invite", "zoom": 2 }, "accent": "#3b82f6", "wait": 1300 },
+  { "glide": "#iname", "wait": 400 },
+  { "fill": "#iname", "text": "Dana Reyes", "delay": 45, "wait": 700 },
+  { "glide": "#iemail", "wait": 400 },
+  { "fill": "#iemail", "text": "dana@acme.co", "delay": 70, "wait": 700 },
+  { "glide": "#region", "wait": 400 },
+  { "select": "#region", "option": "São Paulo", "wait": 700 },
+  { "glide": "#invite", "wait": 400 },
+  { "click": "#invite", "wait": 800 },
+  { "note": "Invite sent — pending until accepted", "rect": "#invite-toast", "wait": 1500 },
+  { "camera": "out", "wait": 700 },
+
+  { "follow": 2, "glide": "#menu", "accent": "#f59e0b", "wait": 1600 },
+  { "glide": ".cards", "wait": 1600 },
+  { "glide": "#deploy", "wait": 1600 },
+  { "camera": "out", "wait": 700 },
+
+  { "glide": "#theme", "accent": "#ef4444", "wait": 400 },
+  { "click": "#theme", "wait": 800 },
+  { "highlight": ".hero h1", "note": "One toggle re-themes the whole surface", "wait": 1500 },
+  { "click": "#theme", "wait": 800 },
+
+  { "screen": "16 motion primitives", "accent": "#8b5cf6", "wait": 1200 },
+  { "pulse": "#deploy", "wait": 400 },
+  { "ripple": "#deploy", "wait": 400 },
+  { "glow": "#invite", "wait": 400 },
+  { "shake": ".stat:nth-child(4)", "wait": 400 },
+  { "checkmark": ".stat:nth-child(1)", "wait": 400 },
+  { "flash": "#22c55e", "wait": 300 },
+  { "confetti": ".stat:nth-child(1)", "wait": 400 },
+  { "sparkline": ".stat:nth-child(2)", "wait": 500 },
+  { "countup": ".stat:nth-child(3)", "wait": 400 },
+  { "orbit": ".logo", "wait": 400 },
+  { "trail": { "from": "#menu", "to": "#deploy" }, "wait": 400 },
+  { "progress": ".card:nth-child(2)", "wait": 400 },
+  { "countdown": 3, "wait": 400 },
+  { "typeon": ".hero p", "wait": 400 },
+  { "reveal": ".card:nth-child(3)", "wait": 400 },
+  { "kenburns": ".hero", "wait": 400 },
+
+  { "camera": "out", "accent": "#22c55e", "wait": 700 },
+  { "modal": "Every change ships with its reel.", "wait": 2500 }
+]
