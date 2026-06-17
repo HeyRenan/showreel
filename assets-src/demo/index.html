@@ -49,6 +49,7 @@
     padding:8px 16px;border-radius:9px;font-size:.86rem;font-weight:500;cursor:pointer;
     transition:border-color .18s,box-shadow .18s,background .18s}
   .btn:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.14)}
+  #theme{min-width:92px;text-align:left}
   .btn:focus-visible{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.3)}
 
   /* floating, content-height menu (not a full-height rail) so a camera can
@@ -64,7 +65,8 @@
     padding:12px 14px;border-radius:9px;font-size:.92rem;border-left:2px solid transparent;
     transition:all .16s ease}
   .nav-item:hover{background:rgba(91,140,255,.09);color:var(--ink);border-left-color:var(--acc)}
-  .nav-item b{font-family:var(--mono);font-size:.7rem;color:var(--mut);margin-left:auto;font-weight:500}
+  .nav-item b{font-family:var(--mono);font-size:.7rem;color:var(--mut);margin-left:auto;font-weight:500;
+    padding:1px 6px;border-radius:5px;background:var(--sunken)}
 
   /* ───── layout ───── */
   main{max-width:1180px;margin:0 auto;padding:32px 24px 90px}
@@ -125,7 +127,9 @@
   .line .ts{color:var(--faint);margin-right:8px}
 
   /* ───── metrics cluster ───── */
-  .kpi{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .kpi{background:var(--raised);border:1px solid var(--line-2);border-radius:12px;padding:16px}
+  .metrics .kpi + .kpi{margin-top:12px}
+  .kpi b.value .u{font-size:.78rem;color:var(--mut);font-weight:500;margin-left:3px}
   .kpi__label{font-size:.74rem;color:var(--mut);display:flex;align-items:center;justify-content:space-between}
   .kpi b.value{font-family:var(--mono);font-size:1.55rem;font-weight:700;display:block;margin-top:6px;
     font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -136,11 +140,12 @@
 
   /* ───── topology ───── */
   .topo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative}
-  .svc-node{background:var(--raised);border:1px solid var(--line-2);border-radius:11px;padding:12px 16px;
+  .svc-node{background:var(--raised);border:1px solid var(--line-2);border-radius:12px;padding:12px 16px;
     display:flex;align-items:center;gap:11px;position:relative;transition:border-color .2s,box-shadow .2s}
+  .svc-node:hover{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,140,255,.10)}
   .svc-node .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 4px var(--ok);flex:none;transition:all .2s}
   .svc-node .nm{font-family:var(--mono);font-size:.8rem}
-  .svc-node .st{font-family:var(--mono);font-size:.66rem;color:var(--mut);margin-left:auto}
+  .svc-node .st{font-family:var(--mono);font-size:.66rem;color:var(--ok);margin-left:auto}
   .svc-node--focus{border-color:var(--acc)}
   .topology[data-rollout] .svc-node{border-color:rgba(52,211,153,.4)}
   .topology[data-rollout] .svc-node .st{color:var(--ok)}
@@ -184,9 +189,10 @@
   .hist-wrap{margin-top:16px}
   table.deploy-history{width:100%;border-collapse:collapse;font-size:.86rem}
   .deploy-history th,.deploy-history td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .deploy-history td{font-size:.82rem}
   .deploy-history th{color:var(--mut);font-weight:600;font-size:.7rem;text-transform:uppercase;
     letter-spacing:.08em;font-family:var(--mono)}
-  .deploy-history td.bn,.deploy-history td.email{font-family:var(--mono);font-size:.8rem}
+  .deploy-history td.bn,.deploy-history td.email{font-family:var(--mono)}
   .deploy-history tbody tr{transition:background .15s ease}
   .deploy-history tbody tr:hover{background:rgba(91,140,255,.05)}
   .deploy-history tr:last-child td{border-bottom:none}
@@ -203,6 +209,7 @@
     color:var(--ink);padding:10px 12px;border-radius:8px;font-size:.88rem;outline:none;
     transition:border-color .18s,box-shadow .18s}
   .field input::placeholder{color:var(--faint)}
+  .field input:hover,.field select:hover{border-color:rgba(91,140,255,.4)}
   /* custom chevron: native arrow sits flush on the border — replace it with an
      SVG inset from the right edge, and reserve right padding so the text never
      runs under it. */
@@ -235,7 +242,7 @@
     radial-gradient(900px 700px at -10% 20%,rgba(124,92,246,.08) 0%,transparent 50%),
     var(--bg);background-attachment:fixed}
   body.light header.console-bar{background:rgba(246,248,251,.85)}
-  body.light .panel{box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 12px 30px rgba(20,30,60,.08)}
+  body.light .panel{box-shadow:0 12px 30px rgba(20,30,60,.08)}
 </style>
 </head>
 <body>
@@ -310,7 +317,7 @@
     <!-- METRICS -->
     <section class="panel metrics" id="metrics">
       <div class="panel__head"><h2>Live metrics</h2><span class="tag">post-deploy</span></div>
-      <div class="kpi" id="p95" data-metric="p95" style="margin-bottom:12px">
+      <div class="kpi" id="p95" data-metric="p95">
         <div class="kpi__label"><span>p95 latency</span><span class="delta down">▼ 21 ms</span></div>
         <b class="value" data-countup>184 ms</b>
         <svg class="spark" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"></svg>
