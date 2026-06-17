@@ -566,8 +566,14 @@ export function makeAnnotator(rctx) {
     await safeEval((s) => {
       document.querySelectorAll(s).forEach((el) => {
         if (el.style.filter) return;
+        // SIZE-AWARE radius + contain: an 8px blur on a short table cell bleeds
+        // its smear past the cell edge into neighbours. Scale the radius to the
+        // box and clip the spill so the blur stays inside the element.
+        const r = el.getBoundingClientRect();
+        const rad = Math.max(3, Math.min(8, Math.min(r.width, r.height) * 0.45));
+        if (!el.style.overflow) { el.style.overflow = 'hidden'; el.dataset.srBlurClip = '1'; }
         el.style.transition = (el.style.transition ? el.style.transition + ',' : '') + 'filter .45s ease';
-        requestAnimationFrame(() => { el.style.filter = 'blur(8px)'; });
+        requestAnimationFrame(() => { el.style.filter = 'blur(' + rad.toFixed(1) + 'px)'; });
       });
     }, sel);
   };
@@ -585,12 +591,24 @@ export function makeAnnotator(rctx) {
   // sized to the element's box so the original text never renders through it.
   const applyRedact = async (sel, color) => {
     await safeEval((s, col) => {
+      // MOTOR RULE (see applyHighlight): hug the text, not a wide box.
+      const textInset = (el, r) => {
+        try {
+          const rng = document.createRange(); rng.selectNodeContents(el);
+          const tr = rng.getBoundingClientRect();
+          if (tr.width > 2 && r.width - tr.width > 24) {
+            return { l: Math.max(0, tr.left - r.left - 4), rt: Math.max(0, r.right - tr.right - 4) };
+          }
+        } catch (e) { /* no text — use box */ }
+        return { l: 0, rt: 0 };
+      };
       document.querySelectorAll(s).forEach((el, i) => {
         if (el.dataset.srRedacted) return;
         const r = el.getBoundingClientRect();
         const cs = getComputedStyle(el);
         if (r.width < 2 || r.height < 2 || cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) < 0.05) return;
         el.dataset.srRedacted = '1';
+        const ti = textInset(el, r);
         // ATTACH AS A CHILD OF THE TARGET (inset:0) so the mask inherits the
         // element's own box AND any camera transform on an ancestor — a
         // body-level absolute div diverges from the target under a zoom
@@ -600,10 +618,15 @@ export function makeAnnotator(rctx) {
         const bar = document.createElement('div');
         bar.className = '__sr_mask__';
         bar.dataset.srFor = s;
-        // OVERHANG the text box (inset negative) so no glyph edge peeks out —
-        // a redact sized exactly to the text leaks ascenders/descenders at the
-        // corners. -3px vertical, -6px horizontal fully buries the content.
-        bar.style.cssText = 'position:absolute;inset:-3px -6px;z-index:2147483600;border-radius:4px;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .35s ease;';
+        // OVERHANG the text box so no glyph edge peeks out — but SCALE it to the
+        // box so a small table cell doesn't bleed its censor bar into the next
+        // column (-6px is huge on a narrow cell). Vertical overhang buries
+        // ascenders/descenders; horizontal stays tight on small targets.
+        const ovY = Math.max(1, Math.min(3, r.height * 0.12));
+        const ovX = Math.max(1, Math.min(6, r.width * 0.03));
+        // hug text horizontally on wide boxes; overhang vertically to bury glyphs
+        const lIn = (ti.l - ovX).toFixed(1), rIn = (ti.rt - ovX).toFixed(1);
+        bar.style.cssText = 'position:absolute;top:-' + ovY.toFixed(1) + 'px;bottom:-' + ovY.toFixed(1) + 'px;left:' + lIn + 'px;right:' + rIn + 'px;z-index:2147483600;border-radius:4px;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .35s ease;';
         requestAnimationFrame(() => { bar.style.opacity = '1'; }); // fade IN (exit fade via clearMasks)
         // surface luminance so the censor bar always CONTRASTS the page: a dark
         // bar on a dark table is invisible. Dark page → light-grey bar; light
@@ -636,12 +659,27 @@ export function makeAnnotator(rctx) {
   const applyHighlight = async (sel, color) => {
     await safeEval((s, col) => {
       const lum = (c) => { const m = c.match(/\d+/g); if (!m) return 1; return (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) / 255; };
+      // MOTOR RULE: a marker on a block much wider than its text (a table cell,
+      // a full-width row) must hug the TEXT, not the box — else it extrapolates
+      // the content and bleeds into neighbours. Measure the real text run with a
+      // Range; return left/right insets to pull the band tight to the glyphs.
+      const textInset = (el, r) => {
+        try {
+          const rng = document.createRange(); rng.selectNodeContents(el);
+          const tr = rng.getBoundingClientRect();
+          if (tr.width > 2 && r.width - tr.width > 24) {
+            return { l: Math.max(0, tr.left - r.left - 4), rt: Math.max(0, r.right - tr.right - 4) };
+          }
+        } catch (e) { /* no text content — use the box */ }
+        return { l: 0, rt: 0 };
+      };
       document.querySelectorAll(s).forEach((el) => {
         if (el.dataset.srHighlit) return;
         const r = el.getBoundingClientRect();
         const cs = getComputedStyle(el);
         if (r.width < 2 || r.height < 2 || cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) < 0.05) return;
         el.dataset.srHighlit = '1';
+        const ti = textInset(el, r);
         // ATTACH AS A CHILD OF THE TARGET so the band inherits the element box
         // and any ancestor camera transform — a body-level div diverges under a
         // zoom transform and lands in the wrong place.
@@ -651,11 +689,21 @@ export function makeAnnotator(rctx) {
         while ((!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') && p.parentElement) { p = p.parentElement; bg = getComputedStyle(p).backgroundColor; }
         const dark = lum(bg || 'rgb(10,15,30)') < 0.5;
         const accent = col || (dark ? 'rgba(250,204,21,0.85)' : 'rgba(250,204,21,0.55)');
+        // SIZE-AWARE inset/ring/glow: a fixed -4px inset + 16px glow overflows a
+        // small target (a table cell) into its neighbours — ugly, extrapolates
+        // the box. Scale the overhang, ring and glow to the SHORT edge so a tiny
+        // cell gets a tight, contained highlight and a big card still reads bold.
+        const short = Math.min(r.width, r.height);
+        const over = Math.max(1, Math.min(4, short * 0.12));
+        const ring = Math.max(1, Math.min(2, short * 0.06));
+        const glow = Math.max(4, Math.min(16, short * 0.5));
         const band = document.createElement('div');
         band.className = '__sr_mask__';
         band.dataset.srFor = s;
-        band.style.cssText = 'position:absolute;inset:-4px;z-index:2147483600;pointer-events:none;border-radius:6px;overflow:hidden;opacity:0;transition:opacity .35s ease;'
-          + 'box-shadow:0 0 0 2px ' + (col || (dark ? 'rgba(250,204,21,0.9)' : 'rgba(202,138,4,0.8)')) + ',0 0 16px 2px ' + (col || 'rgba(250,204,21,0.45)') + ';';
+        // horizontal edges hug the text when the box is wider than its content
+        const lIn = (ti.l - over).toFixed(1), rIn = (ti.rt - over).toFixed(1);
+        band.style.cssText = 'position:absolute;top:-' + over.toFixed(1) + 'px;bottom:-' + over.toFixed(1) + 'px;left:' + lIn + 'px;right:' + rIn + 'px;z-index:2147483600;pointer-events:none;border-radius:6px;overflow:hidden;opacity:0;transition:opacity .35s ease;'
+          + 'box-shadow:0 0 0 ' + ring.toFixed(1) + 'px ' + (col || (dark ? 'rgba(250,204,21,0.9)' : 'rgba(202,138,4,0.8)')) + ',0 0 ' + glow.toFixed(1) + 'px 1px ' + (col || 'rgba(250,204,21,0.45)') + ';';
         requestAnimationFrame(() => { band.style.opacity = '1'; }); // fade IN
         const ink = document.createElement('div');
         ink.style.cssText = 'width:100%;height:100%;mix-blend-mode:' + (dark ? 'screen' : 'multiply') + ';border-radius:6px;'
