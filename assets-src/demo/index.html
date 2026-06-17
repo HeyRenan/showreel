@@ -87,14 +87,42 @@
     background:var(--ok);color:#06281c;font-weight:600;padding:11px 20px;border-radius:11px;
     transition:all .3s ease;white-space:nowrap;z-index:6;box-shadow:0 10px 30px rgba(52,211,153,.35)}
   .toast.show{transform:translate(0,-50%);opacity:1}
+  .cta-row--form{position:relative;display:block;margin-top:0}
+  .cta-row--form .toast{left:50%;top:auto;bottom:calc(100% + 12px);transform:translate(-50%,8px)}
+  .cta-row--form .toast.show{transform:translate(-50%,0)}
   body.after .stat b{color:var(--ok)}
   body.after .hero h1::after{content:" — optimized";color:var(--ok);font-size:1.1rem;vertical-align:middle}
+  /* LIGHT MODE — full re-theme; annotations must adapt to the bright surface */
+  body.light{
+    --bg:#f4f6fb; --panel:#ffffff; --panel-2:#eef1f8; --line:#d3dae8; --line-soft:#e4e9f3;
+    --ink:#0f1830; --mut:#5d6b8a; --acc:#2563eb; --acc-2:#7c3aed;
+    background:
+      radial-gradient(1100px 520px at 82% -12%,rgba(120,150,255,.18) 0%,transparent 60%),
+      radial-gradient(900px 600px at -10% 30%,rgba(150,110,230,.12) 0%,transparent 55%),
+      var(--bg);
+  }
+  body.light header{background:rgba(244,246,251,.85)}
+  body.light .stat,body.light .card,body.light table{box-shadow:0 6px 20px rgba(20,30,60,.07)}
+  body.light .pill.ok{background:rgba(16,150,90,.12);color:#0d7a44}
+  body.light .pill.run{background:rgba(37,99,235,.12);color:#1d4ed8}
+  /* deploy button states: idle → loading spinner → success check */
+  .cta .spin{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;border-radius:50%;vertical-align:-3px;margin-right:8px;animation:sr-spin .7s linear infinite}
+  @keyframes sr-spin{to{transform:rotate(360deg)}}
+  .cta.loading{pointer-events:none;opacity:.92}
+  .cta.loading .spin{display:inline-block}
+  .cta.loading .lbl{opacity:.85}
+  .cta.done{background:linear-gradient(92deg,#10b981,#059669);box-shadow:0 8px 22px rgba(16,185,129,.4)}
+  .cta .chk{display:none;margin-right:8px;font-weight:800}
+  .cta.done .chk{display:inline-block;animation:sr-pop .35s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes sr-pop{from{transform:scale(0)}to{transform:scale(1)}}
 </style>
 </head>
 <body>
 <header>
   <div class="logo"><i></i>Lumen</div>
-  <button class="menu-btn" id="menu">Menu</button>
+  <button class="menu-btn" id="theme" style="margin-left:auto">☀ Light</button>
+  <button class="menu-btn" id="menu" style="margin-left:12px">Menu</button>
 </header>
 <nav class="drawer" id="drawer">
   <a href="#">Overview</a><a href="#">Deployments</a><a href="#">Monitoring</a>
@@ -143,22 +171,43 @@
         <option value="ap-south">Singapore</option>
       </select>
     </div>
-    <button class="cta cta--form" id="invite">Send invite</button>
+    <div class="cta-row cta-row--form">
+      <button class="cta cta--form" id="invite">Send invite</button>
+      <div class="toast" id="invite-toast">Invite sent ✓</div>
+    </div>
   </form>
 
   <div class="cta-row">
-    <button class="cta" id="deploy">Deploy to production</button>
+    <button class="cta" id="deploy"><span class="spin"></span><span class="chk">✓</span><span class="lbl">Deploy to production</span></button>
     <div class="toast" id="toast">Build #1249 live</div>
   </div>
 </main>
 <script>
   const drawer=document.getElementById('drawer');
   document.getElementById('menu').addEventListener('click',()=>drawer.classList.toggle('open'));
-  document.getElementById('deploy').addEventListener('click',()=>{
-    const t=document.getElementById('toast');t.classList.add('show');
-    setTimeout(()=>t.classList.remove('show'),9000);
+  document.getElementById('deploy').addEventListener('click',function(){
+    const b=this,lbl=b.querySelector('.lbl');
+    if(b.classList.contains('loading')||b.classList.contains('done'))return;
+    b.classList.add('loading');lbl.textContent='Deploying…';
+    setTimeout(()=>{
+      b.classList.remove('loading');b.classList.add('done');lbl.textContent='Deployed';
+      const t=document.getElementById('toast');t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),20000);
+    },1400);
+  });
+  document.getElementById('invite').addEventListener('click',()=>{
+    const name=(document.getElementById('iname').value||'teammate').trim();
+    const t=document.getElementById('invite-toast');
+    t.textContent='Invite sent to '+name+' ✓';
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),20000);
+  });
+  document.getElementById('theme').addEventListener('click',function(){
+    const light=document.body.classList.toggle('light');
+    this.textContent=light?'☾ Dark':'☀ Light';
   });
   if(new URLSearchParams(location.search).get('state')==='after')document.body.classList.add('after');
+  if(new URLSearchParams(location.search).get('theme')==='light')document.body.classList.add('light');
 </script>
 </body>
 </html>

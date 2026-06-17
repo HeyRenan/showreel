@@ -55,7 +55,7 @@ export function parse(argv) {
   return a;
 }
 
-export const STEP_KEYS = new Set(['click', 'scrollTo', 'wait', 'note', 'arrow', 'badge', 'rect', 'circle', 'blur', 'hide', 'modal', 'glide', 'marks', 'screen', 'zoom', 'topbar', 'bottombar', 'fill', 'text', 'delay', 'select', 'option', 'camera', 'glossary', 'stagger', 'accent', 'inset', 'follow', 'fade', 'speed', 'spotlight', 'redact', 'highlight']);
+export const STEP_KEYS = new Set(['click', 'scrollTo', 'wait', 'note', 'arrow', 'badge', 'rect', 'circle', 'blur', 'hide', 'modal', 'glide', 'marks', 'screen', 'zoom', 'topbar', 'bottombar', 'fill', 'text', 'delay', 'select', 'option', 'camera', 'glossary', 'stagger', 'accent', 'inset', 'follow', 'fade', 'speed', 'spotlight', 'redact', 'highlight', 'confetti', 'countup', 'sparkline', 'pulse', 'ripple', 'shake', 'glow', 'checkmark', 'typeon', 'reveal', 'orbit', 'kenburns', 'flash', 'progress', 'countdown', 'trail', 'size', 'dur', 'count', 'intensity']);
 
 export const GLOSSARY_POS = new Set(['auto', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
 export const MARK_KEYS = new Set(['sel', 'badge', 'rect', 'circle', 'text']);
@@ -264,6 +264,73 @@ export function validateSteps(steps) {
         if (mb.length) errors.push(n + ' mark ' + (j + 1) + ' has unknown keys: ' + mb.join(', ') + ' (known: ' + [...MARK_KEYS].join(', ') + ')');
       });
     }
+    if ('size' in s && (typeof s.size !== 'number' || !(s.size > 0 && s.size <= 4)))
+      errors.push(n + ': size must be a positive number scale (0,4] — proportional multiplier for effects');
+    // shared dinamicidade knobs — apply to every primitive unless its own object
+    // form overrides. duration ms, count repeats/particles, intensity strength.
+    if ('dur' in s && (typeof s.dur !== 'number' || !(s.dur >= 120 && s.dur <= 12000)))
+      errors.push(n + ': dur must be a number in [120, 12000] ms — the effect animation length');
+    if ('count' in s && (typeof s.count !== 'number' || !Number.isInteger(s.count) || !(s.count >= 1 && s.count <= 60)))
+      errors.push(n + ': count must be an integer in [1, 60] — rings/dots/particles/laps/digits');
+    if ('intensity' in s && (typeof s.intensity !== 'number' || !(s.intensity >= 0.2 && s.intensity <= 2)))
+      errors.push(n + ': intensity must be a number in [0.2, 2] — effect strength (glow/amplitude/drift)');
+    // a primitive's object form may also carry per-effect knobs; these keys are
+    // accepted on ANY effect object ({sel, duration, count, scale, intensity}).
+    const KNOBS = new Set(['sel', 'duration', 'count', 'scale', 'intensity']);
+    const knobErr = (key, obj) => {
+      if ('duration' in obj && (typeof obj.duration !== 'number' || !(obj.duration >= 120 && obj.duration <= 12000)))
+        errors.push(n + ': ' + key + '.duration must be a number in [120, 12000] ms');
+      if ('count' in obj && (typeof obj.count !== 'number' || !Number.isInteger(obj.count) || !(obj.count >= 1 && obj.count <= 60)))
+        errors.push(n + ': ' + key + '.count must be an integer in [1, 60]');
+      if ('scale' in obj && (typeof obj.scale !== 'number' || !(obj.scale > 0 && obj.scale <= 4)))
+        errors.push(n + ': ' + key + '.scale must be a positive number in (0, 4]');
+      if ('intensity' in obj && (typeof obj.intensity !== 'number' || !(obj.intensity >= 0.2 && obj.intensity <= 2)))
+        errors.push(n + ': ' + key + '.intensity must be a number in [0.2, 2]');
+    };
+    // target-or-true primitives: accept true | "selector" | {sel?, knobs}. When
+    // an object without sel is given it bursts from the step's click/glide target.
+    const targetEffect = (key, needTargetMsg) => {
+      if (!(key in s)) return;
+      const v = s[key];
+      if (v === true) {
+        if (!s.click && !s.glide) errors.push(n + ': ' + key + needTargetMsg);
+      } else if (typeof v === 'string') {
+        if (!v) errors.push(n + ': ' + key + ' must be true, a non-empty selector string, or {sel?, duration?, count?, scale?, intensity?}');
+      } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+        if ('sel' in v && (typeof v.sel !== 'string' || !v.sel)) errors.push(n + ': ' + key + '.sel must be a non-empty selector string');
+        if (!('sel' in v) && !s.click && !s.glide) errors.push(n + ': ' + key + needTargetMsg);
+        const bad2 = Object.keys(v).filter((k) => !KNOBS.has(k));
+        if (bad2.length) errors.push(n + ': ' + key + ' has unknown keys: ' + bad2.join(', ') + ' (known: ' + [...KNOBS].join(', ') + ')');
+        knobErr(key, v);
+      } else errors.push(n + ': ' + key + ' must be true, a selector string, or {sel?, duration?, count?, scale?, intensity?}');
+    };
+    targetEffect('confetti', ':true needs a click or glide target — or pass {"confetti":".sel"}');
+    if ('countup' in s) {
+      const c = s.countup;
+      if (c === true) {
+        if (!s.click && !s.scrollTo)
+          errors.push(n + ': countup:true counts the number in the step target — pair it with a click/scrollTo selector, or pass {"countup":".sel"}');
+      } else if (typeof c === 'string') {
+        if (!c) errors.push(n + ': countup must be a non-empty selector string or {sel, to}');
+      } else if (c && typeof c === 'object' && !Array.isArray(c)) {
+        if (typeof c.sel !== 'string' || !c.sel) errors.push(n + ': countup.sel must be a non-empty selector string');
+        if ('to' in c && c.to != null && typeof c.to !== 'string' && typeof c.to !== 'number') errors.push(n + ': countup.to must be the final string/number to count to');
+        knobErr('countup', c);
+      } else errors.push(n + ': countup must be true (count the step target), a selector string, or {sel, to}');
+    }
+    if ('sparkline' in s) {
+      const sp = s.sparkline;
+      if (typeof sp === 'string') {
+        if (!sp) errors.push(n + ': sparkline must be a non-empty selector string or {sel, points}');
+      } else if (sp && typeof sp === 'object' && !Array.isArray(sp)) {
+        if (typeof sp.sel !== 'string' || !sp.sel) errors.push(n + ': sparkline.sel must be a non-empty selector string');
+        if ('points' in sp) {
+          if (!Array.isArray(sp.points) || sp.points.length < 2 || !sp.points.every((p) => typeof p === 'number' && Number.isFinite(p)))
+            errors.push(n + ': sparkline.points must be an array of >= 2 finite numbers');
+        }
+        knobErr('sparkline', sp);
+      } else errors.push(n + ': sparkline must be a selector string or {sel, points}');
+    }
     if ('accent' in s && (typeof s.accent !== 'string' || !s.accent))
       errors.push(n + ': accent must be a CSS color string (overrides the take accent for this step)');
     if ('fade' in s && (typeof s.fade !== 'number' || !(s.fade >= 60 && s.fade <= 1500)))
@@ -311,6 +378,77 @@ export function validateSteps(steps) {
         if ('width' in g && (typeof g.width !== 'number' || !(g.width >= 160 && g.width <= 720))) errors.push(n + ': glossary.width must be a number in [160, 720]');
         if ('title' in g && (typeof g.title !== 'string' || !g.title)) errors.push(n + ': glossary.title must be a non-empty string');
         if ('stagger' in g && (typeof g.stagger !== 'number' || !Number.isFinite(g.stagger) || g.stagger < 0)) errors.push(n + ': glossary.stagger must be a non-negative number');
+      }
+    }
+    targetEffect('pulse', ':true needs a click or glide target — or pass {"pulse":".sel"}');
+    targetEffect('ripple', ':true needs a click or glide target — or pass {"ripple":".sel"}');
+    targetEffect('shake', ':true needs a click or glide target — or pass {"shake":".sel"}');
+    // selector-required primitives: accept "selector" | {sel, knobs}.
+    const selEffect = (key, what) => {
+      if (!(key in s)) return;
+      const v = s[key];
+      if (typeof v === 'string') {
+        if (!v) errors.push(n + ': ' + key + ' must be a non-empty selector string ' + what);
+      } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+        if (typeof v.sel !== 'string' || !v.sel) errors.push(n + ': ' + key + '.sel must be a non-empty selector string');
+        const bad2 = Object.keys(v).filter((k) => !KNOBS.has(k));
+        if (bad2.length) errors.push(n + ': ' + key + ' has unknown keys: ' + bad2.join(', ') + ' (known: ' + [...KNOBS].join(', ') + ')');
+        knobErr(key, v);
+      } else errors.push(n + ': ' + key + ' must be a selector string or {sel, duration?, count?, scale?, intensity?}');
+    };
+    selEffect('glow', '(the CTA to pulse a breathing glow on)');
+    targetEffect('checkmark', ':true needs a click or glide target — or pass {"checkmark":".sel"}');
+    if ('typeon' in s) {
+      const tv = s.typeon;
+      if (typeof tv === 'string') {
+        if (!tv) errors.push(n + ': typeon must be a non-empty selector string or {sel, text}');
+      } else if (tv && typeof tv === 'object' && !Array.isArray(tv)) {
+        if (typeof tv.sel !== 'string' || !tv.sel) errors.push(n + ': typeon.sel must be a non-empty selector string');
+        if ('text' in tv && (typeof tv.text !== 'string' || !tv.text)) errors.push(n + ': typeon.text must be the string to type');
+        knobErr('typeon', tv);
+      } else errors.push(n + ': typeon must be a non-empty selector string or {sel, text}');
+    }
+    selEffect('reveal', '— the text element to wipe in left-to-right');
+    targetEffect('orbit', ':true needs a click or glide target — or pass {"orbit":".sel"}');
+    if ('kenburns' in s) {
+      const v = s.kenburns;
+      if (v === true) {
+        if (!s.click && !s.glide && !s.scrollTo) errors.push(n + ': kenburns:true needs a click, glide or scrollTo target — or pass {"kenburns":".sel"}');
+      } else if (typeof v === 'string') {
+        if (!v) errors.push(n + ': kenburns must be true, a selector string, or {sel?, duration?, scale?}');
+      } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+        if ('sel' in v && (typeof v.sel !== 'string' || !v.sel)) errors.push(n + ': kenburns.sel must be a non-empty selector string');
+        if (!('sel' in v) && !s.click && !s.glide && !s.scrollTo) errors.push(n + ': kenburns needs a click, glide, scrollTo or sel target');
+        const bad2 = Object.keys(v).filter((k) => !KNOBS.has(k));
+        if (bad2.length) errors.push(n + ': kenburns has unknown keys: ' + bad2.join(', ') + ' (known: ' + [...KNOBS].join(', ') + ')');
+        knobErr('kenburns', v);
+      } else errors.push(n + ': kenburns must be true, a selector string, or {sel?, duration?, scale?}');
+    }
+    if ('flash' in s) {
+      if (s.flash !== true && (typeof s.flash !== 'string' || !s.flash))
+        errors.push(n + ': flash must be true (white/accent pulse) or a non-empty CSS color string');
+    }
+    selEffect('progress', '— the element to draw a bottom-edge fill bar on ({"progress":"#card"})');
+    if ('countdown' in s) {
+      const c = s.countdown;
+      if (c === true) errors.push(n + ': countdown must be a number of seconds (default 3), a selector string to center on, or {n, sel} — not true');
+      else if (typeof c === 'number') {
+        if (!Number.isFinite(c) || !(c >= 1 && c <= 9)) errors.push(n + ': countdown seconds must be a number in [1, 9] — got ' + c);
+      } else if (typeof c === 'string') {
+        if (!c) errors.push(n + ': countdown must be a non-empty selector string, a number of seconds, or {n, sel}');
+      } else if (c && typeof c === 'object' && !Array.isArray(c)) {
+        if ('n' in c && (typeof c.n !== 'number' || !(c.n >= 1 && c.n <= 9))) errors.push(n + ': countdown.n must be a number in [1, 9]');
+        if ('sel' in c && (typeof c.sel !== 'string' || !c.sel)) errors.push(n + ': countdown.sel must be a non-empty selector string');
+        knobErr('countdown', c);
+      } else errors.push(n + ': countdown must be a number of seconds, a selector string, or {n, sel}');
+    }
+    if ('trail' in s) {
+      const t = s.trail;
+      if (!t || typeof t !== 'object' || Array.isArray(t)) errors.push(n + ': trail must be {from, to} — two selector strings the comet streaks between');
+      else {
+        if (typeof t.from !== 'string' || !t.from) errors.push(n + ': trail.from must be a non-empty selector string (the comet origin)');
+        if (typeof t.to !== 'string' || !t.to) errors.push(n + ': trail.to must be a non-empty selector string (the comet destination)');
+        knobErr('trail', t);
       }
     }
   });

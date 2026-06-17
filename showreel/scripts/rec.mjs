@@ -196,6 +196,7 @@ async function main() {
       const st = steps[i];
       const sels = [];
       for (const k of ['click', 'scrollTo', 'blur', 'hide', 'redact', 'highlight']) if (typeof st[k] === 'string') sels.push([k, st[k]]);
+      if (st.countup && st.countup !== true) sels.push(['countup', typeof st.countup === 'string' ? st.countup : st.countup.sel]);
       if (typeof st.zoom === 'string' && st.zoom !== 'out') sels.push(['zoom', st.zoom]);
       const fl = fillSpec(st);
       if (fl && fl.sel) sels.push(['fill', fl.sel]);
@@ -388,7 +389,7 @@ async function recordTake(browser, a, block) {
   // faded out + removed on the next step. blur persists on the element itself.
   // annotation engine (showAnnotations/clearAnnotations/applyBlur/applyHide)
   // lives in rec-annotate.mjs as a factory over rctx (stage 5a).
-  const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, applyHighlight } = makeAnnotator(rctx);
+const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, applyHighlight, clearMasks, applyConfetti, applyCountup, applySparkline, applyPulse, applyRipple, applyShake, applyGlow, applyCheckmark, applyTypeon, applyReveal, applyOrbit, applyKenburns, applyFlash, applyProgress, applyCountdown, applyTrail } = makeAnnotator(rctx);
   // the camera (ensureCam/camTo/camFrame/initialFit/panToInclude/camOut) lives
   // in rec-camera.mjs as a factory over rctx (stage 5c) — the load-bearing
   // piece. camFrame returns the element's final on-screen point (aim) which
@@ -462,6 +463,18 @@ async function recordTake(browser, a, block) {
     await ensureCursor();
     await ensureCam();
     if (a.stamp) chromeSet('top', 'stamp', stepIndex + ' / ' + steps.length);
+    // SCENE-TRANSITION mask clear: a step that moves the view (scrollTo or a
+    // camera frame-in) and does NOT itself add a mask starts a new scene — wipe
+    // any element-anchored masks (blur/redact/highlight) left from the previous
+    // scene so they don't ride along over unrelated content. (camera:"out" also
+    // clears, below; this covers no-zoom scenes that only scrollTo.)
+    {
+      const c = step.camera;
+      const cameraFrameIn = c && c !== 'out' && !(typeof c === 'object' && c.out);
+      const movesView = !!step.scrollTo || cameraFrameIn;
+      const addsMask = step.blur || step.redact || step.highlight || step.hide;
+      if (movesView && !addsMask) await clearMasks();
+    }
     for (const sel of executedHides) await applyHide(sel);
     if ('topbar' in step) chromeSet('top', 'bar', step.topbar);
     if ('bottombar' in step) chromeSet('bottom', 'bar', step.bottombar);
@@ -482,9 +495,66 @@ async function recordTake(browser, a, block) {
         await safeEval(() => window.__camScrollClamp && window.__camScrollClamp(false));
       }
     } else if (step.scrollTo) await smoothScroll(step.scrollTo);
+    // NEVER fire an effect at an off-screen element — it would animate where the
+    // viewer can't see it. Collect every effect/anchor target this step touches
+    // and, if its top is outside the viewport, smooth-scroll it into view first.
+    {
+      const tgts = [
+        typeof step.confetti === 'string' && step.confetti, typeof step.pulse === 'string' && step.pulse,
+        step.glow, typeof step.orbit === 'string' && step.orbit, step.progress,
+        typeof step.shake === 'string' && step.shake, step.reveal, (typeof step.typeon === 'string' ? step.typeon : step.typeon && step.typeon.sel),
+        typeof step.kenburns === 'string' && step.kenburns, typeof step.checkmark === 'string' && step.checkmark,
+        typeof step.ripple === 'string' && step.ripple, step.blur, step.redact, step.highlight,
+        (typeof step.sparkline === 'string' ? step.sparkline : step.sparkline && step.sparkline.sel),
+        (typeof step.countup === 'string' ? step.countup : step.countup && step.countup !== true && step.countup.sel),
+      ].filter((x) => typeof x === 'string' && x);
+      for (const tg of tgts) {
+        const onscreen = await safeEval((q) => {
+          const el = document.querySelector(q); if (!el) return true;
+          const r = el.getBoundingClientRect();
+          return r.bottom > 24 && r.top < innerHeight - 24 && r.height > 0;
+        }, tg);
+        if (!onscreen) { await smoothScroll(tg); break; }
+      }
+    }
+    // DINAMICIDADE: every primitive accepts {duration,count,scale,intensity}.
+    // Read each knob from the primitive's own object form first, else the step's
+    // shared top-level keys (dur/count/intensity/size), else null = the fn's
+    // default. The fn clamps. A weak AI fires the bare selector and gets the
+    // default; a power user passes an object or the shared keys to tune.
+    const effOpts = (v) => {
+      const o = (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+      const pick = (a, b) => (a != null ? a : (b != null ? b : null));
+      return {
+        duration: pick(o.duration, step.dur),
+        count: pick(o.count, step.count),
+        scale: pick(o.scale, typeof step.size === 'number' ? step.size : null),
+        intensity: pick(o.intensity, step.intensity),
+      };
+    };
     if (step.blur) await applyBlur(step.blur);
     if (step.redact) await applyRedact(step.redact, step.accent || accent || null);
-    if (step.highlight) await applyHighlight(step.highlight, step.accent ? null : null);
+    if (step.highlight) await applyHighlight(step.highlight, null);
+    if (step.confetti) await applyConfetti(typeof step.confetti === 'string' ? step.confetti : (step.confetti.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.confetti));
+    if (step.pulse) await applyPulse(typeof step.pulse === 'string' ? step.pulse : (step.pulse.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.pulse));
+    if (step.glow) await applyGlow(typeof step.glow === 'string' ? step.glow : step.glow.sel, step.accent || accent || null, effOpts(step.glow));
+    if (step.orbit) await applyOrbit(typeof step.orbit === 'string' ? step.orbit : (step.orbit.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.orbit));
+    if (step.progress) await applyProgress(typeof step.progress === 'string' ? step.progress : step.progress.sel, step.accent || accent || null, effOpts(step.progress));
+    if (step.shake) await applyShake(typeof step.shake === 'string' ? step.shake : (step.shake.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.shake));
+    if (step.reveal) await applyReveal(typeof step.reveal === 'string' ? step.reveal : step.reveal.sel, null, effOpts(step.reveal));
+    if (step.typeon) await applyTypeon(step.typeon, effOpts(step.typeon));
+    if (step.kenburns) await applyKenburns(typeof step.kenburns === 'string' ? step.kenburns : (step.kenburns.sel || step.click || step.glide || step.scrollTo || 'body'), effOpts(step.kenburns));
+    if (step.checkmark) await applyCheckmark(typeof step.checkmark === 'string' ? step.checkmark : (step.checkmark.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.checkmark));
+    if (step.ripple) await applyRipple(typeof step.ripple === 'string' ? step.ripple : (step.ripple.sel || step.click || step.glide || 'body'), step.accent || null, effOpts(step.ripple));
+    if (step.trail) await applyTrail(typeof step.trail === 'string' ? step.trail : step.trail.from, typeof step.trail === 'string' ? null : step.trail.to, step.accent || accent || null, effOpts(step.trail));
+    if (step.countdown != null) await applyCountdown(typeof step.countdown === 'number' ? step.countdown : (typeof step.countdown === 'object' ? step.countdown : 3), typeof step.countdown === 'string' ? step.countdown : null, effOpts(step.countdown));
+    if (step.flash) await applyFlash(typeof step.flash === 'string' ? step.flash : (step.accent || null), effOpts(step.flash));
+    if (step.countup) await applyCountup(step.countup === true ? (step.click || step.scrollTo) : (typeof step.countup === 'string' ? step.countup : step.countup.sel), typeof step.countup === 'object' ? step.countup.to : null, effOpts(step.countup));
+    if (step.sparkline) await applySparkline(typeof step.sparkline === 'string' ? step.sparkline : step.sparkline.sel, typeof step.sparkline === 'object' ? step.sparkline.points : null, effOpts(step.sparkline));
+    // a hide note must anchor to where the row WAS: capture its rect BEFORE it
+    // collapses, else the note loses its box and gets clamped to a corner.
+    let preHideBox = null;
+    if (step.hide && typeof step.hide === 'string') preHideBox = await boxOf(step.hide);
     if (step.hide) {
       await applyHide(step.hide);
       if (!executedHides.includes(step.hide)) executedHides.push(step.hide);
@@ -497,7 +567,7 @@ async function recordTake(browser, a, block) {
     const cam = cameraSpec(step);
     if (cam || step.follow === false) followOn = 0; // explicit camera takes the wheel
     if (cam) {
-      if (cam.out) await camOut();
+      if (cam.out) { await clearMasks(); await camOut(); } // wipe masks BEFORE pulling out so they don't linger through the zoom
       else await camFrame(cam.sel, cam.zoom ? Math.max(1, Math.min(3, cam.zoom)) : 0, 800, true);
     } else if (step.follow === false) await camOut();
     // follow: bind ONCE and the camera re-aims at every step target from here
@@ -520,10 +590,35 @@ async function recordTake(browser, a, block) {
     const annSel = (typeof step.rect === 'string' && step.rect) ||
       (typeof step.circle === 'string' && step.circle) ||
       (typeof step.spotlight === 'string' && step.spotlight) ||
+      // a note on a mask step (blur/redact/highlight/hide) must anchor to the
+      // MASKED element — otherwise it has no box, drifts to center/top, and its
+      // arrow points at whatever is nearest (a card), not the thing it labels.
+      (typeof step.blur === 'string' && step.blur) ||
+      (typeof step.redact === 'string' && step.redact) ||
+      (typeof step.highlight === 'string' && step.highlight) ||
+      (typeof step.hide === 'string' && step.hide) ||
+      (typeof step.confetti === 'string' && step.confetti) ||
+      (typeof step.pulse === 'string' && step.pulse) ||
+      (typeof step.ripple === 'string' && step.ripple) ||
+      (typeof step.shake === 'string' && step.shake) ||
+      (typeof step.glow === 'string' && step.glow) ||
+      (typeof step.checkmark === 'string' && step.checkmark) ||
+      (typeof step.typeon === 'string' ? step.typeon : (step.typeon && step.typeon.sel)) ||
+      (typeof step.reveal === 'string' && step.reveal) ||
+      (typeof step.orbit === 'string' && step.orbit) ||
+      (typeof step.progress === 'string' && step.progress) ||
+      (step.countup ? (step.countup === true ? null : (typeof step.countup === 'string' ? step.countup : step.countup.sel)) : null) ||
+      (step.sparkline ? (typeof step.sparkline === 'string' ? step.sparkline : step.sparkline.sel) : null) ||
       (typeof step.arrow === 'string' && !arrowEdge && step.arrow) ||
       (step.inset ? (typeof step.inset === 'string' ? step.inset : step.inset.sel) : null) || null;
-    const sel = step.click || (fillS && fillS.sel) || (selectS && selectS.sel) || step.scrollTo || zoomSel || camSel || annSel;
+    // glide is a real cursor target: include it so a {follow, glide} step has a
+    // box for the camera to chase (without it, follow never engages — the camera
+    // stays wide and the chase is invisible). Action keys still take priority.
+    const sel = step.click || (fillS && fillS.sel) || (selectS && selectS.sel) || (typeof step.glide === 'string' && step.glide) || step.scrollTo || zoomSel || camSel || annSel;
     let box = sel ? await boxOf(sel) : null;
+    // a hidden element's live rect is collapsed — use the pre-hide rect so the
+    // note anchors where the row was (and its arrow points there), not a corner.
+    if (step.hide && sel === step.hide && preHideBox && (!box || box.h < 4)) box = preHideBox;
     if (!box && arrowEdge) {
       // edge arrow: the letterbox strips live OUTSIDE the page canvas — a
       // synthetic margin target lets a note point at the bar above/below.
@@ -663,7 +758,11 @@ async function recordTake(browser, a, block) {
     // the dwell is static EXCEPT its head: overlay fade-in, badge/glossary
     // staggers and click reactions animate inside the first slice.
     await clock.wait(hold, hotHeadFor(step));
-    if (hasOverlay) await clearAnnotations();
+    // HOLD the final overlay: clearing it on the last step ends the reel on a
+    // mid-dissolve smear. Keep the closing card/note fully present as the last
+    // frame; only clear overlays on non-final steps.
+    const isLastStep = stepIndex === steps.length;
+    if (hasOverlay && !isLastStep) await clearAnnotations();
     if (panned) await camOut();
     if (typeof step.speed === 'number') clock.setRate(1);
     stepTimes.push({ i: stepIndex, t0: stepT0, t1: clock.now(), label: stepLabel(step) });

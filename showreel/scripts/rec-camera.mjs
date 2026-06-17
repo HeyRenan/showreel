@@ -53,7 +53,17 @@ export function makeCamera(rctx) {
       // auto-fit caps at 2.4: filling 86% of the viewport with a small button
       // amputates its surroundings — explicit zoom can still push to 3.
       const fit = Math.max(1, Math.min(2.4, Math.min(0.86 * vw / lw, 0.86 * vh / lh)));
-      const s2 = raw ? Math.max(1, Math.min(3, fixed)) : fixed ? Math.max(1, Math.min(3, fit * fixed)) : fit;
+      // NO-CROP CEILING (correct-by-construction): zoom is "free" up to a hard
+      // ceiling that the script enforces so a too-big zoom can never crop the
+      // element it is supposed to show. The ceiling is a fit that leaves a
+      // breathing MARGIN around the element (94% of the viewport, not flush to
+      // the edge) — a wide row (.stats/.cards/table) at zoom:2 would otherwise
+      // amputate half its items. Any explicit zoom is clamped to this; it may
+      // tighten toward the margin but never past it. No author/agent can crop.
+      const MARGIN = 0.94; // ~3% breathing room each side; element never flush
+      const noCrop = MARGIN * Math.min(vw / lw, vh / lh);
+      const s2raw = raw ? Math.max(1, Math.min(3, fixed)) : fixed ? Math.max(1, Math.min(3, fit * fixed)) : fit;
+      const s2 = Math.max(1, Math.min(s2raw, noCrop));
       let tx2 = vw / 2 - bx - s2 * (lx + lw / 2 - bx);
       let ty2 = vh / 2 - by - s2 * (ly + lh / 2 - by);
       // a target inside the sticky bar: keep the bar visible and pinned to

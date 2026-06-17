@@ -47,8 +47,10 @@ Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention eve
   than jerking the camera. Sustained whip-pans risk motion sickness
   (https://developer.apple.com/design/human-interface-guidelines/motion).
 - **Always release explicitly.** A follow ends in one of exactly two ways: settle into a
-  frame-in on the destination element (the journey arrived somewhere) or zoom-out to wide
-  (the journey was the point). Never cut away mid-chase.
+  frame-in (`{"camera":{"sel":".dest","zoom":1.3}}`) or zoom-out to wide (`{"camera":"out"}`).
+  A bare `{"camera":"out"}` step is the canonical release. Never cut away mid-chase, and
+  **never `follow:false`** — it is invalid (see `rec-cookbook.md`). A chase must span ≥3
+  consecutive moving steps before release, or it reads as a one-off frame-in, not a chase.
 
 ## 3. Zoom Semantics — camera zoom vs element loupe
 
@@ -173,6 +175,8 @@ Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention eve
 | Letterbox bars | A scene whose context strip informs | Default-on forever | Optional; appear and vanish at act boundaries |
 | Screen-context pill | Viewer may not know which screen this is | Context obvious from establishing shot | Update on every navigation; keep position fixed |
 | Blur/hide | Secrets, irrelevant noisy regions | Hiding things the demo references later | Blur for the region's whole screen life |
+| Redact (solid bar) | Hard-mask data stronger than blur | Data the demo references later | ELEMENT-anchored — stays on target through scroll; keep it framed its whole life |
+| Highlight (marker swipe) | Draw the eye to text/a cell in place | When a box/spotlight already does it | ELEMENT-anchored; translucent multiply, reads through; whole-life like blur |
 | Per-step accent color | Always — one per step | Multiple accents in one teaching beat | Consistent across all step artifacts |
 | Per-step fade duration | Rhythm control | Slow fades on minor beats | Fast=rhythm, medium=scene, slow=gravitas |
 | Reading-time dwell | Any on-screen text | Cutting early because "it looks slow" | ≥4.5s; +0.3s/word past 12 |

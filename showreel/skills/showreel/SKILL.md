@@ -50,20 +50,22 @@ There is no effort flag; pick the lowest-effort artifact that still EXPLAINS the
 | One element / one fact | **annotated still** | `prove.mjs` — rect/badge + a note, zoom inset on the key detail. |
 | A set of related elements | **still with marks** | `demo.mjs` primitives, or `prove` with badges on the group. |
 | A user flow (click → result) | **flow gif** | `rec.mjs` with cursor glide, per-step notes (arrow on each), stamp counter. |
-| A rich walkthrough / the hero | **cinematic mp4** | `rec.mjs` realtime `--fps 30`, camera framing, fill/select typing, follow, accent colors. **Before scripting, read BOTH `references/cinematic-grammar.md` (shot/camera/pacing) AND `references/motion-design.md` (easing numbers, compositing stacks, color system, the hook→climax arc, copy-paste scene presets).** Run their pre-flight checklists. A hero reel composes multiple scenes in arc order — never a flat feature list. |
+| A rich walkthrough / the hero | **cinematic mp4** | `rec.mjs` realtime `--fps 30`. **`references/rec-cookbook.md` is THE CONTRACT — read it first; its GRAMMAR TABLE + FORBIDDEN FORMS + RENDER-MODE/ANCHORING gates + pre-flight make valid, complete output correct-by-construction.** Then read `references/cinematic-grammar.md` (arc, shot/camera/pacing) and `references/motion-design.md` (easing/stagger numbers, compositing-by-splitting) for craft. A hero reel composes themed scenes in arc order, one accent each — never a flat numbered feature list. |
 | Before vs after | **compose** | `compose.mjs` two stills or two gifs side by side; `lh-ba.sh` for real Lighthouse. |
 
 Whatever you pick: every label visibly connects to its target, and the final frame still shows the effect (persist the note/rect/bar through the last step) so the artifact reads even when paused.
 
 ## Flow recordings (`rec.mjs`)
 
-**Discipline:** `--dry` is MANDATORY before any recording — it resolves every selector against the live page in <1s, prints [ok]/[MISS] per step, no recording. Fix misses, then record ONCE with `--pace fast` (trims scripted holds/fades ~45%; reading-time dwell survives).
+**Discipline:** `--dry` is MANDATORY before any recording — resolves every selector ([ok]/[MISS]), no recording. A [MISS] on a glide/camera/click/fill/select target is a frozen dead beat — fix to zero MISS, then record ONCE.
+
+**Render mode (decides at the command line, not in the frames):** a MOVING reel — any `glide`/`follow`/`camera`/`fill`/`select` — records realtime `--fps 30`, NO `--offline` (15fps stills → slideshow), NO `--pace fast` (collapses easing), NO `speed` (a no-op in realtime). `--pace fast` and `--offline` are ONLY for quick static/dwell-only proofs.
 
 **Presets:** don't write step JSON from scratch. Copy a starting roster from `scripts/presets/` — `form-flow.json`, `nav-flow.json`, `dashboard.json` — and swap the selectors for the page under test.
 
 EVERY explanatory label must visibly connect to its target (arrow on the note, leader on the anchored modal, or centered modal narration) — never floating.
 
-**Before writing any rec steps beyond a straight preset swap, read `references/rec-cookbook.md`** — full flags and step-key semantics (camera/loupe/follow, fill/select typing, marks/glossary, bars, accent, ratio/end-card, batch, pacing). Takes open 1:1; establishing auto-fit is opt-in via `--fit`.
+**Before writing any rec steps beyond a straight preset swap, read `references/rec-cookbook.md` — THE CONTRACT:** the 33-key GRAMMAR TABLE (shape, required siblings, forbidden forms, element-vs-viewport anchor), the RENDER-MODE + ANCHORING gates, the authoring procedure, and the one binary pre-flight. Write every step against the table, never from memory. Takes open 1:1; establishing auto-fit is opt-in via `--fit`.
 
 ## Terminal recordings (`tape.mjs`)
 
@@ -103,7 +105,10 @@ Only when the page needs an authenticated/live session the motor can't reach (re
 | Per-file `prove` calls | `prove --batch`, one browser launch |
 | Re-reading a PNG whose verdict was PASS | Open with Read ONLY on `FAIL <out> reason=...` |
 | Bare screenshot that shows but doesn't explain | zoom + note + badges — make it EXPLAIN |
-| Recording without `--dry` first | `--dry`, fix [MISS], record ONCE with `--pace fast` |
+| Recording without `--dry` first | `--dry`, fix every [MISS] to zero, record ONCE |
+| Recording a MOVING reel with `--offline`, `--pace fast`, or `speed` | Realtime `--fps 30`, no `speed` (those are stills-only / no-ops in motion) |
+| Releasing follow with `follow:false` | Bare `{"camera":"out"}` — `follow:false` is INVALID |
+| Scrolling/camera-moving while a prior step's blur/redact/highlight/rect is still up | Frame the element in the SAME step as the overlay, or clear it first |
 | Writing rec step JSON from scratch | Copy `scripts/presets/*.json`, swap selectors |
 | Cinematic take scripted without the grammar | Read `references/cinematic-grammar.md`, run its checklist |
 | Label floating with no visual tie to its target | `arrow` on the note, leader on the modal — never loose |

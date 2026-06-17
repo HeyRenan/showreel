@@ -25,9 +25,47 @@ test('every documented step key is accepted', () => {
       : k === 'inset' ? '.stat'
       : k === 'fade' ? 300
       : k === 'speed' ? 0.5
+      : k === 'sparkline' ? '.stat'
+      : k === 'glow' ? '#cta'
+      : k === 'typeon' ? '.hero'
+      : k === 'reveal' ? '.hero'
+      : k === 'progress' ? '#card'
+      : k === 'trail' ? { from: '#a', to: '#b' }
+      : k === 'countdown' ? 3
+      : k === 'size' ? 1.2
+      : k === 'dur' ? 1200
+      : k === 'count' ? 4
+      : k === 'intensity' ? 1.3
       : true;
   const r = validateSteps([step]);
   assert.ok(r.ok, r.errors.join('; '));
+});
+
+test('dinamicidade knobs: shared keys + object forms accept valid, reject out-of-range', () => {
+  // shared keys valid
+  assert.ok(validateSteps([{ pulse: '#a', dur: 2000, count: 5, intensity: 1.4 }]).ok);
+  // object form with knobs valid (target + selector effects)
+  assert.ok(validateSteps([{ pulse: { sel: '#a', duration: 2000, count: 6, scale: 1.5, intensity: 1.2 } }]).ok);
+  assert.ok(validateSteps([{ glow: { sel: '#cta', duration: 3000, count: 3 } }]).ok);
+  assert.ok(validateSteps([{ orbit: { sel: '#a', count: 8, scale: 2 } }]).ok);
+  assert.ok(validateSteps([{ kenburns: { sel: '.hero', duration: 3000, scale: 1.1 } }]).ok);
+  assert.ok(validateSteps([{ confetti: { duration: 1400, count: 40 }, click: '#go' }]).ok);
+  assert.ok(validateSteps([{ trail: { from: '#a', to: '#b', count: 20, scale: 1.3 } }]).ok);
+  assert.ok(validateSteps([{ countdown: { n: 3, scale: 1.5, duration: 800 } }]).ok);
+  // out-of-range rejected
+  assert.ok(!validateSteps([{ dur: 50 }]).ok);
+  assert.ok(!validateSteps([{ count: 0 }]).ok);
+  assert.ok(!validateSteps([{ count: 1.5 }]).ok);
+  assert.ok(!validateSteps([{ intensity: 5 }]).ok);
+  assert.ok(!validateSteps([{ pulse: { sel: '#a', duration: 99999 } }]).ok);
+  assert.ok(!validateSteps([{ pulse: { sel: '#a', count: 100 } }]).ok);
+  assert.ok(!validateSteps([{ glow: { sel: '#a', scale: 9 } }]).ok);
+  // unknown knob on an effect object rejected
+  assert.ok(!validateSteps([{ pulse: { sel: '#a', wobble: 3 } }]).ok);
+  // object form without sel + no click/glide target rejected for target effects
+  assert.ok(!validateSteps([{ pulse: { duration: 1000 } }]).ok);
+  // object form without sel but WITH a click target is fine (bursts from target)
+  assert.ok(validateSteps([{ confetti: { count: 30 }, click: '#go' }]).ok);
 });
 
 test('unknown top-level key rejected with step number and known list', () => {
