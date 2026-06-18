@@ -120,6 +120,13 @@ function parse(argv) {
     else if (k.startsWith('--')) throw new Error('compose: unknown arg ' + k);
     else pos.push(k);
   }
+  // reject surplus positionals — an unquoted path with spaces splits into extra
+  // tokens and the out filename lands in the wrong slot with no error. Mirrors
+  // the demo / rec / prove / shot parsers.
+  if (pos.length > 3) {
+    throw new Error('compose: too many positional args (expected before + after + out): '
+      + pos.slice(3).join(' ') + ' — quote a path with spaces?');
+  }
   [a.aPng, a.bPng, a.out] = pos;
   return a;
 }

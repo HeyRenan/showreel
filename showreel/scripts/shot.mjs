@@ -19,6 +19,13 @@ function parse(argv) {
     else if (k.startsWith('--')) throw new Error('shot: unknown arg ' + k);
     else pos.push(k);
   }
+  // reject surplus positionals — an unquoted selector with spaces splits into
+  // extra tokens and the out filename lands in the wrong slot with no error.
+  // Mirrors the demo / rec / prove parsers.
+  if (pos.length > 3) {
+    throw new Error('shot: too many positional args (expected url + selector + out): '
+      + pos.slice(3).join(' ') + ' — quote a selector with spaces?');
+  }
   [a.url, a.selector, a.out] = pos;
   return a;
 }

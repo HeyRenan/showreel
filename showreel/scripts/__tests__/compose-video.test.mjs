@@ -114,6 +114,13 @@ test('parse rejects unknown flags', () => {
   assert.throws(() => parse(['a.webm', 'b.webm', 'o.mp4', '--fps', '30']), /unknown arg --fps/);
 });
 
+test('parse rejects surplus positionals (the unquoted-path footgun)', () => {
+  // an unquoted path with spaces splits into extra tokens; binding them silently
+  // put the out filename in the wrong slot. Now it errors.
+  assert.throws(() => parse(['a.webm', 'b.webm', 'o.mp4', 'extra']), /too many positional/);
+  assert.doesNotThrow(() => parse(['a.webm', 'b.webm', 'o.mp4']));
+});
+
 test('extOk: usage on missing positionals, rejects bad extensions', () => {
   assert.equal(extOk({ aIn: 'a.webm', bIn: 'b.webm' }), 'usage');
   assert.match(extOk({ aIn: 'a.gif', bIn: 'b.webm', out: 'o.mp4' }), /inputs must be/);
