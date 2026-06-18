@@ -302,10 +302,10 @@ test('dwellMs: capped at 12000 no matter the wall of text', () => {
 
 import { validateBatch, TAKE_KEYS, stepLabel, parse, looksLikeHostCsv } from '../rec.mjs';
 
-test('validateBatch: good takes normalized with CLI defaults; mp4/keepWebm true derive from out', () => {
+test('validateBatch: good takes normalized with CLI defaults; mp4/keepWebm/sheet true derive from out', () => {
   const r = validateBatch(
-    [{ steps: [{ scrollTo: '.a', note: 'hi' }], out: '/tmp/a.gif', mp4: true, keepWebm: true },
-     { steps: [{ click: '.b' }], out: '/tmp/b.gif', url: 'file:///other.html', gifWidth: 320 }],
+    [{ steps: [{ scrollTo: '.a', note: 'hi' }], out: '/tmp/a.gif', mp4: true, keepWebm: true, sheet: true },
+     { steps: [{ click: '.b' }], out: '/tmp/b.gif', url: 'file:///other.html', gifWidth: 320, sheet: '/tmp/custom.png' }],
     { url: 'file:///demo.html', width: 800, height: 1200, gifWidth: 460, fps: 18, pace: 'fast' });
   assert.ok(r.ok, r.errors.join('; '));
   assert.equal(r.takes[0].url, 'file:///demo.html');
@@ -314,9 +314,16 @@ test('validateBatch: good takes normalized with CLI defaults; mp4/keepWebm true 
   assert.equal(r.takes[0].mp4, '/tmp/a.mp4');
   assert.equal(r.takes[0].keepWebm, '/tmp/a.webm');
   assert.equal(r.takes[0].pace, 'fast');
+  // sheet is in TAKE_KEYS — it must be propagated (it was silently dropped before),
+  // true derives <out>.png like mp4, an explicit path passes through, absent -> null
+  assert.equal(r.takes[0].sheet, '/tmp/a.png');
   assert.equal(r.takes[1].url, 'file:///other.html');
   assert.equal(r.takes[1].gifWidth, 320);
   assert.equal(r.takes[1].mp4, null);
+  assert.equal(r.takes[1].sheet, '/tmp/custom.png');
+  // a take with no sheet key -> null (not undefined, not dropped)
+  const noSheet = validateBatch([{ steps: [{ wait: 1 }], out: '/tmp/c.gif' }], { url: 'file:///d.html' }).takes[0];
+  assert.equal(noSheet.sheet, null);
 });
 
 test('validateBatch: missing steps/out, bad step key inside a take, non-array all rejected', () => {

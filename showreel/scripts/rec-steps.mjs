@@ -984,6 +984,10 @@ export function validateBatch(takes, defaults = {}) {
       gif: !mp4Only,
       mp4: mp4Only ? t.out : derive(t.mp4, '.mp4'),
       keepWebm: derive(t.keepWebm, '.webm'),
+      // sheet is in TAKE_KEYS (validated) — it MUST be propagated or a batch take's
+      // contact-sheet validates clean then silently never renders (the single-render
+      // path passes a.sheet; batch dropped it). true derives <out>.png, like mp4.
+      sheet: t.sheet === true ? String(t.out || 'out.gif').replace(/\.gif$/i, '') + '.png' : (typeof t.sheet === 'string' && t.sheet ? t.sheet : null),
     };
   });
   return { ok: !errors.length, errors, takes: norm };
