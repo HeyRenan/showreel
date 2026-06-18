@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 1/15   (last change: annotate badge injection, 22nd bug. +1 dry: chrome canvas-text clean)
+  DRY STREAK: 2/15   (last change: annotate badge injection, 22nd bug. dry: chrome-text, encode-timing+shrink-ladder)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -266,6 +266,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   code is the overengineering the prompt forbids. LESSON CONFIRMED: chasing a family
   to its next suspect and finding it's a DIFFERENT mechanism (canvas, not DOM) is a
   legit clean — the lens still had to be applied to KNOW that.
+- chrome trim-timing + shrink ladder — CLEAN (no bug, two lenses, measured). (a)
+  rec-encode trim math: suspected a zero-width overlay (an event ending INSIDE the
+  trimmed head: t0===t1===0) would still flash, contradicting the "drop out"
+  comment — but line 138 filters `t1 > t0 + 0.05`, so it IS dropped. False alarm,
+  caught by measuring. The short-event fade overlap (fade-in + fade-out both start
+  at t0 when t1-t0 < 0.35) is a cosmetic degradation under a sub-0.35s strip, not a
+  correctness bug; left as-is (rare, and inflating it would be the manufactured
+  work the prompt forbids). `shortest=1` + `-loop 1` PNG: base (video) governs,
+  overlay painted only within enable window — correct. (b) shrink runLadder: stops
+  at the FIRST attempt that fits the target (122) and returns `best` = smallest
+  seen (121). Looked like it could miss a smaller later rung, but the ladder
+  degrades quality monotonically and stopping at first-fit = HIGHEST quality that
+  fits = the documented intent ("quality losses reserved for the ladder"); smaller-
+  than-needed is NOT better here. best-on-no-fit returns the smallest of all =
+  best effort. Correct by design. NO FIX. LESSON: two consecutive measured cleans
+  on the encode/shrink layer — this layer (unlike the live verb-surface + inject
+  families) holds no easy vein; cleans here are real coverage, not fatigue.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
