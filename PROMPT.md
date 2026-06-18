@@ -157,6 +157,23 @@ recommend stopping rather than inventing work.
   AGAIN — I'd traced live state↔DOM in iter-8 but only for the verbs that existed
   then; the field-level contract of `update` was never traced end to end. Untraced
   sub-shapes of a "covered" feature are still untried angles.
+- live `recolor` panel accent (create-vs-recolor surface trace) — 1 bug fixed
+  (state/DOM divergence): a panel's accent is set in TWO places at create — the
+  left border AND the title dot (bg + glow) — but the recolor-panel branch
+  (`{recolor:{color}}`, no item) only repainted borderLeftColor. So recoloring a
+  modal/glossary gave a red border beside a stale-blue header dot: half the accent
+  flipped, visibly incoherent. Tagged the dot `.__live_dot` at create (both panel
+  types), recolor now repaints both surfaces, guarded for title-less panels.
+  Proven in real Chromium (modal + glossary: dot AND border both red; no-title
+  recolors border without crashing). 525 green, integration render real, audit
+  clean. SAME lesson as last iter: I'd "traced live state↔DOM" but never matched
+  the create-time accent SURFACES against the recolor-time ones — drift between
+  what a verb sets and what create set is its own angle. NON-BUG ruled out first
+  (measure-before-claiming): append/replace accept arbitrary row fields too, but
+  host state is a mirror never re-rendered, and rowEl ignores unknown fields
+  everywhere — so stray append fields are inert pollution, NOT visible divergence
+  (unlike update's badge, which was renderable-but-skipped). Restricting them
+  would be consistency-for-its-own-sake / YAGNI — left as-is per the honesty clause.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
