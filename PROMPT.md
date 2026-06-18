@@ -100,11 +100,15 @@ recommend stopping rather than inventing work.
 - shrink/tape review — 1 bug fixed (shrink attempts() ignored an explicit --fps when --target-kb set; the size ladder overrode it. fps is now a ceiling)
 - GUIDE.html + INSTALL/README review — INSTALL paths + /showreel:guide skill all real; fixed doc rot: both READMEs claimed "tests-247 passing" (actually 520). Removed the hardcoded-count badge (the ci badge is the live proof) so it can't rot again
 - live-element light-theme a11y — text-over-glass contrast fine (>=11:1 even worst case); but the NEW per-item badge color had NO contrast floor (white digit on a pale color ~1.3:1). Fixed: badgeInk picks dark/white digit by pill luminance. (Default-green 3.3:1 left as-is — pre-existing plugin-wide design, not a live regression.)
+- showcase rendered end-to-end + watched (realtime, 151s, valid mp4) — CLEAN. Sampled ~7 frames across the reel (dark console, light forms, deploy climax, confirmations): no broken layout, no contrast failure, no overlap/empty frames, coherent arc. No bug. Roster has no dead-air steps, 8 accents, scene-clear present. (Reel is realtime-only — confetti/sparkline refuse --offline by design.)
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
-- the showcase reel rendered end-to-end + watched (not just audited)
+- (ledger now covers every candidate originally listed. New angles to consider:
+  rec-page detectPageLook/readLiveTheme luminance math; rec-motion glide easing;
+  the preflight.sh script; cross-browser font fallback in captures; a very long
+  reel / many-live-elements stress. Add the one you pick, then move it up.)
 
 ## Anchor files (read these, not the whole tree)
 
