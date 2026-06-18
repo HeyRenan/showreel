@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: edge-arrow safeguard false-reject, 24th bug)
+  DRY STREAK: 0/15   (last change: flash-not-an-anchor safeguard, 25th bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -434,6 +434,22 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   must agree with the other two. NOTE: showcase full-render regression check still
   PENDING — the realtime GIF encode is too heavy (>92MB, 84 steps @30fps); needs the
   MP4 path or a sliced roster. Not done, said plainly.
+- flash-not-an-anchor safeguard false-reject (edge-arrow's sibling, wider blast) —
+  1 bug fixed. Applied last iter's lesson directly: "if one ANCHOR_KEY value can be a
+  non-selector keyword, others can too." flash paints a FULL-SCREEN color wash —
+  applyFlash takes a COLOR as arg 1, never a sel (rec.mjs:679 passes step.flash
+  through as the color). But flash was in ANCHOR_KEYS, so stepAnchors emitted its
+  value as a selector. The #hex form was filtered BY ACCIDENT (the hex guard), but
+  NAMED ('red') + rgb()/hsl() colors slipped through → querySelector("red") → no
+  match → off-screen safeguard HARD-REJECTED (exit 2) a valid roster using a common
+  flash form (proven pure: stepAnchors({flash:'red'})=['red']). Root fix: removed
+  flash from ANCHOR_KEYS entirely — it has no element anchor, needs no off-screen
+  guard; kills hex/named/rgb/hsl in one move, no special-case color filter. +2
+  assertions, 526 green. LESSON: a fix's LESSON is itself a lens — "edge-arrow was a
+  non-selector keyword in ANCHOR_KEYS" generalized to "audit EVERY ANCHOR_KEY for
+  non-selector values," and flash (a worse case: common + multi-form) fell out
+  immediately. Fixing a bug should spawn the next angle, not close the topic. NOTE:
+  showcase MP4 regression render still in flight (long realtime take) — monitor armed.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
