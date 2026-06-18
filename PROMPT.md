@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: badgeInk L>0.45 mis-picks low-contrast digit, 31st bug)
+  DRY STREAK: 1/15   (last change: badgeInk, 31st bug. +1 dry: threshold-proxy lens exhausted (no other magic-number-as-comparison))
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -736,6 +736,20 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   directly, compute it — the proxy is wrong somewhere by construction. (Same shape as
   the luma 0.5 detectors, but there 0.5 IS the right midpoint; here 0.45 approximated
   a contrast crossover that isn't at any fixed L.)
+- threshold-as-proxy-for-computation lens, rest of the motor — CLEAN (no bug, lens
+  exhausted). Last iter's lesson "a magic threshold standing in for a computable
+  comparison is a bug magnet" → grepped for other numeric-threshold ternaries picking
+  a VALUE. Findings all legitimate, NOT proxies: the remaining luma comparisons are
+  `0.5` (the correct dark/light midpoint, already swept) or easing `k<0.5`; the
+  ternaries in rec-annotate are `dx>0 ? edge : dx<0 ? edge : Infinity` (ray-box
+  EXIT geometry — sign-of-direction, not a magic cutoff; dx===0 → Infinity → Math.min
+  picks the other axis; guarded by a >40px centre-distance check so dx,dy are never
+  both 0) and `N>1`/`>0` division guards. None approximate a computation the way
+  badgeInk's 0.45 did. NO FIX. LESSON: badgeInk's 0.45 was the ONLY genuine
+  proxy-threshold in the motor; the rest are midpoints (0.5 is exactly right),
+  sign-tests, or guards — all of which SHOULD be constants. The lens distinguishes
+  "threshold approximating a comparison" (bug) from "threshold that IS the boundary"
+  (correct). One real (badgeInk), rest sound. The lens is now exhausted.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
