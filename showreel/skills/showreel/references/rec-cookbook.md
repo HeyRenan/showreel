@@ -4,7 +4,7 @@ Read this before writing any rec step JSON beyond a straight preset swap. This f
 **THE CONTRACT** — the only file you need to write VALID JSON. Craft (arc, easing numbers)
 lives in `cinematic-grammar.md` + `motion-design.md`; open those only for a hero/cinematic reel.
 
-## STEP GRAMMAR — correct by construction (all 55 keys)
+## STEP GRAMMAR — correct by construction (all 56 keys)
 
 Write every step against this table. **ANCHOR**: `element` = pinned to the target, travels
 with it on scroll/camera (keep the element framed for the overlay's whole life — moving away
@@ -88,6 +88,31 @@ intensity}` (overrides the shared keys for that one effect). `scale` (object for
 > under `--offline` with a hard error (a silent blank burst is worse than a refusal). Record any take
 > carrying them realtime (`--fps 30`, no `--offline`). `flash` is opacity-on-a-static-layer and renders
 > fine offline.
+
+### LIVE ELEMENTS — persist across steps + mutate in place (glossary, modal)
+A **glossary** or **modal** carrying an `id` is born LIVE: it stays on screen
+through the following steps instead of the usual wipe-and-rebuild, and a later
+`live` step mutates it in place — grow it, recolor it, swap its body — with no
+blink. Per-item `color` is honoured (rotate hues as the panel grows).
+
+```jsonc
+// birth: an id makes it live. items carry their own color.
+{"glossary":{"id":"feat","title":"Shipped","items":[{"badge":1,"text":"Auth","color":"#2563eb"}]},"wait":3000}
+{"live":{"append":{"badge":2,"text":"Cache","color":"#16a34a"}},"wait":2500}   // grows, old rows hold
+{"live":{"update":{"item":1,"text":"Auth ✓"}}}                                  // 1-based row edit
+{"live":{"recolor":{"item":2,"color":"#e11d48"}}}                               // one row…
+{"live":{"recolor":{"color":"#a855f7"}}}                                        // …or the whole accent
+{"live":{"replace":{"items":[{"badge":1,"text":"Reset"}]}}}                     // swap body, keep panel
+{"live":{"remove":true}}                                                        // or {"remove":"feat"} by id
+```
+RULES:
+- `live` takes **exactly one** verb: `append` | `update` | `recolor` | `replace` | `remove`.
+- No `id` → mutates the sole live element; with several, pass `{"live":{"id":"feat",…}}`.
+- A scene boundary (`screen` change / `camera:"out"`) **clears all** live elements — no carry-over between scenes. No need to `remove` before a new scene.
+- `live` is **its own step** — it cannot share a step with `note`/`rect`/`glossary`/`modal`/etc (rejected; the live op would suppress them).
+- A `live` op on a missing/ambiguous target is a logged no-op, never a crash.
+- ONLY glossary + modal are live. Anchored primitives (`note`, `marks`, `progress`) pin to a page element and are NOT live — re-anchoring each step is not persistence.
+- An `id` on an ephemeral one-shot (`confetti`/`ripple`/`pulse`/…) is rejected — those are events, not state.
 
 ### FORBIDDEN FORMS — rejected; never write them
 ```jsonc
@@ -268,7 +293,7 @@ explicit `out` + re-frame does, so just don't write it.
 - `--steps steps.json` or `--steps-json '[...]'` (inline, no temp file).
 - Output positional: `out.gif`, or `out.mp4` for **mp4-only** (skips the gif encode entirely — the fast default when no gif is needed). `--mp4 out.mp4` exports h264 alongside a gif; `--keep-webm out.webm` keeps the intermediate + `.timeline.json` sidecar (compose-video consumes it).
 - `steps.json` — selectors + text only; the script owns cursor motion, timing, and annotation placement.
-- Step keys — the STEP GRAMMAR + DYNAMIC PRIMITIVES tables above are the authoritative list (unknown keys are rejected up front); count must equal `STEP_KEYS.size` in `rec-steps.mjs` (55). The **STEP GRAMMAR** table above is the authoritative shape contract — write every step against it, never from memory.
+- Step keys — the STEP GRAMMAR + DYNAMIC PRIMITIVES tables above are the authoritative list (unknown keys are rejected up front); count must equal `STEP_KEYS.size` in `rec-steps.mjs` (56). The **STEP GRAMMAR** table above is the authoritative shape contract — write every step against it, never from memory.
 - `spotlight` — `{"spotlight":".target","note":"..."}` dims the whole frame EXCEPT a lit window around the target, pulling the eye to one element (a soft accent ring traces the lit edge). `spotlight: true` rides the step's own click/fill anchor. Works under camera zoom. Use it instead of `rect` when the goal is focus, not just a box.
 
 ## Flags
@@ -342,7 +367,7 @@ explicit `out` + re-frame does, so just don't write it.
 
 ```
 GRAMMAR  (all enforced by the validator; this is what it checks)
-[ ] Only known keys appear (55 total; see grammar tables). No FORBIDDEN FORM (see table): no follow:false/0; follow rides
+[ ] Only known keys appear (56 total; see grammar tables). No FORBIDDEN FORM (see table): no follow:false/0; follow rides
     click/glide/fill/select; text/delay only with fill; option only with select; option = LABEL
     not value; stagger only with marks/glossary; zoom-number only with camera; zoom:true only
     with click; NO speed anywhere (realtime reel).
