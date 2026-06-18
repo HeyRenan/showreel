@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 9/15   (last change: badgeInk, 31st bug. dry: …anchor-refresh, NOTEINK text-over-glass contrast AA even worst-case)
+  DRY STREAK: 10/15   (last change: badgeInk, 31st bug. dry: …NOTEINK-glass, multi-mask primitive combos deterministic no silent-clash)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -877,6 +877,24 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   — and high opacity (0.72/0.80) is itself the a11y guarantee (it caps how far the
   effective bg can drift). All live text now covered: digit (badgeInk max-contrast),
   row text (NOTEINK ≥6.8 worst-case), theme-matched (liveOpDom fix). NINTH clean iter.
+- multi-primitive combos in one step (blur+redact+highlight+spotlight) — CLEAN (no
+  bug, deterministic, no silent clash). A GENUINELY new angle (interaction BETWEEN
+  primitives, not a re-check of one isolated) — the kind that used to break "dry". The
+  validator permits all mask primitives together (blur+redact+highlight OK). Traced
+  the runtime: only applyBlur sets `el.style.filter` (rec-annotate:646; :881 is
+  clearMasks), so NO two primitives fight over a CSS property — the rest use separate
+  `.__sr_mask__` overlay layers that coexist. blur+redact = blur on the el + opaque
+  overlay above it (overlay wins visually, but it IS one of the two the author asked
+  for — redundant, not silent-wrong). Contradictory combos (blur+highlight: hide vs
+  emphasize the same el) apply BOTH visibly — garbage-in-VISIBLE, not silent-drop.
+  The validator doesn't forbid every nonsensical pair because (a) the result is
+  deterministic + visible (author sees it, corrects it) and (b) a full clash matrix
+  is more rule-surface than the narrow nonsense warrants. NO FIX. LESSON: a silent
+  clash needs two primitives writing the SAME sink (property/id); here only blur owns
+  `filter`, overlays are separate layers — structurally no silent overwrite. A new
+  angle (combos) still confirmed the floor: the bug-class (silent property overwrite)
+  is absent by the layer-separation design. TENTH clean iter — even an unthought-of
+  angle holds.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
