@@ -68,3 +68,14 @@ test('live.update requires an item — title/body changes go through replace', (
   assert.equal(validateSteps([{ live: { update: { value: 80 } } }]).ok, false);
   assert.equal(validateSteps([{ live: { update: { item: 1, text: 'ok' } } }]).ok, true);
 });
+
+test('live.update only carries fields the DOM can render (no silent state/DOM divergence)', () => {
+  // applyState blind-merges EVERY update field into host row state, but the DOM
+  // update path renders only the row's real fields (text/color/badge). An
+  // unrenderable field (value, junk) would live in host state yet never reach the
+  // screen — the #1 bug class. Reject it; allow the three renderable fields.
+  assert.equal(validateSteps([{ live: { update: { item: 1, badge: '9' } } }]).ok, true);
+  assert.equal(validateSteps([{ live: { update: { item: 1, text: 'A', color: 'red', badge: '2' } } }]).ok, true);
+  assert.equal(validateSteps([{ live: { update: { item: 1, value: 5 } } }]).ok, false);
+  assert.equal(validateSteps([{ live: { update: { item: 1, junk: 'x' } } }]).ok, false);
+});

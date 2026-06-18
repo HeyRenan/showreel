@@ -257,12 +257,15 @@ export function makeLive(rctx) {
       void el.offsetWidth;
       el.style.opacity = '1'; el.style.transform = 'none';
     } else if (op.update && op.update.item != null) {
-      // mirror applyState: update applies EVERY field it carries (text + color),
-      // not just text — otherwise host state and the DOM diverge on a color field.
+      // mirror applyState: render EVERY field the validator permits (text/color/
+      // badge), not a subset — else host state and the DOM diverge. The validator
+      // (rec-steps) restricts update to exactly these three; KEEP IN SYNC with it.
       const r = rowsNow()[op.update.item - 1];
       if (r) {
         if (op.update.text != null) r.querySelector('span:last-child').textContent = esc(op.update.text);
-        if (op.update.color) { const b = r.querySelector('span:first-child'); if (b) { b.style.background = op.update.color; b.style.boxShadow = '0 0 0 3px ' + op.update.color + '26'; } }
+        const b = r.querySelector('span:first-child');
+        if (op.update.color && b) { b.style.background = op.update.color; b.style.boxShadow = '0 0 0 3px ' + op.update.color + '26'; }
+        if (op.update.badge != null && b) { b.textContent = esc(op.update.badge); }
       }
     } else if (op.recolor) {
       const rs = rowsNow();

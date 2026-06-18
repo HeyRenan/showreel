@@ -566,6 +566,15 @@ export function validateSteps(steps) {
         // mutated host state but not the DOM — a silent divergence.)
         if (v.update && typeof v.update === 'object' && !Array.isArray(v.update) && !('item' in v.update))
           errors.push(n + ': live.update needs an item (1-based row) — use replace to swap the whole body');
+        // a row renders only text/color/badge (see rec-live rowEl). applyState
+        // blind-merges EVERY update field into host state, so an unrenderable field
+        // would live in state yet never reach the DOM — a silent divergence. The
+        // allowed field set lives HERE (one home); the DOM update path renders all
+        // three. KEEP IN SYNC with rec-live liveOpDom's op.update branch.
+        if (v.update && typeof v.update === 'object' && !Array.isArray(v.update)) {
+          const bad = Object.keys(v.update).filter((k) => !['item', 'text', 'color', 'badge'].includes(k));
+          if (bad.length) errors.push(n + ': live.update only edits text/color/badge of a row (got ' + bad.join('/') + ')');
+        }
       }
     }
     // an ephemeral one-shot animation cannot carry an id — it is not live state.
