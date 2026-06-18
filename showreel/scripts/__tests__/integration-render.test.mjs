@@ -255,3 +255,14 @@ test('live update carries color too, not just text (host/DOM stay consistent)', 
   assert.equal(countColor(r.out, '#2563eb'), 0, 'old blue gone after update color');
   assert.ok(countColor(r.out, '#e11d48') > 0, 'update color reached the encoded pixels');
 });
+
+test('live replace swaps the body keeping the panel (items map to rows)', { skip: SKIP }, () => {
+  // replace must render the new items (author field `items`) and drop the old —
+  // regression guard for the items->rows mapping that kept host state consistent.
+  const r = render([
+    { glossary: { id: 'g', items: [{ badge: 1, text: 'Old', color: '#2563eb' }] }, wait: 300 },
+    { live: { replace: { items: [{ badge: 9, text: 'New', color: '#16a34a' }] } }, wait: 500 },
+  ], 'replace.mp4');
+  assert.equal(countColor(r.out, '#2563eb'), 0, 'replaced-out blue row is gone');
+  assert.ok(countColor(r.out, '#16a34a') > 0, 'replacement green row is shown');
+});

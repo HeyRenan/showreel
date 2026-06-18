@@ -42,8 +42,11 @@ test('applyState append/update/recolor/replace mutate state in place', () => {
   assert.equal(e.state.rows[1].color, 'red');
   applyState(e, { recolor: { color: 'amber' } }); // whole-element recolor
   assert.equal(e.state.color, 'amber');
-  applyState(e, { replace: { rows: [{ badge: '9', text: 'Z' }] } });
+  // the author's replace field is `items` (matches creation spec); it must land
+  // on the canonical st.rows, not create a stale st.items beside it.
+  applyState(e, { replace: { items: [{ badge: '9', text: 'Z' }] } });
   assert.deepEqual(e.state.rows.map((x) => x.badge), ['9']);
+  assert.equal(e.state.items, undefined, 'replace maps items -> rows, no stray st.items');
 });
 
 test('applyState update without item merges scalar fields (progress value/color)', () => {

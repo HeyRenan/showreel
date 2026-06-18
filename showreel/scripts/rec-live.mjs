@@ -69,7 +69,13 @@ export function applyState(entry, op) {
     if (op.recolor.item != null) { const r = rowAt(op.recolor.item); if (r && op.recolor.color != null) r.color = op.recolor.color; }
     else if (op.recolor.color != null) st.color = op.recolor.color;
   } else if (op.replace && typeof op.replace === 'object') {
-    Object.assign(st, op.replace);
+    // the author's body field is `items` (matches creation spec); the canonical
+    // state field is `rows`. Map it so host state stays consistent with the DOM
+    // (which renders op.replace.items) — a blind Object.assign would leave a stale
+    // st.rows beside a new st.items, diverging from what is on screen.
+    const { items, ...rest } = op.replace;
+    if (items !== undefined) st.rows = Array.isArray(items) ? items.map((r) => ({ ...r })) : [];
+    Object.assign(st, rest);
   }
   return entry;
 }
