@@ -98,7 +98,10 @@ export function attempts(a, kind) {
       };
     }
     return {
-      fps: s.fps ?? base.fps,
+      // an explicit --fps is a CEILING: the ladder degrades quality to hit a
+      // target, but it must not raise fps ABOVE what the caller asked for (a user
+      // who set --fps 6 wanting fewer frames should never get the ladder's 12).
+      fps: a.fps != null ? Math.min(a.fps, s.fps ?? base.fps) : (s.fps ?? base.fps),
       colors: s.colors ?? base.colors,
       widthFactor: s.widthFactor,
       maxWidth: base.maxWidth == null ? null : Math.round(base.maxWidth * s.widthFactor),

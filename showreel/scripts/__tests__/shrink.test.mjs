@@ -194,3 +194,13 @@ test('parseGifDurationSec sums graphics control extension delays', () => {
 test('parseGifDurationSec on non-gif bytes is 0', () => {
   assert.equal(parseGifDurationSec(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0])), 0);
 });
+
+test('attempts: an explicit --fps caps the ladder, never raises it', () => {
+  // a user who set --fps 6 (fewer frames) must not get the ladder's 12. An
+  // explicit fps is a ceiling; the ladder degrades from it, never above it.
+  assert.deepEqual(attempts({ fps: 6, targetKb: 500 }, 'gif').map((a) => a.fps), [6, 6, 6, 6, 6]);
+  // a high explicit fps leaves the lower ladder steps unchanged
+  assert.deepEqual(attempts({ fps: 30, targetKb: 500 }, 'gif').map((a) => a.fps), [12, 10, 10, 8, 8]);
+  // no explicit fps: the ladder stands
+  assert.deepEqual(attempts({ targetKb: 500 }, 'gif').map((a) => a.fps), [12, 10, 10, 8, 8]);
+});

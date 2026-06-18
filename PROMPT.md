@@ -97,11 +97,11 @@ recommend stopping rather than inventing work.
 - clean-code dedup pass (two rowEl copies) — badge-less drift fixed; reverted an eval over-abstraction
 - cli-args num/str hostile review — 1 bug fixed (whitespace-only value silently became 0)
 - rec-encode review (trim math, event sentinel, mp4/gif/sheet paths, line-248 crash path) — clean; no pure surface to unit-test without risking the frame-verified encode (real paths already covered by integration test + rec.mjs:293 gif/mp4 contract)
+- shrink/tape review — 1 bug fixed (shrink attempts() ignored an explicit --fps when --target-kb set; the size ladder overrode it. fps is now a ceiling)
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
-- tape / shrink modules — never reviewed
 - GUIDE.html + INSTALL flow — never reviewed
 - the showcase reel rendered end-to-end + watched (not just audited)
 - accessibility/contrast of live elements in light theme
