@@ -21,7 +21,13 @@ import { num, str } from './cli-args.mjs';
 // every ffmpeg build, overlay is), gap + outer padding in the card color,
 // hstack on the shortest stream, then a shared palette so colors stay stable
 // across both halves.
-export function gifFilter({ height = 480, gap = 24, pad = 28, fps = 15 }) {
+export function gifFilter({ height = 480, gap = 24, pad = 28, fps = 15 } = {}) {
+  // ES defaults only fire on undefined; a NaN/Infinity knob would otherwise leak
+  // a non-numeric token (e.g. pad*2 -> "NaN") into the graph and make ffmpeg fail
+  // cryptically. Finite values (incl. 0/negative/huge) pass through untouched —
+  // upstream `num(...)` validates real runs; this only blocks silent corruption.
+  const fin = (v, d) => (Number.isFinite(v) ? v : d);
+  height = fin(height, 480); gap = fin(gap, 24); pad = fin(pad, 28); fps = fin(fps, 15);
   const lane = (i) =>
     `[${i}:v]fps=${fps},scale=-2:${height}:flags=lanczos,pad=iw:ih+44:0:44:0xf1f5f9[b${i}]`;
   return [

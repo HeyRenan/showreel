@@ -148,6 +148,7 @@ export function buildAnnotations({ t, blurBox, zoom, circle, label, layout, view
 // and are excluded. Pure; unit tested.
 export function placedBoxes(annotations, { calloutW = 220, calloutH = 40 } = {}) {
   const out = [];
+  if (!Array.isArray(annotations)) return out; // hostile non-array -> no placed boxes
   for (const an of annotations) {
     if (an.type === 'zoom' && an.at) {
       out.push({ name: 'zoom', x: an.at.x, y: an.at.y, w: Math.round(an.w * (an.scale || 2)), h: Math.round(an.h * (an.scale || 2)) });
@@ -163,7 +164,8 @@ export function placedBoxes(annotations, { calloutW = 220, calloutH = 40 } = {})
 // null when clean; otherwise a short message naming the first overlap. Edge
 // contact does not count. Pure; unit tested.
 export function checkCollisions(placed, targetRect) {
-  const hits = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  if (!Array.isArray(placed)) return null; // nothing placed -> nothing collides
+  const hits = (a, b) => !!a && !!b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   for (const p of placed) if (hits(p, targetRect)) return p.name + ' overlaps target';
   for (let i = 0; i < placed.length; i++) {
     for (let j = i + 1; j < placed.length; j++) {
@@ -197,6 +199,7 @@ function an_zoomAt(annotations) {
 // 3 if any ERROR/NO_SPACE (input problem — wrong selector, target too small),
 // 1 if any FAIL (placement failed), 0 only when all passed.
 export function summarize(results) {
+  if (!Array.isArray(results)) results = []; // hostile non-array -> empty run, clean FAIL
   const total = results.length;
   const passed = results.filter((r) => r === 'PASS').length;
   const verdict = total > 0 && passed === total ? 'PASS' : 'FAIL';

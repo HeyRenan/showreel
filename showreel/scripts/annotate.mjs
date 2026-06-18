@@ -38,6 +38,7 @@ export const DEFAULT_MARKER_HEX = '16a34a';
 //    width = big-endian uint32 at bytes 16..19, height at bytes 20..23.
 // ---------------------------------------------------------------------------
 export function pngDims(buf) {
+  if (!Buffer.isBuffer(buf)) buf = Buffer.from(buf); // accept Uint8Array, match decodePNG
   if (
     buf.length < 24 ||
     buf[0] !== 0x89 || buf[1] !== 0x50 || buf[2] !== 0x4e || buf[3] !== 0x47 ||
@@ -183,6 +184,7 @@ function intersect(a, b) {
 }
 
 function annToGeom(a) {
+  if (!a || typeof a !== 'object') a = {}; // tolerate null/string/number entries
   if (a.type === 'arrow') {
     // The arrowhead is the assertion. Treat as a tiny box around (x2,y2).
     return { kind: 'arrow', x: a.x2 - 1, y: a.y2 - 1, w: 2, h: 2, point: { x: a.x2, y: a.y2 } };
@@ -212,6 +214,7 @@ function pointInRect(pt, rect) {
 export function selfCheck(target, annotations) {
   if (!target || target.w == null || target.h == null)
     throw new Error('target must be {x,y,w,h}');
+  if (!Array.isArray(annotations)) annotations = []; // tolerate null/object/missing input
   const targetArea = Math.max(1, target.w * target.h);
   const hits = [];
   for (let i = 0; i < annotations.length; i++) {
@@ -227,7 +230,7 @@ export function selfCheck(target, annotations) {
       pass = ix.area > 0;
       mode = 'area';
     }
-    hits.push({ index: i, type: annotations[i].type, mode, pass, overlap });
+    hits.push({ index: i, type: g.kind, mode, pass, overlap });
   }
   const passing = hits.filter((h) => h.pass);
   const best = hits.reduce((m, h) => (h.overlap > m ? h.overlap : m), 0);
@@ -270,6 +273,7 @@ function clampRect(r, W, H) {
 }
 
 export function visualCheck(decoded, target, opts = {}) {
+  if (!opts) opts = {}; // explicit null/0 slips past the default param
   if (!target || target.x == null || target.y == null || target.w == null || target.h == null)
     throw new Error('target must be {x,y,w,h}');
 

@@ -81,6 +81,14 @@ export function parse(argv) {
     else if (k.startsWith('--')) throw new Error('demo: unknown arg ' + k);
     else pos.push(k);
   }
+  // Reject extra positionals instead of silently dropping them, mirroring
+  // rec-steps' parse. Batch mode expects exactly the url; otherwise url +
+  // selector + out. An unquoted selector with spaces is the usual cause.
+  const maxPos = a.batch ? 1 : 3;
+  if (pos.length > maxPos) {
+    const expected = a.batch ? 'url' : 'url + selector + out';
+    throw new Error(`demo: too many positional args (expected ${expected}): ${pos.slice(maxPos).join(' ')} — quote a value with spaces?`);
+  }
   if (a.batch) [a.url] = pos;
   else [a.url, a.selector, a.out] = pos;
   return a;
