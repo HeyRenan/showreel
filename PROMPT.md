@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 3/15   (last change: dead camera guard, 24th change. dry: ephemeral clamps, defaults+combos, offline-trap render-proven)
+  DRY STREAK: 0/15   (last change: edge-arrow safeguard false-reject, 24th bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -418,6 +418,22 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   independent reinforcing signals) was still WRONG — only the render settled it.
   When the verdict is "should be blank," render before gating; measure-before-
   claiming beat a very convincing analysis.
+- edge-arrow safeguard false-reject (validator↔runtime↔SAFEGUARD, a NEW 3rd party)
+  — 1 bug fixed. Setting up a showcase regression render (to catch visual drift from
+  ~24 session changes), the render exited 2 on a hidden #rollback-countdown — a known
+  ?gate=fail demo coupling, NOT a bug. But chasing the safeguard surfaced a real one:
+  arrow:"top"/"bottom" is a VALID edge arrow (rec.mjs:752 arrowEdge — points from the
+  letterbox edge, anchored to NOTHING). The validator accepts it + the runtime renders
+  it, but stepAnchors emitted the value as a selector, so the off-screen safeguard ran
+  querySelector("top") → no match → HARD-REJECTED (exit 2) a valid roster. Proven pure:
+  stepAnchors({arrow:"top"}) returned ["top"]. Fixed: stepAnchors skips arrow when the
+  value is the edge keyword (like it already skips "true" / #hex). +4 assertions, 526
+  green. LESSON: the validator↔runtime family had a THIRD party I'd never traced — the
+  SAFEGUARD. validator+runtime agreed (accept+render); the safeguard was the outlier
+  (false-reject). A "pair" can be a trio; the off-screen gate is its own oracle that
+  must agree with the other two. NOTE: showcase full-render regression check still
+  PENDING — the realtime GIF encode is too heavy (>92MB, 84 steps @30fps); needs the
+  MP4 path or a sliced roster. Not done, said plainly.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
