@@ -226,3 +226,16 @@ test('camera:"out" is a scene boundary too — it clears live elements', { skip:
   ], 'camout.mp4');
   assert.equal(countColor(r.out, '#2563eb'), 0, 'camera:out cleared the live glossary');
 });
+
+test('live recolor + update mutate an existing element in place (pixel-proven)', { skip: SKIP }, () => {
+  // recolor a row's badge from blue to red, and update another row's text — both
+  // must change the encoded pixels of the SAME persistent panel, no rebuild.
+  const r = render([
+    { glossary: { id: 'g', items: [{ badge: 1, text: 'Auth', color: '#2563eb' }, { badge: 2, text: 'Old', color: '#16a34a' }] }, wait: 300 },
+    { live: { recolor: { item: 1, color: '#e11d48' } }, wait: 300 },
+    { live: { update: { item: 2, text: 'Updated' } }, wait: 500 },
+  ], 'recolor.mp4');
+  assert.equal(countColor(r.out, '#2563eb'), 0, 'the recolored row no longer shows its old blue');
+  assert.ok(countColor(r.out, '#e11d48') > 0, 'the recolored row shows the new red');
+  assert.ok(countColor(r.out, '#16a34a') > 0, 'the untouched row keeps its green (update changed text, not color)');
+});
