@@ -270,3 +270,25 @@ test('live replace swaps the body keeping the panel (items map to rows)', { skip
   assert.equal(countColor(r.out, '#2563eb'), 0, 'replaced-out blue row is gone');
   assert.ok(countColor(r.out, '#16a34a') > 0, 'replacement green row is shown');
 });
+
+test('a badge-less modal body line appended via live renders no badge pill', { skip: SKIP }, () => {
+  // regression: the op-path rowEl once always drew a badge pill, so a badge-less
+  // modal body line appended via live showed a spurious default-green dot the
+  // created lines did not. Both rowEl copies now drop the pill when badge is empty.
+  // Proof: any default-green (#16a34a) in the final frame must be a thin band (the
+  // 2px accent border), never a ~22px pill cluster.
+  const r = render([
+    { modal: { id: 'm', items: [{ text: 'first' }] }, wait: 300 },
+    { live: { append: { text: 'second' } }, wait: 500 },
+  ], 'badgeless.mp4');
+  const png = r.out.replace(/\.mp4$/, '.bl.png');
+  execFileSync(ffmpegPath(), ['-y', '-i', r.out, '-update', '1', png], { stdio: 'ignore' });
+  const dec = decodePNGFromFile(png);
+  const tgt = parseHexColor('16a34a');
+  let minx = 1e9, maxx = -1;
+  for (let y = 0; y < dec.height; y++)
+    for (let x = 0; x < dec.width; x++)
+      if (colorMatches(pixelAt(dec, x, y), tgt, 20)) { if (x < minx) minx = x; if (x > maxx) maxx = x; }
+  const spread = maxx - minx;
+  assert.ok(spread <= 6, `default-green is a thin accent band, not a badge pill (x-spread ${spread}px)`);
+});

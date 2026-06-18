@@ -112,6 +112,8 @@ export function makeLive(rctx) {
 
     // one part node, shared by both element types. A glossary part has a badge
     // pill + text; a modal body part is just text (empty badge renders nothing).
+    // KEEP IN SYNC with the rowEl in liveOpDom (two safeEval closures can't share
+    // a JS helper without eval; a comment is cleaner than that).
     const rowEl = (r) => {
       const d = document.createElement('div');
       d.className = '__live_row';
@@ -198,16 +200,20 @@ export function makeLive(rctx) {
     const NOTEINK = (isDark && (+isDark[0] + +isDark[1] + +isDark[2]) / 3 < 128) ? '#f8fafc' : '#0f172a';
     const DEF = '#16a34a';
     const esc = (s) => String(s == null ? '' : s).replace(/[<>&]/g, '');
+    // KEEP IN SYNC with the rowEl in liveCreate (two safeEval closures can't share
+    // a JS helper without eval; a comment is cleaner than that). Both: empty badge
+    // => no pill (a modal body line has text only).
     const rowEl = (r) => {
       const d = document.createElement('div');
       d.className = '__live_row';
       d.style.cssText = 'display:flex;gap:10px;align-items:center;margin:8px 0;opacity:0;transform:translateX(-6px);'
         + 'transition:opacity .4s ease,transform .4s cubic-bezier(.22,1,.36,1)';
       const c = r.color || DEF;
-      d.innerHTML = '<span style="flex:0 0 auto;min-width:22px;height:22px;border-radius:11px;background:' + c + ';'
-        + 'border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + c + '26;color:#fff;'
-        + 'font:700 12px/19px system-ui;text-align:center;padding:0 4px">' + esc(r.badge) + '</span>'
-        + '<span style="color:' + NOTEINK + ';font:400 15px/1.4 system-ui">' + esc(r.text) + '</span>';
+      const badge = (r.badge == null || r.badge === '') ? ''
+        : '<span style="flex:0 0 auto;min-width:22px;height:22px;border-radius:11px;background:' + c + ';'
+          + 'border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + c + '26;color:#fff;'
+          + 'font:700 12px/19px system-ui;text-align:center;padding:0 4px">' + esc(r.badge) + '</span>';
+      d.innerHTML = badge + '<span style="color:' + NOTEINK + ';font:400 15px/1.4 system-ui">' + esc(r.text) + '</span>';
       return d;
     };
     const rowsNow = () => Array.from(body.querySelectorAll('.__live_row'));
