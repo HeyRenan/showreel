@@ -10,7 +10,11 @@ warn() { printf '  [warn] %s\n' "$1"; }
 need_node=0 need_ffmpeg=0 need_vhs=0
 
 # --- Required ---
-if command -v node >/dev/null 2>&1; then ok "node $(node -v)"; else warn "node MISSING (required)"; need_node=1; fi
+if command -v node >/dev/null 2>&1; then
+  node_major=$(node -v 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')
+  if [ "${node_major:-0}" -ge 18 ] 2>/dev/null; then ok "node $(node -v)"
+  else warn "node $(node -v) is too old — 18+ required"; need_node=1; fi
+else warn "node MISSING (required)"; need_node=1; fi
 if command -v npm  >/dev/null 2>&1; then ok "npm present (motor installs Playwright via npm)"; else warn "npm MISSING (required for the capture motor first run)"; need_node=1; fi
 
 # --- Capture motor (self-contained Chromium in scripts/.deps) ---
@@ -42,6 +46,6 @@ if [ $((need_node+need_ffmpeg+need_vhs)) -gt 0 ]; then
 fi
 
 echo "------------------"
-echo "Verify: (cd plugin root && node --test scripts/__tests__/)"
+echo "Verify: (cd plugin root && node --test 'scripts/__tests__/*.test.mjs')"
 echo "Capture motor: prove/shot/rec/demo run a self-contained Chromium from scripts/.deps — no MCP needed."
 echo "Linux only: if Chromium fails to launch after install, run: sudo \$PWD/scripts/.deps/node_modules/.bin/playwright install-deps"
