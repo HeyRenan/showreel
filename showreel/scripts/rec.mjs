@@ -832,9 +832,10 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
       const tv = step[t];
       if (tv && typeof tv === 'object' && !Array.isArray(tv) && typeof tv.id === 'string' && tv.id) {
         await liveCreate(t, tv);
-        // host-side state mirror. glossary tracks rows; modal tracks its body
-        // paragraphs (also rows) plus title/footer scalars for update/recolor.
-        registerLive(liveReg, { id: tv.id, type: t, state: { rows: Array.isArray(tv.items) ? tv.items.slice() : [], color: tv.color, title: tv.title, footer: tv.footer } });
+        // host-side state mirror: rows (deep-copied so a later applyState never
+        // aliases the original step JSON — matches the replace path) + the accent.
+        const rows = Array.isArray(tv.items) ? tv.items.map((r) => ({ ...r })) : [];
+        registerLive(liveReg, { id: tv.id, type: t, state: { rows, color: tv.color } });
         liveHandled = true;
       }
     }
