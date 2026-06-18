@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 1/15   (last change: zoom-string missing render-gate, 27th bug. +1 dry: STEP_KEYS↔render mirror both directions)
+  DRY STREAK: 0/15   (last change: batch contact-sheet silently dropped, 28th bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -507,6 +507,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   source of truth, which the render was built against). Same lens; a SOT-backed pair
   holds, an ad-hoc pair drifts. Where two lists exist, ask which is the SOT — the
   other is the suspect.
+- batch contact-sheet silently dropped (TAKE_KEYS allowlist vs normalizer consumer)
+  — 1 bug fixed, applying the previous iter's exact rule. The prior iter said "where
+  two lists exist, ask which is the SOT — the other is the suspect," and tested
+  STEP_KEYS (SOT, held). This iter swept the OTHER allowlists (MARK_KEYS, TAKE_KEYS)
+  against their hand-written consumers. MARK_KEYS held (annotate reads exactly the 5,
+  allowlist enforced). But TAKE_KEYS vs validateBatch's normalizer DRIFTED: `sheet`
+  is an allowlisted take field (a per-take contact sheet), so {sheet:"x.png"}
+  validates — but the normalizer returned every other field (width/fps/mp4/keepWebm…)
+  and OMITTED sheet, so a batch take's contact sheet validated then NEVER rendered
+  (convertOutputs got no sheet), no warning. The single-render path passes a.sheet;
+  only batch had the gap. Fixed: normalizer propagates sheet (true→<out>.png like
+  mp4, path passes through, absent→null). +3 assertions, 527 green. LESSON: the SOT-
+  vs-consumer rule is now a repeatable PROCEDURE — list every allowlist, diff it
+  against the code that consumes it. STEP_KEYS+MARK_KEYS held (consumed via specs);
+  --dry (2 bugs) + TAKE_KEYS (1 bug) drifted. The hand-written CONSUMER is always
+  the suspect, never the allowlist. NOTE: this closes the allowlist-mirror sweep —
+  STEP_KEYS, MARK_KEYS, TAKE_KEYS, --dry all now verified against their consumers.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
