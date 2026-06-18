@@ -376,7 +376,9 @@ export function makeAnnotator(rctx) {
           ' ' + (p2.x - lx) + ',' + (p2.y - ly) + '" fill="' + color + '"/></svg>', 3);
       };
       const drawBadge = (b, n, mark, delay) => {
-        const label = String(n);
+        // label is baked into innerHTML (add's html arg); strip markup chars so a
+        // hostile badge value can't inject (the glossary rows escape badge too).
+        const label = String(n).replace(/[<>&]/g, '');
         const wpx = label.length > 1 ? 16 + label.length * 9 : 28;
         const sides = [
           { x: b.x - wpx - 10, y: b.y - 10 },
@@ -435,13 +437,13 @@ export function makeAnnotator(rctx) {
           if (mk.rect) drawRect(b);
           if (mk.circle) drawCircle(b);
           if (mk.badge != null) drawBadge(b, mk.badge, true, 250 + mi * STAG);
-          if (mk.badge != null && mk.text != null) glossRows.push({ n: String(mk.badge), t: String(mk.text).replace(/[<>&]/g, ''), delay: 250 + mi * STAG });
+          if (mk.badge != null && mk.text != null) glossRows.push({ n: String(mk.badge).replace(/[<>&]/g, ''), t: String(mk.text).replace(/[<>&]/g, ''), delay: 250 + mi * STAG });
         });
       }
       // Glossary panel: explicit items win over marks-derived rows; position,
       // width, title and cadence are all caller-controlled, auto by default.
       const explicitItems = Array.isArray(gOpt.items)
-        ? gOpt.items.map((it, j) => ({ n: String(it.badge), t: String(it.text).replace(/[<>&]/g, ''), delay: 250 + j * STAG }))
+        ? gOpt.items.map((it, j) => ({ n: String(it.badge).replace(/[<>&]/g, ''), t: String(it.text).replace(/[<>&]/g, ''), delay: 250 + j * STAG }))
         : null;
       const rows = explicitItems || glossRows;
       if ((step.glossary || glossRows.length) && rows.length) {
