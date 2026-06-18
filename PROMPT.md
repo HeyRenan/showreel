@@ -174,6 +174,19 @@ recommend stopping rather than inventing work.
   everywhere — so stray append fields are inert pollution, NOT visible divergence
   (unlike update's badge, which was renderable-but-skipped). Restricting them
   would be consistency-for-its-own-sake / YAGNI — left as-is per the honesty clause.
+- live `replace` items contract (verb-vs-create surface, 3rd in the family) — 1
+  bug fixed (state/DOM divergence): `{replace:{}}` (no items key) wiped every row
+  in the DOM (liveOpDom: `Array.isArray(undefined)?…:[]` → empty body) while
+  applyState left the OLD host rows untouched (it only rewrites rows when `items`
+  is present). Screen empty, host state still lists old rows. Mirrored the
+  update-requires-item precedent: validator now rejects keyless replace; `items:[]`
+  (explicit clear, both sides → 0) stays valid. Proven both sides (host keeps 2 /
+  DOM wipes to 0). 526 green, audit clean. NON-BUG ruled out first
+  (measure-before-claiming): replace.color/title pollute host st via Object.assign
+  but st is a mirror NEVER re-rendered, so they never reach the screen — inert,
+  same as append's stray fields; recolor is the documented color verb. No fix
+  (YAGNI / honesty clause). PATTERN NOW CLEAR: each list verb (update/recolor/
+  replace) had a subset-vs-create-surface gap — that family of three is now closed.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
