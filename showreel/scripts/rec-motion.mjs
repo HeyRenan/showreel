@@ -13,7 +13,11 @@ export function makeMotion(rctx) {
   const glide = async (x, y, ms = 600) => {
     const [sx, sy] = await safeEval(() => {
       const c = document.getElementById('__cursor__');
-      return [parseFloat(c.style.left) || 80, parseFloat(c.style.top) || 80];
+      // `|| 80` wrongly treats a real left/top of 0 (cursor at the viewport edge)
+      // as absent and jumps to 80; only an unset/NaN value should fall back. The
+      // initial -80px (off-screen) stays -80 either way. KEEP IN SYNC with glideChase.
+      const px = parseFloat(c.style.left), py = parseFloat(c.style.top);
+      return [Number.isFinite(px) ? px : 80, Number.isFinite(py) ? py : 80];
     });
     // progress rides the clock: realtime that's the wall (each mouse.move
     // costs a protocol round-trip, so a fixed-N loop would overshoot and
@@ -48,7 +52,9 @@ export function makeMotion(rctx) {
     if (!c) return glide(aim.fx, aim.fy, msDur);
     const [sx, sy] = await safeEval(() => {
       const k = document.getElementById('__cursor__');
-      return [parseFloat(k.style.left) || 80, parseFloat(k.style.top) || 80];
+      // KEEP IN SYNC with glide: 0 is a real edge position, only NaN falls back.
+      const px = parseFloat(k.style.left), py = parseFloat(k.style.top);
+      return [Number.isFinite(px) ? px : 80, Number.isFinite(py) ? py : 80];
     });
     await clock.motion(msDur, async (k) => {
       const e = camBez(k);
