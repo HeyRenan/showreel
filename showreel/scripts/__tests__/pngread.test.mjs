@@ -116,6 +116,106 @@ test('color helpers', () => {
   assert.equal(colorMatches({ r: 200, g: 0, b: 0 }, t, 40), false);
 });
 
+// --- hostile / malformed PNG inputs: every error path must throw cleanly ------
+// The decoder's contract is "throw a clear message on anything we don't support,
+// never a raw RangeError or a silent wrong decode." One test per guarded path.
+
+test('decodePNG: truncated chunk (declared len overruns buffer) throws', () => {
+  const good = encodePNG(8, 8, 4, makeRaw(8, 8, 4), { rowFilters: [0] });
+  // corrupt the IHDR declared length to a huge value -> dataEnd overruns
+  const bad = Buffer.from(good);
+  bad.writeUInt32BE(0xffffff, 8); // length field of the first chunk (IHDR)
+  assert.throws(() => decodePNG(bad), /truncated chunk|overruns/);
+});
+
+test('decodePNG: a buffer with a valid sig but no IHDR throws "no IHDR"', () => {
+  const onlyIend = Buffer.concat([SIG, chunk('IEND', Buffer.alloc(0))]);
+  assert.throws(() => decodePNG(onlyIend), /no IHDR/);
+});
+
+test('decodePNG: IHDR present but zero IDAT throws "no IDAT"', () => {
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(4, 0); ihdr.writeUInt32BE(4, 4);
+  ihdr[8] = 8; ihdr[9] = 6;
+  const noIdat = Buffer.concat([SIG, chunk('IHDR', ihdr), chunk('IEND', Buffer.alloc(0))]);
+  assert.throws(() => decodePNG(noIdat), /no IDAT/);
+});
+
+test('decodePNG: IHDR with wrong length throws', () => {
+  // a 12-byte IHDR (one short) — the parser checks len === 13 explicitly
+  const shortIhdr = Buffer.concat([SIG, chunk('IHDR', Buffer.alloc(12)), chunk('IEND', Buffer.alloc(0))]);
+  assert.throws(() => decodePNG(shortIhdr), /IHDR has wrong length/);
+});
+
+test('decodePNG: unsupported colorType (3 = palette) throws', () => {
+  const png = encodePNG(4, 4, 3, makeRaw(4, 4, 3), { rowFilters: [0] });
+  png[16 + 9] = 3; // IHDR data + colorType offset -> palette, which we reject
+  assert.throws(() => decodePNG(png), /unsupported colorType/);
+});
+
+test('decodePNG: IHDR reporting a zero dimension throws', () => {
+  const png = encodePNG(4, 4, 4, makeRaw(4, 4, 4), { rowFilters: [0] });
+  png.writeUInt32BE(0, 16); // IHDR data start -> width = 0
+  assert.throws(() => decodePNG(png), /zero dimension/);
+});
+
+test('decodePNG: an unknown per-row filter byte throws naming the row', () => {
+  // hand-build a 2x1 RGBA stream whose single row carries filter byte 9
+  const W = 2, H = 1, C = 4, stride = W * C;
+  const raw = Buffer.alloc((stride + 1) * H);
+  raw[0] = 9; // illegal filter
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4); ihdr[8] = 8; ihdr[9] = 6;
+  const png = Buffer.concat([SIG, chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+  assert.throws(() => decodePNG(png), /unknown PNG filter type 9 on row 0/);
+});
+
+test('decodePNG: corrupt IDAT (not a zlib stream) throws "inflate failed"', () => {
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(4, 0); ihdr.writeUInt32BE(4, 4); ihdr[8] = 8; ihdr[9] = 6;
+  const garbage = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]); // not deflate
+  const png = Buffer.concat([SIG, chunk('IHDR', ihdr), chunk('IDAT', garbage), chunk('IEND', Buffer.alloc(0))]);
+  assert.throws(() => decodePNG(png), /inflate failed/);
+});
+
+test('decodePNG: a valid zlib stream too short for the declared size throws', () => {
+  // claim 8x8 RGBA but inflate to only one short row -> unfilter shortfall
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(8, 0); ihdr.writeUInt32BE(8, 4); ihdr[8] = 8; ihdr[9] = 6;
+  const tooLittle = zlib.deflateSync(Buffer.alloc(10)); // way under (8*4+1)*8
+  const png = Buffer.concat([SIG, chunk('IHDR', ihdr), chunk('IDAT', tooLittle), chunk('IEND', Buffer.alloc(0))]);
+  assert.throws(() => decodePNG(png), /too small/);
+});
+
+test('decodePNG: a non-Buffer (Uint8Array) is coerced, not rejected', () => {
+  const png = encodePNG(4, 4, 4, makeRaw(4, 4, 4), { rowFilters: [0] });
+  const asU8 = new Uint8Array(png); // not a Buffer
+  const dec = decodePNG(asU8);
+  assert.equal(dec.width, 4);
+});
+
+test('pixelAt: out-of-bounds coords throw with the requested point named', () => {
+  const dec = decodePNG(encodePNG(4, 4, 4, makeRaw(4, 4, 4), { rowFilters: [0] }));
+  assert.throws(() => pixelAt(dec, -1, 0), /out of bounds/);
+  assert.throws(() => pixelAt(dec, 0, -1), /out of bounds/);
+  assert.throws(() => pixelAt(dec, 4, 0), /out of bounds/); // x == width is past the edge
+  assert.throws(() => pixelAt(dec, 0, 4), /out of bounds/);
+});
+
+test('parseHexColor: trims, strips #, accepts 3- and 6-hex; rejects 4/5/garbage', () => {
+  assert.deepEqual(parseHexColor('  #1A3  '), { r: 17, g: 170, b: 51 }); // 1A3 -> 11AA33
+  assert.throws(() => parseHexColor('#abcd'), /bad hex/);   // 4 nibbles invalid
+  assert.throws(() => parseHexColor('12345'), /bad hex/);   // 5 nibbles invalid
+  assert.throws(() => parseHexColor(''), /bad hex/);
+  assert.throws(() => parseHexColor(null), /bad hex/);      // String(null)='null'
+});
+
+test('colorMatches: tol 0 demands exact; alpha is ignored', () => {
+  const t = { r: 10, g: 20, b: 30 };
+  assert.equal(colorMatches({ r: 10, g: 20, b: 30, a: 0 }, t, 0), true);
+  assert.equal(colorMatches({ r: 11, g: 20, b: 30 }, t, 0), false);
+});
+
 // --- visualCheck behavior: PASS on-target, FAIL off-target --------------------
 // Draw a hollow green box border at a known rect into an RGBA fixture.
 function drawBoxFixture(W, H, rect, hex) {

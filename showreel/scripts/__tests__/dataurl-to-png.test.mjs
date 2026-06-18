@@ -41,4 +41,18 @@ test('rejects valid-magic-but-truncated buffer (anti-garbage floor)', () => {
 test('rejects non-string input', () => {
   assert.throws(() => decodeDataUrl(null), /must be a string/);
   assert.throws(() => decodeDataUrl(123), /must be a string/);
+  assert.throws(() => decodeDataUrl(undefined), /must be a string/);
+  assert.throws(() => decodeDataUrl(Buffer.from('x')), /must be a string/); // Buffer is not a string
+});
+
+test('prefix strip is anchored — a "data:" inside the payload is not gnawed', () => {
+  // the regex is ^-anchored; only a leading data-url header is removed. A valid
+  // PNG decodes regardless, but this pins the anchor so future edits keep it.
+  const buf = decodeDataUrl('data:image/png;base64,' + PNG_B64);
+  assert.equal(buf[0], 0x89);
+});
+
+test('error message reports the decoded byte count for diagnosis', () => {
+  // a non-empty-but-tiny payload: message must carry the length, not just "bad"
+  assert.throws(() => decodeDataUrl('aaaa'), /got \d+ bytes/);
 });

@@ -236,3 +236,56 @@ test('realtime motion: ms 0 / negative / NaN call fn(1) once, no hang', async ()
     assert.deepEqual(ks, [1], `ms=${ms} should yield a single k=1 call`);
   }
 });
+
+// ── buildConcatList: the ffmpeg-script escaping contract ───────────────────
+test('buildConcatList: a single-quote in a path is escaped for the concat demuxer', () => {
+  // ffmpeg concat wraps paths in '...'; a literal quote must close-escape-reopen
+  // ('\'') or the demuxer mis-parses the line. A frame from O'Brien's tmp dir.
+  const txt = buildConcatList([{ file: "/t/o'brien/f0.jpg", dur: 100 }]);
+  assert.ok(txt.includes("'\\''"), 'quote must be escaped as \x27\\\x27\x27');
+  assert.ok(!/file '\/t\/o'brien/.test(txt), 'raw unescaped quote must not survive');
+});
+
+test('buildConcatList: null / empty frames yield an empty script (no throw)', () => {
+  assert.equal(buildConcatList(null), '');
+  assert.equal(buildConcatList(undefined), '');
+  assert.equal(buildConcatList([]), '');
+});
+
+test('buildConcatList: a single frame still repeats its file bare at the end', () => {
+  const txt = buildConcatList([{ file: '/t/only.jpg', dur: 1234 }]);
+  const lines = txt.trim().split('\n');
+  assert.equal(lines.length, 3); // file, duration, file (bare repeat)
+  assert.equal(lines[0], "file '/t/only.jpg'");
+  assert.equal(lines[2], "file '/t/only.jpg'");
+});
+
+// ── degenerate wait / setRate / until ──────────────────────────────────────
+test('offline: wait(0) and wait(negative) are no-ops, advance nothing', async () => {
+  const { io, log } = stubIO();
+  const c = makeClock({ offline: true, fps: 10, io });
+  await c.wait(0, true);
+  await c.wait(-500);
+  assert.equal(c.frames().length, 0);
+  assert.equal(log.advances.length, 0);
+  assert.equal(c.now(), 0);
+});
+
+test('offline: setRate ignores 0 / negative / NaN, holding rate 1', async () => {
+  const { io } = stubIO();
+  const c = makeClock({ offline: true, fps: 10, io });
+  for (const bad of [0, -1, NaN, 'x']) {
+    c.setRate(bad);
+    const before = c.now();
+    await c.motion(200, async () => {});
+    // at rate 1, a 200ms motion over STEP 100 plays ~200ms — never 0 / never hung
+    assert.ok(c.now() - before >= 0.2 - 1e-9, `rate ${String(bad)} must fall back to 1`);
+  }
+});
+
+test('offline: until throws after 120s of virtual time on a never-resolving promise', async () => {
+  const { io } = stubIO();
+  const c = makeClock({ offline: true, fps: 10, io });
+  // a promise that NEVER settles — the cap (vt > now+120000) must fire, not spin
+  await assert.rejects(() => c.until(new Promise(() => {})), /still pending after 120s/);
+});
