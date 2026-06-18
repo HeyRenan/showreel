@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 2/15   (last change: dead camera guard, 24th change. dry: ephemeral clamps, ephemeral defaults+combos)
+  DRY STREAK: 3/15   (last change: dead camera guard, 24th change. dry: ephemeral clamps, defaults+combos, offline-trap render-proven)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -399,6 +399,25 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   LESSON: a falsifiable rule that COULD have caught a real bug (default=0 breaks
   render) but didn't = real coverage, not a shrug — and measure-before-claiming
   (read the lines, don't trust the grep) killed the one false positive.
+- ephemeral offline-trap gate (glow/pulse/ripple/orbit vs the 2-effect gate) —
+  CLEAN (no bug, RENDER-PROVEN, static suspicion falsified). The offline-trap lens
+  (setTimeout/rAF under paused virtual clock) had only been applied to live +
+  masks. OFFLINE_INCOMPATIBLE gates just confetti+sparkline (rec-steps:602). Built
+  a strong static case for a bug: (1) hotHeadFor (the offline hot-window arbiter)
+  has NO term for ephemeral effect DURATION — a bare {glow} gets only fade=400ms
+  hot, but glow default DUR=2600ms; (2) applyOfflineDefaults only sets fps, doesn't
+  widen hot; (3) glow/pulse/ripple/orbit ALL animate via CSS transition — the exact
+  mechanism the comment says makes confetti "resolve to end pose without sampling".
+  So static analysis SCREAMED "4 more effects belong in the gate." Then I MEASURED:
+  rendered {glow}{pulse}{ripple} offline at 640x400, extracted 188 frames, counted
+  green effect-ring pixels per frame — baseline 0, PEAK 1096 at frame 98 with spikes
+  through each window. The rings DO appear offline. Suspicion FALSIFIED: the effects
+  leave a ring visible long enough for the hot span to catch a frame, unlike
+  confetti (chips fly out + self-remove) / sparkline (stroke-draw). The 2-effect
+  gate is correct. NO FIX. LESSON: the strongest static case of the session (3
+  independent reinforcing signals) was still WRONG — only the render settled it.
+  When the verdict is "should be blank," render before gating; measure-before-
+  claiming beat a very convincing analysis.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
