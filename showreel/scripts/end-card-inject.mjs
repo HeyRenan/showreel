@@ -17,19 +17,15 @@
 // Optional args: --text "END" --note "cart stays in sync"
 //   node end-card-inject.mjs --text "DONE" --note "all flows pass"
 
-const args = process.argv.slice(2);
-const get = (flag, def) => {
-  const i = args.indexOf(flag);
-  return i >= 0 && args[i + 1] ? args[i + 1] : def;
-};
-const text = get('--text', 'END');
-const note = get('--note', '');
+// Build the injectable END-card snippet from the card text + optional note.
+// Pure/deterministic. JSON-encodes both so quotes/newlines in user text can't
+// break out of the snippet; an empty note omits the subtitle node entirely.
+export function buildEndCardSnippet(text, note) {
+  // JSON-encode so quotes/newlines in user text can't break the snippet.
+  const T = JSON.stringify(text);
+  const N = JSON.stringify(note);
 
-// JSON-encode so quotes/newlines in user text can't break the snippet.
-const T = JSON.stringify(text);
-const N = JSON.stringify(note);
-
-const snippet = `(() => {
+  return `(() => {
   document.getElementById('__endcard__')?.remove();
   const o = document.createElement('div');
   o.id = '__endcard__';
@@ -48,5 +44,13 @@ const snippet = `(() => {
   requestAnimationFrame(() => { o.style.opacity = '1'; });
   return { endcard: true };
 })()`;
+}
 
-process.stdout.write(snippet + '\n');
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const args = process.argv.slice(2);
+  const get = (flag, def) => {
+    const i = args.indexOf(flag);
+    return i >= 0 && args[i + 1] ? args[i + 1] : def;
+  };
+  process.stdout.write(buildEndCardSnippet(get('--text', 'END'), get('--note', '')) + '\n');
+}

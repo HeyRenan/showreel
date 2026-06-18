@@ -23,7 +23,7 @@
 // shot, so there is never leftover dark body to re-crop, and no measure-shot-
 // remeasure loop.
 
-function prepFn(sel, bg, pad) {
+export function prepFn(sel, bg, pad) {
   // Returns a no-arg arrow fn string (the only evaluate channel that works on
   // both chrome-devtools and playwright). Selector + opts are baked in.
   return `()=>{
@@ -50,7 +50,7 @@ function prepFn(sel, bg, pad) {
   }`;
 }
 
-function scrollFn(sel, pad) {
+export function scrollFn(sel, pad) {
   return `()=>{
     var el=document.querySelector(${JSON.stringify(sel)});
     if(!el) return {error:'not found'};
@@ -61,18 +61,20 @@ function scrollFn(sel, pad) {
   }`;
 }
 
-const [cmd, sel, a, b] = process.argv.slice(2);
-if (cmd === 'prep') {
-  if (!sel) { console.error('usage: capture.mjs prep <selector> [bg] [pad]'); process.exit(2); }
-  const bg = a || '#0d1117';
-  const pad = b != null ? parseInt(b, 10) : 24;
-  console.log(prepFn(sel, bg, pad));
-  console.error('After evaluate returns {w,h,pad}: resize_page(width=w+2*pad, height=h+2*pad), then run `capture.mjs scroll`, then take_screenshot.');
-} else if (cmd === 'scroll') {
-  if (!sel) { console.error('usage: capture.mjs scroll <selector> [pad]'); process.exit(2); }
-  const pad = a != null ? parseInt(a, 10) : 24;
-  console.log(scrollFn(sel, pad));
-} else {
-  console.error('usage: capture.mjs <prep|scroll> <selector> [bg] [pad]');
-  process.exit(2);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const [cmd, sel, a, b] = process.argv.slice(2);
+  if (cmd === 'prep') {
+    if (!sel) { console.error('usage: capture.mjs prep <selector> [bg] [pad]'); process.exit(2); }
+    const bg = a || '#0d1117';
+    const pad = b != null ? parseInt(b, 10) : 24;
+    console.log(prepFn(sel, bg, pad));
+    console.error('After evaluate returns {w,h,pad}: resize_page(width=w+2*pad, height=h+2*pad), then run `capture.mjs scroll`, then take_screenshot.');
+  } else if (cmd === 'scroll') {
+    if (!sel) { console.error('usage: capture.mjs scroll <selector> [pad]'); process.exit(2); }
+    const pad = a != null ? parseInt(a, 10) : 24;
+    console.log(scrollFn(sel, pad));
+  } else {
+    console.error('usage: capture.mjs <prep|scroll> <selector> [bg] [pad]');
+    process.exit(2);
+  }
 }

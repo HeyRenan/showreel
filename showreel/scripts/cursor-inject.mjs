@@ -17,26 +17,20 @@
 //
 // Companion: drive-recipe.md shows the exact MCP call sequence + clickAt() helper.
 
-const arg = (k, d) => {
-  const hit = process.argv.find(a => a.startsWith(`--${k}=`));
-  return hit ? hit.slice(k.length + 3) : d;
-};
-
-const color = arg('color', '#16a34a');
-const size = parseInt(arg('size', '28'), 10);
-const rippleMs = parseInt(arg('ripple-ms', '750'), 10);
-const rippleMax = parseInt(arg('ripple-max', '110'), 10);
-
-// rgba fill derived from the ripple color (hex -> rgba .18)
-function hexToRgba(hex, a) {
-  const m = hex.replace('#', '');
+// rgba fill derived from the ripple color (hex -> rgba). Exported pure for
+// tests; expands a 3-digit hex to 6 first. Malformed hex yields NaN channels.
+export function hexToRgba(hex, a) {
+  const m = String(hex).replace('#', '');
   const n = m.length === 3 ? m.split('').map(c => c + c).join('') : m;
   const r = parseInt(n.slice(0, 2), 16), g = parseInt(n.slice(2, 4), 16), b = parseInt(n.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${a})`;
 }
-const fill = hexToRgba(color, 0.18);
 
-const snippet = `(() => {
+// Build the injectable cursor + ripple snippet string from resolved options.
+// Pure/deterministic: numbers and color are baked into the returned source.
+export function buildCursorSnippet({ color, size, rippleMs, rippleMax }) {
+  const fill = hexToRgba(color, 0.18);
+  return `(() => {
   // ---- fake cursor + click ripple (cursor-inject.mjs) ----
   document.getElementById('__cursor__')?.remove();
   const c = document.createElement('div');
@@ -75,5 +69,18 @@ const snippet = `(() => {
   }
   return { cursor: true };
 })()`;
+}
 
-process.stdout.write(snippet + '\n');
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const arg = (k, d) => {
+    const hit = process.argv.find(a => a.startsWith(`--${k}=`));
+    return hit ? hit.slice(k.length + 3) : d;
+  };
+  const snippet = buildCursorSnippet({
+    color: arg('color', '#16a34a'),
+    size: parseInt(arg('size', '28'), 10),
+    rippleMs: parseInt(arg('ripple-ms', '750'), 10),
+    rippleMax: parseInt(arg('ripple-max', '110'), 10),
+  });
+  process.stdout.write(snippet + '\n');
+}
