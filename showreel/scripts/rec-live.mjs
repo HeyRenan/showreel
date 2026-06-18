@@ -217,10 +217,14 @@ export function makeLive(rctx) {
       // requestAnimationFrame can coalesce under the paused virtual clock).
       void el.offsetWidth;
       el.style.opacity = '1'; el.style.transform = 'none';
-    } else if (op.update) {
-      const rs = rowsNow();
-      const r = rs[(op.update.item || 0) - 1];
-      if (r && op.update.text != null) r.querySelector('span:last-child').textContent = esc(op.update.text);
+    } else if (op.update && op.update.item != null) {
+      // mirror applyState: update applies EVERY field it carries (text + color),
+      // not just text — otherwise host state and the DOM diverge on a color field.
+      const r = rowsNow()[op.update.item - 1];
+      if (r) {
+        if (op.update.text != null) r.querySelector('span:last-child').textContent = esc(op.update.text);
+        if (op.update.color) { const b = r.querySelector('span:first-child'); if (b) { b.style.background = op.update.color; b.style.boxShadow = '0 0 0 3px ' + op.update.color + '26'; } }
+      }
     } else if (op.recolor) {
       const rs = rowsNow();
       if (op.recolor.item != null) {

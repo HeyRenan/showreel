@@ -244,3 +244,14 @@ test('live recolor + update mutate an existing element in place (pixel-proven)',
   assert.ok(countColor(r.out, '#e11d48') > 0, 'the recolored row shows the new red');
   assert.ok(countColor(r.out, '#16a34a') > 0, 'the untouched row keeps its green (update changed text, not color)');
 });
+
+test('live update carries color too, not just text (host/DOM stay consistent)', { skip: SKIP }, () => {
+  // regression: update applied only text to the DOM while applyState merged every
+  // field — a color on update changed host state but not the pixels. Now both move.
+  const r = render([
+    { glossary: { id: 'g', items: [{ badge: 1, text: 'Auth', color: '#2563eb' }] }, wait: 300 },
+    { live: { update: { item: 1, text: 'Auth', color: '#e11d48' } }, wait: 500 },
+  ], 'updcolor.mp4');
+  assert.equal(countColor(r.out, '#2563eb'), 0, 'old blue gone after update color');
+  assert.ok(countColor(r.out, '#e11d48') > 0, 'update color reached the encoded pixels');
+});
