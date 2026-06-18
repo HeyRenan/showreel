@@ -187,6 +187,21 @@ recommend stopping rather than inventing work.
   same as append's stray fields; recolor is the documented color verb. No fix
   (YAGNI / honesty clause). PATTERN NOW CLEAR: each list verb (update/recolor/
   replace) had a subset-vs-create-surface gap — that family of three is now closed.
+- live registry coupling + offline scene-clear parity — CLEAN (no bug, traced
+  precisely, two angles). (a) The `liveSceneClear` early-return `if (!liveReg.order
+  .length) return` looked like it could skip the DOM clear and leak a node into the
+  next scene IF host order could be empty while a DOM node lived. Traced EVERY
+  registry write site (the only ones): create writes both host `registerLive` +
+  DOM `__live.nodes` together (rec.mjs:834→838 / rec-live:210); remove drops both
+  together (rec.mjs:848 / rec-live:282). They move in lockstep, so host order 0 ⇒
+  DOM nodes 0 — the early-return is a valid optimization, not a leak. The nav case
+  (a `screen` URL load wipes DOM `__live` but not host `liveReg`) self-heals: host
+  order is non-empty so the guard doesn't fire and `clearScene(liveReg)` cleans the
+  stale host entry. (b) Offline scene-clear parity: live pumps a frame via
+  `clock.tick()`; masks use `clock.wait(ms(360), true)` (realtime-sampled) + a
+  sync removal — different mechanism, both land the cleared state in the held/next
+  frame offline. No divergence. NO FIX — manufacturing one against lockstep-correct
+  code is the overengineering the prompt forbids (honesty clause).
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
