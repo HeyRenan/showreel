@@ -59,12 +59,14 @@ export function makeInput(rctx, motion) {
     await clock.wait(ms(350), true);
     const row = await safeEval(({ sel, option, theme }) => {
       const el = document.querySelector(sel);
-      if (!el || !el.options) return null;
+      if (!el || !el.options) return { miss: !el ? 'no element' : 'not a <select>' };
       document.getElementById('__selpanel__')?.remove();
       const labels = [...el.options].map((o) => (o.label || o.text || '').trim());
+      // KEEP IN SYNC with the value-set match below: exact label first, then a
+      // substring fallback. (A future change to one must change the other.)
       let idx = labels.findIndex((t) => t === option);
       if (idx < 0) idx = labels.findIndex((t) => t.includes(option));
-      if (idx < 0) return null;
+      if (idx < 0) return { miss: 'no option matches "' + option + '" (have: ' + labels.join(', ') + ')' };
       const T = theme === 'dark'
         ? { bg: '#f8fafc', ink: '#0f172a', hl: 'rgba(22,163,74,.18)' }
         : { bg: '#0d1b2d', ink: '#e2e8f0', hl: 'rgba(22,163,74,.28)' };
@@ -93,6 +95,7 @@ export function makeInput(rctx, motion) {
       return { x: left + pw / 2, y: top + pad + idx * rowH + rowH / 2 };
     }, { sel, option, theme: pageTheme });
     if (!row) return;
+    if (row.miss) { console.error('rec: select skipped — ' + sel + ': ' + row.miss); return; }
     await clock.wait(ms(400), 280); // panel fade-in is the hot head
     await glide(row.x, row.y, 550);
     await safeEval(() => {
@@ -104,6 +107,7 @@ export function makeInput(rctx, motion) {
       const el = document.querySelector(sel);
       if (el && el.options) {
         const labels = [...el.options].map((o) => (o.label || o.text || '').trim());
+        // KEEP IN SYNC with the panel-build match above (exact then substring).
         let idx = labels.findIndex((t) => t === option);
         if (idx < 0) idx = labels.findIndex((t) => t.includes(option));
         if (idx >= 0) {
