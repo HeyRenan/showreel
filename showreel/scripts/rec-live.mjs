@@ -109,6 +109,11 @@ export function makeLive(rctx) {
     const BLUR = 'backdrop-filter:blur(13px) saturate(140%);-webkit-backdrop-filter:blur(13px) saturate(140%)';
     const DEF = '#16a34a';
     const esc = (s) => String(s == null ? '' : s).replace(/[<>&]/g, '');
+    // a color is baked raw into a style="" attribute inside innerHTML; a stray
+    // quote/angle would break out and inject markup. esc (for text/badge) leaves
+    // quotes; a color sits in a CSS slot, so charset-sanitize instead. KEEP IN
+    // SYNC with liveOpDom's safeCol and cursor-inject's safeColor.
+    const safeCol = (s) => String(s == null ? '' : s).replace(/[^#0-9a-zA-Z(),.%\s/-]/g, '').trim() || DEF;
 
     // readable badge-number color: a pale per-item color needs dark text, not the
     // default white (white on pale yellow is ~1.3:1, unreadable). Only adjusts for
@@ -131,7 +136,7 @@ export function makeLive(rctx) {
       d.className = '__live_row';
       d.style.cssText = 'display:flex;gap:10px;align-items:center;margin:8px 0;opacity:0;transform:translateX(-6px);'
         + 'transition:opacity .4s ease,transform .4s cubic-bezier(.22,1,.36,1)';
-      const c = r.color || DEF;
+      const c = safeCol(r.color);
       const badge = (r.badge == null || r.badge === '') ? ''
         : '<span style="flex:0 0 auto;min-width:22px;height:22px;border-radius:11px;background:' + c + ';'
           + 'border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + c + '26;color:' + badgeInk(c) + ';'
@@ -145,7 +150,7 @@ export function makeLive(rctx) {
     const panel = document.createElement('div');
     panel.id = '__live_' + spec.id;
     panel.dataset.liveType = type;
-    const accent = spec.color || DEF;
+    const accent = safeCol(spec.color);
 
     if (type === 'modal') {
       // free-floating centered dialog + dim backdrop. Body parts append like rows.
@@ -221,6 +226,9 @@ export function makeLive(rctx) {
     const NOTEINK = (isDark && (+isDark[0] + +isDark[1] + +isDark[2]) / 3 < 128) ? '#f8fafc' : '#0f172a';
     const DEF = '#16a34a';
     const esc = (s) => String(s == null ? '' : s).replace(/[<>&]/g, '');
+    // colors baked into style/innerHTML must be charset-sanitized (a stray quote
+    // breaks out and injects markup). KEEP IN SYNC with liveCreate's safeCol.
+    const safeCol = (s) => String(s == null ? '' : s).replace(/[^#0-9a-zA-Z(),.%\s/-]/g, '').trim() || DEF;
     // KEEP IN SYNC with the rowEl in liveCreate (two safeEval closures can't share
     // a JS helper without eval; a comment is cleaner than that). Both: empty badge
     // => no pill (a modal body line has text only); badgeInk picks readable text.
@@ -238,7 +246,7 @@ export function makeLive(rctx) {
       d.className = '__live_row';
       d.style.cssText = 'display:flex;gap:10px;align-items:center;margin:8px 0;opacity:0;transform:translateX(-6px);'
         + 'transition:opacity .4s ease,transform .4s cubic-bezier(.22,1,.36,1)';
-      const c = r.color || DEF;
+      const c = safeCol(r.color);
       const badge = (r.badge == null || r.badge === '') ? ''
         : '<span style="flex:0 0 auto;min-width:22px;height:22px;border-radius:11px;background:' + c + ';'
           + 'border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + c + '26;color:' + badgeInk(c) + ';'
