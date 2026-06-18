@@ -218,12 +218,17 @@ export function makeLive(rctx) {
 
   // mutate an existing live element. resolved = the chosen id (host resolves via
   // the pure resolveTarget before calling this); op = the single verb object.
-  const liveOpDom = (id, op) => safeEval(({ id, op }) => {
+  const liveOpDom = (id, op) => safeEval(({ id, op, theme }) => {
     const panel = document.getElementById('__live_' + id);
     if (!panel) return false;
     const body = panel.querySelector('.__live_body');
-    const isDark = (document.body && getComputedStyle(document.body).backgroundColor || '').match(/\d+/g);
-    const NOTEINK = (isDark && (+isDark[0] + +isDark[1] + +isDark[2]) / 3 < 128) ? '#f8fafc' : '#0f172a';
+    // NOTEINK MUST come from the same theme source liveCreate used (rctx.pageTheme,
+    // resolved by the central detector) — re-detecting here off document.body
+    // diverged: a transparent body or a borderline-luminance page gave a different
+    // verdict, so a row appended later had a different text color than its created
+    // siblings in the SAME panel. One home for the theme decision.
+    const isDark = theme === 'dark';
+    const NOTEINK = isDark ? '#f8fafc' : '#0f172a';
     const DEF = '#16a34a';
     const esc = (s) => String(s == null ? '' : s).replace(/[<>&]/g, '');
     // colors baked into style/innerHTML must be charset-sanitized (a stray quote
@@ -298,7 +303,7 @@ export function makeLive(rctx) {
       if (window.__live && window.__live.nodes) delete window.__live.nodes[id];
     }
     return true;
-  }, { id, op });
+  }, { id, op, theme: theme() });
 
   // remove every live node now. A timed fade (setTimeout) never lands under the
   // paused virtual clock — the panel would persist through the new scene. Removal
