@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: annotate badge injection, 22nd bug)
+  DRY STREAK: 1/15   (last change: annotate badge injection, 22nd bug. +1 dry: chrome canvas-text clean)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -249,6 +249,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   a 4th member in rec-annotate, a file I'd never read through the inject lens. The
   GREEN accent there WAS already saneado (safeAccent) + most text escaped; only
   badge slipped. A "closed family" is only closed for files re-read under that lens.
+- chrome/letterbox text (rec-encode) — CLEAN (no bug, two lenses, measured). (a)
+  INJECT lens: the inject family chase (live-color, annotate-badge) pointed here
+  next, but the chrome strips (screen pill / stamp / bar) rasterize author text via
+  `ctx.fillText` on a canvas (rec-encode:53/68) — canvas text is pixels, not markup,
+  so `<img>`/quotes can't inject. Canvas-imune by construction; the inject family
+  IS now closed across DOM-emitting files (live/annotate/cursor/end-card/before-
+  after) — chrome was the one that looked like a member but isn't a DOM sink. (b)
+  TRUNCATION + DEDUP lens: `fit()` measures + ellipsizes correctly; font state is
+  re-set after each `getContext` recreate (49/51/52, 57/60/61) so no stale-font
+  mismeasure; the `lane\0slot\0text` dedup key is used identically at render-time
+  (uniq:74) and composite-time (assets.get:110), so repeated identical pills share
+  one PNG with per-event x/timing — correct, not a collision. `assets.get(key(ev))`
+  can't be undefined in normal flow (uniq is built from ALL events; a render throw
+  aborts before line 110). NO FIX — fabricating one against canvas-safe + correct
+  code is the overengineering the prompt forbids. LESSON CONFIRMED: chasing a family
+  to its next suspect and finding it's a DIFFERENT mechanism (canvas, not DOM) is a
+  legit clean — the lens still had to be applied to KNOW that.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
