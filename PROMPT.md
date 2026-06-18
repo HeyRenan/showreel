@@ -114,6 +114,15 @@ recommend stopping rather than inventing work.
 - doFill re-fill / contenteditable clearing — CLEAN. Re-filling an input replaces (not stacks): "First Value"->cleared->"Second" pixel-proven on the demo. Exercised the contenteditable branch directly on a synthetic page (not assumed): "old content"->cleared->"fresh" pixel-proven. Both clear-then-type paths sound. No bug.
 - tape.mjs vhs flow — CLEAN. q() escaping correct (quotes + backslashes, balanced) on a nasty Type string; validateSteps thorough (shape/unknown-key/ctrl-length/sleep-range). The sleep/wait alias picks sleep and drops wait silently, but they mean the SAME concept (a pause) so the single Sleep is coherent — borderline non-bug, not worth a fix. No real bug.
 - many-live-elements stress — 1 bug fixed (good thing we kept going): multiple live panels with no explicit pos all landed at the default top-right corner and HID each other — only the last showed (red=0/blue=1/green=298 px). Added a deterministic cascade (stack each new panel below/above the ones already at that corner, summing their heights). Now all visible (221/205/478) in a clean vertical stack, pixel + eyeball confirmed. +test. (A false alarm first — my own test had given two panels the same pos; measuring precisely revealed the REAL auto-pos bug underneath.)
+- concurrent renders sharing scripts/.deps — CLEAN (no bug, design documented).
+  Per-render work files are race-safe: rec.mjs uses mkdtempSync for vidDir, so two
+  renders get separate dirs (frames/pal.png/list.txt/strips all under it). The one
+  real window — two captures COLD-starting at the same instant racing the shared
+  npm install / chromium download — is narrow (one-time, fresh machine) and the
+  documented setup (INSTALL.md §3 pre-warm) serializes it. A cross-platform install
+  lock would be more risk than the window warrants (overengineering). Added a
+  CONCURRENCY design comment to ensureDeps; concurrent cold-start is intentionally
+  unsupported. No fix.
 - camera bezier under extreme zoom — CLEAN (no bug). The reach/clamp math is
   finite at the extremes: a 2px element gives fit=2.4, noCrop=282, s2=3 (MAX),
   finite tx/ty — verified by computing it in-page. Realtime zoom on the tiny

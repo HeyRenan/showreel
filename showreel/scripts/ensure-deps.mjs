@@ -45,6 +45,14 @@ function run(cmd, args, opts = {}) {
   execFileSync(cmd, args, { stdio: 'inherit', ...opts });
 }
 
+// CONCURRENCY: no install lock by design. The install path is one-time on a
+// cold .deps; once warm, every call short-circuits (the existsSync checks below).
+// Two captures cold-starting at the exact same instant would race the shared
+// npm install / chromium download — so the documented setup (INSTALL.md §3:
+// `node ensure-deps.mjs`) pre-warms once, serializing it. A cross-platform
+// install lock with stale-recovery would be more risk than this narrow
+// fresh-machine window warrants; concurrent cold-start is intentionally
+// unsupported. Per-render work dirs ARE concurrency-safe (rec.mjs mkdtempSync).
 export function ensureDeps({ quiet = false, needGif = false } = {}) {
   const log = (m) => { if (!quiet) console.error(m); };
   mkdirSync(DEPS_DIR, { recursive: true });
