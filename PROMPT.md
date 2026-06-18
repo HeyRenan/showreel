@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 2/15   (last change: glide parseFloat||80, 30th bug. dry: fade/cam.s, unvalidated-data-input (sparkline/countup) runtime-guarded)
+  DRY STREAK: 3/15   (last change: glide parseFloat||80, 30th bug. dry: fade/cam.s, sparkline/countup, glossary stagger-vs-hold render-proven)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -677,6 +677,25 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   for a bug — the second half is "AND no downstream guard." A loose validator is fine
   when the consumer is defensive; the bug is loose-validator + naive-consumer. Read the
   CONSUMER's guards, not just the validator's gaps.
+- glossary stagger/item-count vs hot-window (head>hold timing) — CLEAN (no bug,
+  render-proven, static analysis falsified). The "loose validator + naive consumer"
+  rule pointed here: stagger has NO upper bound (validator only checks >=0) and item
+  count is uncapped, so hotHeadFor's head = 250+(n-1)*STAG+450 grows unbounded with
+  n while hold is ~constant (dwellMs caps at 12000, baseHold ~1200). STATIC analysis
+  screamed: n=15 → head 6020ms >> hold ~1200ms, and clock.wait does Math.min(hold,
+  hot) — so the hot window CUTS before the last items reveal → glossary visually
+  incomplete. RENDER-PROVEN FALSE: rendered a 15-item glossary, extracted frames,
+  measured panel fill per frame — ALL 15 reveal (fill plateaus ~3900) WITHIN scene 1
+  (f1-f27), before the scene-2 cut (f28). The panel reserves full height from the
+  start (extent fixed 372px) and items fade in staggered, completing in time. Why no
+  cut despite head>hold? The stagger spaces fade STARTS (overlapping ~0.4s fades),
+  not full waits — real reveal is far faster than the head formula models, and the
+  cold-frame tail catches any remainder. NO FIX. LESSON: the static head>hold
+  inequality was a real computation but the WRONG model — it assumed stagger =
+  sequential full waits; the actual fades overlap. The "loose validator + naive
+  consumer" rule found a real gap (no stagger cap) but the consumer is NOT naive:
+  reserved-height + overlapping fades absorb it. Render-prove a TIMING claim before
+  trusting an inequality — the formula isn't the animation.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
