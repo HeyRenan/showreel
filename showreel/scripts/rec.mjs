@@ -576,7 +576,11 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
     // clears, below; this covers no-zoom scenes that only scrollTo.)
     {
       const c = step.camera;
-      const cameraFrameIn = c && c !== 'out' && !(typeof c === 'object' && c.out);
+      // camera-out is ONLY the string "out" (validator + cameraSpec agree). An
+      // object {out:true} is not a supported shape — it's rejected at pre-flight
+      // and cameraSpec drops it, so the runtime must not pretend to honor it here
+      // (the old `&& c.out` guard was dead, and implied a form that never renders).
+      const cameraFrameIn = c && c !== 'out';
       const movesView = !!step.scrollTo || cameraFrameIn;
       const addsMask = step.blur || step.redact || step.highlight || step.hide;
       if (movesView && !addsMask) await clearMasks();
