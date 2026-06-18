@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 8/15   (last change: badgeInk, 31st bug. dry: …demo-text, refreshed the stale Untried-angles anchor to real state)
+  DRY STREAK: 9/15   (last change: badgeInk, 31st bug. dry: …anchor-refresh, NOTEINK text-over-glass contrast AA even worst-case)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -864,6 +864,19 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   future iter), not manufacturing a code change — but distinguish anchor-upkeep
   (real, the guide must be true) from ledger-inflation (fabrication, padding for
   productivity's sake). This was the former: a contradiction corrected, not bulk added.
+- NOTEINK row-text contrast over glass, worst case (a11y, alpha-composited) — CLEAN
+  (no bug, computed the right way). The badgeInk fix covered the DIGIT; the row TEXT
+  uses NOTEINK directly — never measured its real contrast over the semi-transparent
+  glass. Computed via alpha compositing (glass rgba(15,23,42,0.72) over the page):
+  dark #f8fafc = 17.41, light #0f172a = 17.70 — both far past AA. WORST case (dark
+  glass over BRIGHT content behind it — white/yellow/green/blue): still 6.81-12.86,
+  all AA-pass, because the glass's 0.72 opacity DOMINATES the effective background
+  (the content behind contributes only 28%), so the text always sits on a near-glass
+  tone. NO FIX. LESSON: glass/translucent contrast must be computed via ALPHA
+  COMPOSITING against the worst content behind it, not against the glass color alone
+  — and high opacity (0.72/0.80) is itself the a11y guarantee (it caps how far the
+  effective bg can drift). All live text now covered: digit (badgeInk max-contrast),
+  row text (NOTEINK ≥6.8 worst-case), theme-matched (liveOpDom fix). NINTH clean iter.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
