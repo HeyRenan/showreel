@@ -292,3 +292,17 @@ test('a badge-less modal body line appended via live renders no badge pill', { s
   const spread = maxx - minx;
   assert.ok(spread <= 6, `default-green is a thin accent band, not a badge pill (x-spread ${spread}px)`);
 });
+
+test('multiple auto-placed live panels cascade instead of stacking on top', { skip: SKIP }, () => {
+  // live panels persist, so several can be on screen at once. Without a cascade
+  // they all landed at the default top-right corner and hid each other (only the
+  // last showed). Each must now be visible — distinct badge colors all present.
+  const r = render([
+    { glossary: { id: 'a1', items: [{ badge: 1, text: 'one', color: '#e11d48' }] }, wait: 250 },
+    { glossary: { id: 'a2', items: [{ badge: 2, text: 'two', color: '#2563eb' }] }, wait: 250 },
+    { glossary: { id: 'a3', items: [{ badge: 3, text: 'three', color: '#16a34a' }] }, wait: 500 },
+  ], 'cascade.mp4');
+  assert.ok(countColor(r.out, '#e11d48') > 0, 'first panel (red) still visible, not buried');
+  assert.ok(countColor(r.out, '#2563eb') > 0, 'second panel (blue) visible');
+  assert.ok(countColor(r.out, '#16a34a') > 0, 'third panel (green) visible');
+});

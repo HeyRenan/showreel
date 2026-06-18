@@ -169,11 +169,20 @@ export function makeLive(rctx) {
     } else {
       // corner glossary panel.
       const gw = spec.width || 320;
-      const corner = spec.pos === 'top-left' ? 'left:24px;top:24px'
-        : spec.pos === 'bottom-right' ? 'right:24px;bottom:24px'
-        : spec.pos === 'bottom-left' ? 'left:24px;bottom:24px'
-        : 'right:24px;top:24px';
-      panel.style.cssText = 'position:fixed;z-index:2147483640;pointer-events:none;' + corner + ';width:' + gw + 'px;'
+      const cornerName = ['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(spec.pos) ? spec.pos : 'top-right';
+      const vert = cornerName.startsWith('top') ? 'top' : 'bottom';
+      const horiz = cornerName.endsWith('left') ? 'left' : 'right';
+      // Cascade: live panels persist, so several can share a corner. Stack each
+      // new one below (top corners) / above (bottom corners) the ones already
+      // there instead of dropping it on top and hiding them. Sum the heights of
+      // existing live panels anchored to THIS corner. (The static glossary uses
+      // full collision-search; a deterministic cascade is the simpler fit here.)
+      let stackOff = 24;
+      for (const el of document.querySelectorAll('[id^="__live_"]')) {
+        if (el.dataset.liveCorner === cornerName) stackOff += el.getBoundingClientRect().height + 12;
+      }
+      panel.dataset.liveCorner = cornerName;
+      panel.style.cssText = 'position:fixed;z-index:2147483640;pointer-events:none;' + horiz + ':24px;' + vert + ':' + stackOff + 'px;width:' + gw + 'px;'
         + 'background:' + GLASS + ';' + BLUR + ';border:1px solid ' + HAIR + ';border-left:2px solid ' + accent + ';'
         + 'border-radius:16px;padding:15px 18px;box-shadow:' + SHADOW + ';opacity:0;transition:opacity .4s ease,height .35s cubic-bezier(.22,1,.36,1)';
       if (spec.title) {
