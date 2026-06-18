@@ -651,3 +651,25 @@ test('auditScenes never flags always-on primitives (pulse/kenburns)', () => {
   ]).warnings;
   assert.equal(w.length, 0);
 });
+
+import { auditRosterLive } from '../rec.mjs';
+
+test('auditRosterLive gates a MISSING scrollTo target (silent-wrong-scene)', async () => {
+  // a scroll target that resolves to no element renders a scene that never moves,
+  // with no warning — only --dry caught it before. Now the render gate does too.
+  // existence-only: a target below the fold (off-screen but PRESENT) must pass.
+  const bridge = {
+    measure: async (sel) => (sel === '#gone' ? null : { visible: true, w: 100, h: 30, cx: 50, cy: 9000 }),
+    click: async () => {}, fill: async () => {}, select: async () => {}, settle: async () => {},
+  };
+  const miss = (await auditRosterLive([{ scrollTo: '#gone' }], bridge)).errors;
+  assert.equal(miss.length, 1);
+  assert.equal(miss[0].kind, 'missing');
+  assert.match(miss[0].message, /scroll target/);
+  // present-but-below-fold scroll target: no error (scrolling to it is the point)
+  const ok = (await auditRosterLive([{ scrollTo: '#far-down' }], bridge)).errors;
+  assert.equal(ok.length, 0);
+  // scrollIn object form is gated too
+  const miss2 = (await auditRosterLive([{ scrollIn: { sel: '#gone' } }], bridge)).errors;
+  assert.equal(miss2.length, 1);
+});

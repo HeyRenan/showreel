@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: flash-not-an-anchor safeguard, 25th bug)
+  DRY STREAK: 0/15   (last change: scrollTo/scrollIn missing render-gate, 26th bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -450,6 +450,28 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   non-selector values," and flash (a worse case: common + multi-form) fell out
   immediately. Fixing a bug should spawn the next angle, not close the topic. NOTE:
   showcase MP4 regression render still in flight (long realtime take) — monitor armed.
+- false-NEGATIVE hunt: scrollTo/scrollIn missing not gated at render — 1 bug fixed,
+  render-PROVEN, + the pending showcase visual-regression check RESOLVED in the same
+  turn. The edge-arrow/flash fixes were false-POSITIVES; chased the inverse — a key
+  that anchors but ESCAPES the render safeguard (silent-wrong scene, worse than a
+  loud reject). Compared the TWO selector lists: rec.mjs:259 (`--dry` preflight,
+  EXISTENCE, includes scrollTo/zoom, process.exit) vs ANCHOR_KEYS (render off-screen
+  gate). The gap: scrollTo/scrollIn are in --dry but NOT the render gate, and unlike
+  click/fill/select they were never existence-checked at render. RENDER-PROVEN it's
+  silent: {scrollTo:"#gone"} rendered "PLACE clean / OK", exit 0, no warning — the
+  scene just doesn't scroll (shows the wrong position, author unaware). That IS the
+  silent-wrong-video class the prompt prioritizes; --dry is opt-in, not the auto
+  gate. FIX: auditRosterLive now existence-checks scroll targets (scrollTo + scrollIn
+  string/obj) — EXISTENCE ONLY, not off-screen (scrolling TO a below-fold element is
+  the whole point). Render-proven both ways: missing → refused ("scene never
+  scrolls"); a real below-fold #metrics → passes. +async test (mock bridge: missing
+  errors, below-fold ok, scrollIn-obj errors), 526 green, showcase audit clean.
+  ALSO: showcase MP4 regression render (pending 2 iters) finished — extracted 509
+  frames, scanned for blank/flat (sd<6): ZERO broken frames across the whole reel
+  after ~25 session changes. Visual regression CLEAN, pending RESOLVED. LESSON: the
+  prior iter logged this as a low-severity candidate "won't claim without render-
+  proof" — the render proved it silent-wrong (higher severity than guessed) AND
+  proved the fix safe. Deferring to render-proof (not guessing severity) was right.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)

@@ -845,6 +845,19 @@ export async function auditRosterLive(steps, bridge) {
       }
     }
 
+    // scroll targets are EXISTENCE-only (not in stepAnchors): scrolling TO an
+    // element below the fold is the whole point, so an off-screen check is wrong —
+    // but a MISSING scroll target renders a silently-wrong scene (the view never
+    // moves, no warning). click/fill/select missing are already gated; scrollTo/
+    // scrollIn were the gap (only --dry caught them, which is opt-in).
+    const scrollSels = [];
+    if (typeof s.scrollTo === 'string') scrollSels.push(s.scrollTo);
+    if (typeof s.scrollIn === 'string') scrollSels.push(s.scrollIn);
+    else if (s.scrollIn && typeof s.scrollIn === 'object' && typeof s.scrollIn.sel === 'string') scrollSels.push(s.scrollIn.sel);
+    for (const sel of scrollSels) {
+      if (!(await measure(sel))) errors.push({ step: i + 1, kind: 'missing', message: `scroll target "${sel}" matches no element — the scene never scrolls (silently shows the wrong position).` });
+    }
+
     // drive real state so later anchors see the post-action DOM
     try {
       // a click can kick off an async flow (deploy progress reveals toast/new
