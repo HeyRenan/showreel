@@ -79,3 +79,14 @@ test('live.update only carries fields the DOM can render (no silent state/DOM di
   assert.equal(validateSteps([{ live: { update: { item: 1, value: 5 } } }]).ok, false);
   assert.equal(validateSteps([{ live: { update: { item: 1, junk: 'x' } } }]).ok, false);
 });
+
+test('live.replace requires items — a bodiless replace clears the DOM but not host state', () => {
+  // replace swaps the whole body. With no `items` key the DOM wipes every row
+  // while host state KEEPS the old rows (applyState only touches rows when items
+  // is present) — a silent divergence. Reject the keyless form; items:[] is the
+  // legit explicit-clear and stays valid.
+  assert.equal(validateSteps([{ live: { replace: { items: [] } } }]).ok, true);
+  assert.equal(validateSteps([{ live: { replace: { items: [{ text: 'A' }] } } }]).ok, true);
+  assert.equal(validateSteps([{ live: { replace: {} } }]).ok, false);
+  assert.equal(validateSteps([{ live: { replace: { color: 'red' } } }]).ok, false);
+});

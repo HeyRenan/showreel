@@ -575,6 +575,11 @@ export function validateSteps(steps) {
           const bad = Object.keys(v.update).filter((k) => !['item', 'text', 'color', 'badge'].includes(k));
           if (bad.length) errors.push(n + ': live.update only edits text/color/badge of a row (got ' + bad.join('/') + ')');
         }
+        // replace swaps the body, so it needs items. With no items key the DOM
+        // wipes every row while applyState keeps the old host rows — a silent
+        // divergence. items:[] (explicit clear) is fine; a missing key is not.
+        if (v.replace && typeof v.replace === 'object' && !Array.isArray(v.replace) && !('items' in v.replace))
+          errors.push(n + ': live.replace needs items (use items:[] to clear the body)');
       }
     }
     // an ephemeral one-shot animation cannot carry an id — it is not live state.
