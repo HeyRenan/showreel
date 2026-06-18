@@ -292,6 +292,24 @@ test('deriveCaptureHeight: never returns below the 300 floor', () => {
   assert.ok(deriveCaptureHeight(10, '1:100', [], false) >= 300);
 });
 
+test('resolveCaptureHeight: a degenerate ratio is NOT forced — author height kept', () => {
+  // BUG was: resolveCaptureHeight used a bare regex .test() (no >0 guard), so
+  // "0:9"/"5:0" read as a FORCED ratio and overrode the author's height toward a
+  // ratio padToRatio/deriveCaptureHeight both drop. All three now agree via
+  // parseRatio: a zero dimension is free, so the height passes through untouched.
+  for (const bad of ['0:9', '5:0', '0:0']) {
+    const r = resolveCaptureHeight(1280, 1000, bad, [], false);
+    assert.equal(r.height, 1000, bad + ' should keep the author height');
+    assert.equal(r.warn, null, bad + ' should not warn about a non-ratio');
+    assert.equal(padToRatio(bad, '#000'), '', bad + ' pads nothing (consistent)');
+    assert.equal(deriveCaptureHeight(1280, bad, [], false), 812, bad + ' derives default (consistent)');
+  }
+  // a real ratio still overrides a breaking height (no regression)
+  const ok = resolveCaptureHeight(1280, 1000, '16:9', [], false);
+  assert.equal(ok.height, 720);
+  assert.match(ok.warn, /breaks --ratio 16:9/);
+});
+
 test('resolveCaptureHeight: height matching the derived ratio is accepted; a breaking one warns', () => {
   // 1280*9/16 = 720, so 720 IS the derived 16:9 height with no lanes -> kept, no warn
   const ok = resolveCaptureHeight(1280, 720, '16:9', [], false);

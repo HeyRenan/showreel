@@ -887,13 +887,23 @@ export const END_CARD_MODES = new Set(['gif', 'all', 'none']);
 
 export const THEMES = new Set(['auto', 'light', 'dark']);
 
+// THE single ratio parser: "W:H" with positive W and H -> {rw, rh}, else null.
+// One home for the decision (the >0 guard once lived in padToRatio + derive but
+// NOT resolveCaptureHeight, so a degenerate "0:9" read as a forced ratio there
+// and overrode the author's height while the others treated it as free).
+export function parseRatio(ratio) {
+  const m = String(ratio || '').match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
+  if (!m || !(+m[1] > 0) || !(+m[2] > 0)) return null;
+  return { rw: +m[1], rh: +m[2] };
+}
+
 // ffmpeg pad stage forcing the FINAL canvas (post letterbox strips) to the
 // given aspect — 'W:H' string or 'free' to disable. Pure; unit tested.
 export function padToRatio(ratio, color) {
   if (!ratio || ratio === 'free') return '';
-  const m = String(ratio).match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
-  if (!m || !(+m[1] > 0) || !(+m[2] > 0)) return '';
-  const rw = +m[1], rh = +m[2];
+  const r = parseRatio(ratio);
+  if (!r) return '';
+  const { rw, rh } = r;
   return `pad=w='ceil(max(iw,ih*${rw}/${rh})/2)*2':h='ceil(max(ih,iw*${rh}/${rw})/2)*2':x='(ow-iw)/2':y='(oh-ih)/2':color=${color}`;
 }
 
@@ -902,12 +912,12 @@ export function padToRatio(ratio, color) {
 // aspect deficit to fill, and the lateral bars a sideways fill produces can
 // never appear. 'free' or an unparsable ratio keeps the classic default.
 export function deriveCaptureHeight(width, ratio, steps, stamp) {
-  const m = String(ratio || '').match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
-  if (!m || !(+m[1] > 0) || !(+m[2] > 0)) return 812;
+  const r = parseRatio(ratio);
+  if (!r) return 812;
   const list = Array.isArray(steps) ? steps : [];
   const top = (stamp || list.some((s) => s && ('topbar' in s || 'screen' in s))) ? 44 : 0;
   const bottom = list.some((s) => s && 'bottombar' in s) ? 44 : 0;
-  const h = Math.round(width * +m[2] / +m[1]) - top - bottom;
+  const h = Math.round(width * r.rh / r.rw) - top - bottom;
   return Math.max(300, h - (h % 2));
 }
 
@@ -918,7 +928,10 @@ export function deriveCaptureHeight(width, ratio, steps, stamp) {
 // pad stage then has no deficit to fill, no bars can appear. 'free' (or an
 // unparsable ratio) keeps whatever height the caller asked for.
 export function resolveCaptureHeight(width, height, ratio, steps, stamp) {
-  const forced = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.test(String(ratio || ''));
+  // a degenerate "0:9"/"5:0" is NOT a forced ratio — parseRatio's >0 guard makes
+  // this agree with padToRatio/deriveCaptureHeight (which drop it), so the author's
+  // height is kept instead of being overridden toward a ratio that never applies.
+  const forced = parseRatio(ratio) != null;
   if (!forced) return { height: height ?? 812, warn: null };
   const derived = deriveCaptureHeight(width, ratio, steps, stamp);
   if (height == null) return { height: derived, warn: null };
