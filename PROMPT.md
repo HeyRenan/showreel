@@ -99,12 +99,12 @@ recommend stopping rather than inventing work.
 - rec-encode review (trim math, event sentinel, mp4/gif/sheet paths, line-248 crash path) — clean; no pure surface to unit-test without risking the frame-verified encode (real paths already covered by integration test + rec.mjs:293 gif/mp4 contract)
 - shrink/tape review — 1 bug fixed (shrink attempts() ignored an explicit --fps when --target-kb set; the size ladder overrode it. fps is now a ceiling)
 - GUIDE.html + INSTALL/README review — INSTALL paths + /showreel:guide skill all real; fixed doc rot: both READMEs claimed "tests-247 passing" (actually 520). Removed the hardcoded-count badge (the ci badge is the live proof) so it can't rot again
+- live-element light-theme a11y — text-over-glass contrast fine (>=11:1 even worst case); but the NEW per-item badge color had NO contrast floor (white digit on a pale color ~1.3:1). Fixed: badgeInk picks dark/white digit by pill luminance. (Default-green 3.3:1 left as-is — pre-existing plugin-wide design, not a live regression.)
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
 - the showcase reel rendered end-to-end + watched (not just audited)
-- accessibility/contrast of live elements in light theme
 
 ## Anchor files (read these, not the whole tree)
 

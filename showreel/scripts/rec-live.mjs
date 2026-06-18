@@ -110,6 +110,18 @@ export function makeLive(rctx) {
     const DEF = '#16a34a';
     const esc = (s) => String(s == null ? '' : s).replace(/[<>&]/g, '');
 
+    // readable badge-number color: a pale per-item color needs dark text, not the
+    // default white (white on pale yellow is ~1.3:1, unreadable). Only adjusts for
+    // a parseable #hex; named/rgb colors keep white. KEEP IN SYNC with liveOpDom.
+    const badgeInk = (col) => {
+      const h = String(col).trim().replace(/^#/, '');
+      const x = h.length === 3 ? h.split('').map((d2) => d2 + d2).join('') : h;
+      if (!/^[0-9a-f]{6}$/i.test(x)) return '#fff';
+      const [r2, g2, b2] = [0, 2, 4].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
+      const lin = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      const L = 0.2126 * lin(r2) + 0.7152 * lin(g2) + 0.0722 * lin(b2);
+      return L > 0.45 ? '#0f172a' : '#fff'; // light pill -> dark number
+    };
     // one part node, shared by both element types. A glossary part has a badge
     // pill + text; a modal body part is just text (empty badge renders nothing).
     // KEEP IN SYNC with the rowEl in liveOpDom (two safeEval closures can't share
@@ -122,7 +134,7 @@ export function makeLive(rctx) {
       const c = r.color || DEF;
       const badge = (r.badge == null || r.badge === '') ? ''
         : '<span style="flex:0 0 auto;min-width:22px;height:22px;border-radius:11px;background:' + c + ';'
-          + 'border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + c + '26;color:#fff;'
+          + 'border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + c + '26;color:' + badgeInk(c) + ';'
           + 'font:700 12px/19px system-ui;text-align:center;padding:0 4px">' + esc(r.badge) + '</span>';
       d.innerHTML = badge + '<span style="color:' + NOTEINK + ';font:400 15px/1.4 system-ui">' + esc(r.text) + '</span>';
       return d;
@@ -202,7 +214,16 @@ export function makeLive(rctx) {
     const esc = (s) => String(s == null ? '' : s).replace(/[<>&]/g, '');
     // KEEP IN SYNC with the rowEl in liveCreate (two safeEval closures can't share
     // a JS helper without eval; a comment is cleaner than that). Both: empty badge
-    // => no pill (a modal body line has text only).
+    // => no pill (a modal body line has text only); badgeInk picks readable text.
+    const badgeInk = (col) => {
+      const h = String(col).trim().replace(/^#/, '');
+      const x = h.length === 3 ? h.split('').map((d2) => d2 + d2).join('') : h;
+      if (!/^[0-9a-f]{6}$/i.test(x)) return '#fff';
+      const [r2, g2, b2] = [0, 2, 4].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
+      const lin = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      const L = 0.2126 * lin(r2) + 0.7152 * lin(g2) + 0.0722 * lin(b2);
+      return L > 0.45 ? '#0f172a' : '#fff';
+    };
     const rowEl = (r) => {
       const d = document.createElement('div');
       d.className = '__live_row';
@@ -211,7 +232,7 @@ export function makeLive(rctx) {
       const c = r.color || DEF;
       const badge = (r.badge == null || r.badge === '') ? ''
         : '<span style="flex:0 0 auto;min-width:22px;height:22px;border-radius:11px;background:' + c + ';'
-          + 'border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + c + '26;color:#fff;'
+          + 'border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + c + '26;color:' + badgeInk(c) + ';'
           + 'font:700 12px/19px system-ui;text-align:center;padding:0 4px">' + esc(r.badge) + '</span>';
       d.innerHTML = badge + '<span style="color:' + NOTEINK + ';font:400 15px/1.4 system-ui">' + esc(r.text) + '</span>';
       return d;
