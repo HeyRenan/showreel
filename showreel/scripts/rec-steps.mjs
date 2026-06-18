@@ -550,6 +550,11 @@ export function validateSteps(steps) {
         const verbs = [...LIVE_OPS].filter((k) => k in v);
         if (verbs.length !== 1) errors.push(n + ': live needs exactly one of ' + [...LIVE_OPS].join('/') + ' (got ' + verbs.length + ')');
         if ('id' in v && (typeof v.id !== 'string' || !v.id)) errors.push(n + ': live.id must be a non-empty selector-free string');
+        // a live op is its own step: at render it suppresses the normal overlay,
+        // so a sibling annotation primitive would be silently dropped. Flag it.
+        const annKeys = ['note', 'rect', 'circle', 'arrow', 'badge', 'marks', 'glossary', 'modal', 'inset', 'spotlight'];
+        const clash = annKeys.filter((k) => k in s);
+        if (clash.length) errors.push(n + ': live cannot share a step with ' + clash.join('/') + ' (a live op is its own step)');
         for (const verb of ['update', 'recolor']) {
           const o = v[verb];
           if (o && typeof o === 'object' && !Array.isArray(o) && 'item' in o

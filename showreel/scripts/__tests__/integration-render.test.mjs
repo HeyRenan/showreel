@@ -190,3 +190,28 @@ test('live modal: a persistent dialog updates its body in place across steps', {
   ], 'modalgone.mp4');
   assert.equal(countColor(gone.out, '#2563eb'), 0, 'live remove cleared the modal + its backdrop');
 });
+
+test('live op on a missing target warns and no-ops, the reel still renders', { skip: SKIP }, () => {
+  // a live append with no live element on screen must not crash the render — it
+  // logs a warn and the reel completes. (rec.mjs resolveTarget -> warn path.)
+  const r = render([
+    { screen: 'Solo', wait: 200 },
+    { live: { append: { text: 'orphan', color: '#16a34a' } }, wait: 300 },
+  ], 'orphan.mp4');
+  assert.ok(existsSync(r.out), 'reel rendered despite the orphan live op');
+  const buf = readFileSync(r.out);
+  assert.equal(buf.toString('ascii', 4, 8), 'ftyp', 'valid mp4 produced');
+});
+
+test('live op after a scene boundary cleared the element warns, never crashes', { skip: SKIP }, () => {
+  // create a live glossary, cross a scene boundary (which clears it), then try to
+  // append — the target is gone, so it must warn + no-op, not throw mid-render.
+  const r = render([
+    { glossary: { id: 'g', items: [{ badge: 1, text: 'A', color: '#2563eb' }] }, wait: 200 },
+    { screen: 'Next', wait: 200 },
+    { live: { id: 'g', append: { text: 'B', color: '#16a34a' } }, wait: 300 },
+  ], 'afterclear.mp4');
+  assert.ok(existsSync(r.out), 'reel rendered');
+  // the cleared blue must not reappear, and the orphan green append did nothing
+  assert.equal(countColor(r.out, '#2563eb'), 0, 'cleared glossary stays gone');
+});

@@ -50,3 +50,13 @@ test('an ephemeral primitive given an id is rejected as one-shot', () => {
   // a stateful primitive WITH an id is fine (it becomes live)
   assert.equal(validateSteps([{ glossary: { id: 'feat', items: [{ badge: 1, text: 'A' }] } }]).ok, true);
 });
+
+test('live cannot share a step with an annotation primitive (silent-drop guard)', () => {
+  // at render a live op suppresses the normal overlay, so a sibling rect/note
+  // would vanish silently — reject it at pre-flight instead.
+  assert.equal(validateSteps([{ live: { append: { text: 'x' } }, rect: '#a' }]).ok, false);
+  assert.equal(validateSteps([{ live: { remove: true }, note: 'hi' }]).ok, false);
+  assert.equal(validateSteps([{ live: { append: { text: 'x' } }, glossary: { id: 'g' } }]).ok, false);
+  // a bare live op (no sibling annotation) is fine; a wait alongside is fine
+  assert.equal(validateSteps([{ live: { append: { text: 'x' } }, wait: 300 } ]).ok, true);
+});

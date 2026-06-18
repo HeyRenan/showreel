@@ -10,7 +10,10 @@ const DEMO = join(HERE, '..', '..', '..', 'assets-src', 'demo', 'index.html');
 
 test('every documented step key is accepted', () => {
   const step = {};
-  for (const k of STEP_KEYS)
+  for (const k of STEP_KEYS) {
+    // live is mutually exclusive with annotation primitives by design (it has
+    // its own dedicated tests); it cannot coexist in an all-keys step.
+    if (k === 'live') continue;
     step[k] = k === 'marks' ? [{ sel: '.x', badge: '1.1', text: 'first card' }]
       : (k === 'topbar' || k === 'bottombar') ? 'bar text'
       : k === 'fill' ? 'input#iemail'
@@ -37,8 +40,8 @@ test('every documented step key is accepted', () => {
       : k === 'dur' ? 1200
       : k === 'count' ? 4
       : k === 'intensity' ? 1.3
-      : k === 'live' ? { remove: true }
       : true;
+  }
   const r = validateSteps([step]);
   assert.ok(r.ok, r.errors.join('; '));
 });
