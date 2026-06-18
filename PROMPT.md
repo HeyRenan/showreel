@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 11/15   (last change: badgeInk, 31st bug. dry: …combos, position-patch clash converges to static (fragile-but-correct))
+  DRY STREAK: 12/15   (last change: badgeInk, 31st bug. dry: …position-clash, countup+typeon divergent-clash but nonsense-precondition)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -914,6 +914,28 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   reachable clash isn't a bug if all writers CONVERGE on the same final state — the
   bug condition is divergent restores, not concurrent patches. The closest-to-a-bug
   angle in 11 iters still resolves correct; the floor holds even here. ELEVENTH clean.
+- countup+typeon DIVERGENT save/restore clash — the bug-CATEGORY exists, but only
+  behind a nonsense precondition → NO FIX (honest third verdict). Last iter's lesson
+  "the bug condition is DIVERGENT restores" → hunted save-the-original-then-restore
+  primitives: countup saves transition/transform + srCuReal=textContent; typeon saves
+  srOrigHtml=innerHTML; kenburns saves transform. The DIVERGENT pair: countup+typeon
+  on the same el (both MUTATE the text). Order is typeon(673) then countup(680), and
+  countup's `srCuReal = el.textContent` is captured AFTER typeon already started
+  mutating the text — so countup restores typeon's PARTIAL state as "original" =
+  corrupted final text. Unlike position-clash (converges, all restore to ''), this
+  DIVERGES (each saved a different snapshot). Validator allows it; neither checks the
+  other's active-flag (srCountup/srTyping). BUT the precondition — two text-mutators
+  on the SAME node (count AND type the same element) — is self-contradictory author
+  nonsense no one writes, and the result is VISIBLE garbage (corrupted text, author
+  sees+fixes), not plausible-silent. All 31 real bugs were reachable with PLAUSIBLE
+  input; this needs absurd input. A guard (forbid 2 text-mutators/sel) is defensible
+  but a fix for input that doesn't occur = the overengineering the session forbids.
+  NO FIX (logged). LESSON: a real bug CATEGORY (divergent restore) can still be
+  non-actionable if its only gateway is self-contradictory input producing visible
+  (not silent) garbage. The triage axis isn't "is the category real" but "is it
+  reachable with PLAUSIBLE input AND silent". This is the most bug-qualifying angle in
+  12 iters and STILL gated by nonsense — the floor is confirmed even at the category
+  level. TWELFTH clean.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
