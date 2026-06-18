@@ -78,7 +78,22 @@ you have NOT taken:
 You have claimed "everything is tested and clean" and been wrong every time a new
 angle was tried. So: never claim absence of bugs. Claim only "the angles run so far
 came back clean; these remain untried." If an iteration finds nothing real,
-recommend stopping rather than inventing work.
+recommend stopping rather than inventing work — but do NOT stop the cron yet (see
+the stop rule below). Keep finding new angles.
+
+## Stop rule (the ONLY condition to kill the cron)
+
+The cron may be killed ONLY after 15 CONSECUTIVE iterations with no improvement
+or adjustment (no real bug fixed, no clean-code simplification, no test added).
+A single iteration that ships ANY change RESETS the counter to 0.
+
+Track it on the line below; update it every iteration:
+
+  DRY STREAK: 1/15   (last change: replace-needs-items, 20th bug. +1 dry: registry-coupling clean)
+
+While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
+next time — clean ≠ done, and this session has repeatedly found a real bug right
+after a clean trace. Only at 15/15 may you recommend `CronDelete`.
 
 ---
 
