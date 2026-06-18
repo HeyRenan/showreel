@@ -111,14 +111,14 @@ recommend stopping rather than inventing work.
 - CLI parser footgun SWEEP — 3 more parsers fixed (shot.mjs, compose-video.mjs, compose.mjs) all had the same unguarded surplus-positional mis-bind. Closed the whole family: demo/rec/prove/shot/compose-video/compose now all reject too-many positionals with a quote-your-path hint; tape uses positional[0] (immune). +test for compose-video (exported); shot/compose parse aren't exported so fix-only (verified via real CLI). This recurring class is now exhausted.
 - inject-snippet builders — 1 bug fixed: cursor-inject baked the raw --color into a single-quoted cssText with no escaping (a stray quote corrupts the injected snippet), while sibling end-card-inject JSON-encodes its text for exactly that reason. Added safeColor (charset-strip to real CSS-color chars); valid colors untouched. +test. (Author-controlled, so low severity, but the silent-corruption class + the inconsistency with end-card made it worth closing.)
 - before-after HTML escape — CLEAN. esc() covers all 5 dangerous chars (&<>"'), proven to neutralize a real markup/attribute-break injection in a label; b64 is safe by its charset (no quote); surplus-label drop is non-dangerous (trailing slots are optional labels, not a mis-bound output path). No bug. This is the bottom of the severity curve — see the STOP guidance below.
+- doFill re-fill / contenteditable clearing — CLEAN. Re-filling an input replaces (not stacks): "First Value"->cleared->"Second" pixel-proven on the demo. Exercised the contenteditable branch directly on a synthetic page (not assumed): "old content"->cleared->"fresh" pixel-proven. Both clear-then-type paths sound. No bug.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
 - (ledger now covers every candidate originally listed. New angles to consider:
   cross-browser font fallback in captures; a very long reel / many-live-elements
-  stress; doFill re-fill / contenteditable clearing; tape.mjs vhs flow; the
-  before-after HTML escape.
+  stress; tape.mjs vhs flow.
   NOTE 1: several bugs were tests that LOCKED IN buggy behavior — when a fix
   breaks an existing test, check whether the test was asserting the bug.
   NOTE 2: the CLI-parser surplus-positional family is now fully closed; the
