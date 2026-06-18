@@ -82,6 +82,10 @@ export function makeMotion(rctx) {
   // the scroll destination is deterministic — expose it so a follow move can
   // pre-aim camera and cursor at the POST-scroll frame and run all three on
   // one clock.
+  // KEEP IN SYNC with the scroll-target math in smoothScroll's plan (b0/layTop/
+  // winH/docH/wanted/denom). Two safeEval closures can't share a host helper
+  // across the serialization boundary; a comment is cleaner than eval. This one
+  // returns the DELTA (target - scrollY); smoothScroll keeps the absolute target.
   const scrollDeltaFor = async (sel) => safeEval((s) => {
     const el = document.querySelector(s);
     if (!el) return 0;
@@ -109,6 +113,9 @@ export function makeMotion(rctx) {
       const el = document.querySelector(s);
       if (!el) return null;
       const r = el.getBoundingClientRect();
+      // KEEP IN SYNC with scrollDeltaFor's scroll-target math (b0/layTop/winH/
+      // docH/wanted/denom) — same rule, two safeEval closures that can't share a
+      // helper. This keeps the absolute target for the animation.
       // Under a camera scale the rect comes back scaled and the visible
       // window only covers innerHeight/scale LAYOUT pixels — aim in layout
       // space, then map the wanted window top onto the NATIVE scroll range
