@@ -114,6 +114,17 @@ recommend stopping rather than inventing work.
 - doFill re-fill / contenteditable clearing — CLEAN. Re-filling an input replaces (not stacks): "First Value"->cleared->"Second" pixel-proven on the demo. Exercised the contenteditable branch directly on a synthetic page (not assumed): "old content"->cleared->"fresh" pixel-proven. Both clear-then-type paths sound. No bug.
 - tape.mjs vhs flow — CLEAN. q() escaping correct (quotes + backslashes, balanced) on a nasty Type string; validateSteps thorough (shape/unknown-key/ctrl-length/sleep-range). The sleep/wait alias picks sleep and drops wait silently, but they mean the SAME concept (a pause) so the single Sleep is coherent — borderline non-bug, not worth a fix. No real bug.
 - many-live-elements stress — 1 bug fixed (good thing we kept going): multiple live panels with no explicit pos all landed at the default top-right corner and HID each other — only the last showed (red=0/blue=1/green=298 px). Added a deterministic cascade (stack each new panel below/above the ones already at that corner, summing their heights). Now all visible (221/205/478) in a clean vertical stack, pixel + eyeball confirmed. +test. (A false alarm first — my own test had given two panels the same pos; measuring precisely revealed the REAL auto-pos bug underneath.)
+- camera bezier under extreme zoom — CLEAN (no bug). The reach/clamp math is
+  finite at the extremes: a 2px element gives fit=2.4, noCrop=282, s2=3 (MAX),
+  finite tx/ty — verified by computing it in-page. Realtime zoom on the tiny
+  element frames it correctly (green=28). A red herring along the way: offline +
+  camera rendered the un-zoomed frame (green=0) — but the cookbook (line 157)
+  documents `--offline` as ONLY for static/text takes with NO camera/cursor
+  motion; a moving reel is realtime. So that's the documented contract, not a
+  bug (measure-before-claiming caught me). OBSERVATION (not fixed): confetti/
+  sparkline+offline get a HARD error gate, but camera+offline silently renders
+  wrong — an enforcement inconsistency. Left as-is: docs warn, and a gate could
+  block a valid held-zoom use; a feature call, not a defect.
 - cross-browser font fallback — CLEAN. 14 bare `system-ui` uses (vs end-card's fuller stack) looked like a determinism risk, but the plugin SHIPS + uses one bundled Chromium for every capture, so resolution is identical local & CI. Verified in that browser: system-ui lays out real text (1264x47 box, non-empty), and every annotation frame inspected this session rendered legible. The research's Mac-vs-CI font warning needs DIFFERENT browsers; not the case here. The end-card stack is cosmetic belt-and-suspenders, not a fix the others need. No bug.
 - <next iteration: append here>
 
