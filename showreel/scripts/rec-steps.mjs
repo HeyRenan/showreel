@@ -654,6 +654,11 @@ export function stepAnchors(s) {
   for (const k of ANCHOR_KEYS) {
     if (!(k in s)) continue;
     if (k === 'marks' && Array.isArray(s.marks)) s.marks.forEach((m) => m && m.sel && out.push(m.sel));
+    // arrow:"top"/"bottom" is an EDGE arrow (points from the letterbox edge, not
+    // anchored to a page element — see rec.mjs arrowEdge). It is NOT a selector, so
+    // skip it here or the safeguard would querySelector("top") and false-reject a
+    // valid roster with "matches no element".
+    else if (k === 'arrow' && (s.arrow === 'top' || s.arrow === 'bottom')) continue;
     else push(s[k]);
   }
   if (s.trail && typeof s.trail === 'object') { if (s.trail.from) out.push(s.trail.from); if (s.trail.to) out.push(s.trail.to); }

@@ -604,6 +604,13 @@ test('stepAnchors pulls selectors, skips bare-true and color literals', () => {
   assert.deepEqual(stepAnchors({ inset: { sel: '.s', zoom: 2 } }), ['.s']);
   assert.deepEqual(stepAnchors({ trail: { from: '#a', to: '#b' } }), ['#a', '#b']);
   assert.deepEqual(stepAnchors({ marks: [{ sel: '.a' }, { sel: '.b' }] }), ['.a', '.b']);
+  // arrow:"top"/"bottom" is an EDGE arrow (not anchored to an element) — it must
+  // not become a selector, or the safeguard querySelector("top") false-rejects a
+  // valid roster. A real arrow selector is still pulled.
+  assert.deepEqual(stepAnchors({ arrow: 'top' }), []);
+  assert.deepEqual(stepAnchors({ arrow: 'bottom' }), []);
+  assert.deepEqual(stepAnchors({ arrow: '#cta' }), ['#cta']);
+  assert.deepEqual(stepAnchors({ arrow: 'top', rect: '#x' }), ['#x']);
 });
 
 test('stepCamera reads selector / out / object form / none', () => {
