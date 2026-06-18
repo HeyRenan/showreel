@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 3/15   (last change: annotate badge injection, 22nd bug. dry: chrome-text, encode-timing+shrink, progress-lifecycle)
+  DRY STREAK: 0/15   (last change: liveOpDom theme source, 23rd bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -300,6 +300,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   surface/state↔DOM) to a NEW target is the right instinct, but here the target was
   already coherent — and measure-before-claiming caught me misattributing redact's
   node to progress. A clean from a corrected false alarm is still a real clean.
+- liveOpDom NOTEINK theme source (DRY-of-a-decision, the 5th theme detector) — 1
+  bug fixed, and the worst flavor: a VISIBLE split inside one panel. liveCreate
+  derives row text color from rctx.pageTheme (central detector: Rec.601 + 127.5);
+  liveOpDom re-detected on its OWN off document.body with a DIFFERENT rule (simple
+  (R+G+B)/3 < 128). On a page with bg on <html> + transparent body, or borderline
+  luminance, the two disagreed — a row appended/replaced LATER got a different text
+  color than its created siblings in the SAME panel. Proven in real Chromium:
+  created row #0f172a vs appended row #f8fafc on an html-bg light page (white text
+  on light glass = unreadable). Fix: pass theme into the liveOpDom safeEval (as
+  liveCreate already does) and derive NOTEINK identically — one home. Proven:
+  create/append/replace now share ink in light AND dark. 526 green, audit clean.
+  LESSON: the luma/theme DRY family I "unified" (iter-8 rec-page, then annotate-
+  canvas as the 3rd) had a 4th in readLiveTheme AND this 5th hiding in a DIFFERENT
+  function of an ALREADY-EDITED file (rec-live) — I'd added safeCol/badge fixes to
+  liveOpDom twice this session and never noticed its inline theme re-detect. A file
+  you've edited is NOT a file you've audited under every lens. The "3 cleans in a
+  row" before this proves again: clean streak ≠ dry.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
