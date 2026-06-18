@@ -215,3 +215,14 @@ test('live op after a scene boundary cleared the element warns, never crashes', 
   // the cleared blue must not reappear, and the orphan green append did nothing
   assert.equal(countColor(r.out, '#2563eb'), 0, 'cleared glossary stays gone');
 });
+
+test('camera:"out" is a scene boundary too — it clears live elements', { skip: SKIP }, () => {
+  // the spec promises BOTH a screen change and camera:"out" end a scene. The
+  // screen path is covered above; this pins the camera:out path.
+  const r = render([
+    { glossary: { id: 'g', items: [{ badge: 1, text: 'A', color: '#2563eb' }] }, wait: 200 },
+    { camera: 'out', wait: 300 },
+    { rect: '#deploy', note: 'after', wait: 400 },
+  ], 'camout.mp4');
+  assert.equal(countColor(r.out, '#2563eb'), 0, 'camera:out cleared the live glossary');
+});

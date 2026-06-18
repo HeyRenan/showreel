@@ -691,7 +691,7 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
     const cam = cameraSpec(step);
     if (cam || step.follow === false) followOn = 0; // explicit camera takes the wheel
     if (cam) {
-      if (cam.out) { await clearMasks(); await camOut(); framedSel = null; } // wipe masks BEFORE pulling out so they don't linger through the zoom
+      if (cam.out) { await liveSceneClear(); await clearMasks(); await camOut(); framedSel = null; } // camera:out is a scene boundary — clear live elements + masks before the pull-out
       else { await camFrame(cam.sel, cam.zoom ? Math.max(1, Math.min(3, cam.zoom)) : 0, 800, true); framedSel = cam.sel; }
     } else if (step.follow === false) await camOut();
     if (step.zoom === 'out') framedSel = null;
