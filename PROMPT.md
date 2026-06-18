@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 2/15   (last change: annotate badge injection, 22nd bug. dry: chrome-text, encode-timing+shrink-ladder)
+  DRY STREAK: 3/15   (last change: annotate badge injection, 22nd bug. dry: chrome-text, encode-timing+shrink, progress-lifecycle)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -283,6 +283,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   best effort. Correct by design. NO FIX. LESSON: two consecutive measured cleans
   on the encode/shrink layer — this layer (unlike the live verb-surface + inject
   families) holds no easy vein; cleans here are real coverage, not fatigue.
+- progress/countdown lifecycle (state↔DOM lens on the NON-live stateful prims) —
+  CLEAN (no bug, measured, one corrected false alarm). Applied the verb-surface
+  lens (which gave 3 live bugs) to the anchored prims the comment calls "re-anchored
+  each step, not live". Suspected a ride-along: clearAnnotations (627) only removes
+  #__ann__, so anything attached elsewhere survives into the next step. FALSE ALARM
+  #1: I first misread applyRedact's bar (:768 el.appendChild) as progress — it's the
+  censor mask (`__sr_mask__`, "exit fade via clearMasks"), correct. The REAL
+  applyProgress (:2184) builds `rail.className='__sr_mask__'` (:2237) — so progress
+  IS a mask, scene-scoped, cleared by clearMasks at boundaries, and guarded against
+  dupes by `el.dataset.srProgress` (:2194). Coherent with its category. Second
+  angle: `addsMask` (rec.mjs:581) OMITS progress/countdown — traced the consequence
+  precisely: clearMasks runs BEFORE applyProgress (582 vs 666), so it only wipes the
+  PRIOR scene's masks; progress is added after and never self-wiped. The omission is
+  harmless, verified not assumed. NO FIX. LESSON: applying a high-yield lens (verb-
+  surface/state↔DOM) to a NEW target is the right instinct, but here the target was
+  already coherent — and measure-before-claiming caught me misattributing redact's
+  node to progress. A clean from a corrected false alarm is still a real clean.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
