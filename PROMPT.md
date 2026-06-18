@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 2/15   (last change: liveOpDom theme source, 23rd bug. dry: rec-live sweep, form input validator↔normalizer)
+  DRY STREAK: 0/15   (last change: dead {out:true} camera guard removed — clean-code simplification)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -349,6 +349,21 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   result — form inputs were built validator-first (strict gate, total normalizer),
   unlike live which grew verb-by-verb and drifted. A lens isn't a bug detector; it's
   a question. Sometimes the answer is "sound."
+- camera validator↔spec↔runtime trio (the 3rd validator↔runtime pair) — clean-code
+  fix (dead, misleading guard removed; not a functional bug but a real change). The
+  same lens that was CLEAN on form inputs found a PHANTOM shape on camera:
+  {camera:{out:true}}. Three places disagreed: validator (rec-steps:302) rejects it
+  (demands sel); cameraSpec (:234) silently drops `out` → {zoom:0}; runtime
+  (rec.mjs:579) carried `&& c.out` pretending to honor it, while the real exec path
+  (:694 reads cam.out off the SPEC) would camFrame(undefined). Because the validator
+  rejects {out:true} it never renders, so the :579 clause was DEAD and MISLEADING —
+  it implied an object-out form that doesn't exist. Every real use (showcase/presets/
+  tests) is the string "out". Removed the dead clause so all three agree: out === the
+  string. Verified the term never affected valid inputs (c.out always undefined for
+  them). 526 green, audit clean (camera:"out" heavy in showcase). LESSON: the form-
+  input iter said "a lens is a question, sometimes the answer is sound" — same lens,
+  same family (validator↔runtime), and the THIRD member (camera) answered "phantom
+  shape." Form inputs sound, camera not — you can't predict which from the family.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
