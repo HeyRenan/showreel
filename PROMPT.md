@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: glide parseFloat||80 mishandles 0, 30th bug)
+  DRY STREAK: 1/15   (last change: glide parseFloat||80, 30th bug. +1 dry: fade||400 + cam.s||1 protected, not the cursor-0 class)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -644,6 +644,22 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   grepping the idiom found the genuine instance two lines away. The bug wasn't where I
   first claimed it; it was the same SHAPE one edge-case over. Mine a wrong verdict for
   the true lesson inside it.
+- `X || nonzero-default` class, rest of the motor (fade||400, cam.s||1) — CLEAN (no
+  bug, the cursor-0 fix's class chased to exhaustion). After fixing glide's
+  parseFloat||80, swept the whole `X || nonzero` idiom (where a real 0 would be lost).
+  fade||400 (×3 rec-annotate + hotHeadFor's >0?:400): LOOKS like the cursor-0 class
+  (fade:0 = "instant, no fade" → 400), BUT the validator gates fade to [60,1500]
+  (:426), so 0 AND negative are rejected before the runtime — unreachable. (A latent
+  hotHeadFor vs rec-annotate divergence on NEGATIVE fade, -5→400 vs -5→-5, is also
+  gated away.) cam.s||1 (×3): cam.s=0 is the no-zoom state, which IS 1x — so the
+  fallback to 1 is semantically correct, not a lost value. NO FIX. KEY DISTINCTION:
+  the cursor-0 was a bug because left/top come from UNVALIDATED clientX (0 reachable
+  + wrong); fade is VALIDATED (0 unreachable) and cam.s's 0 already MEANS the
+  fallback. LESSON: `X || default` is only a bug when (a) 0 is reachable AND (b) 0 ≠
+  the default's meaning. The idiom alone isn't the bug — the input's provenance
+  (validated? 0 meaningful?) decides. Read where the value comes from, not just the
+  ||. The cursor-0 fix's class is now exhausted: one real (unvalidated clientX), two
+  protected (validated / 0-means-fallback).
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
