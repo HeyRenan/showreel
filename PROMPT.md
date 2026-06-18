@@ -102,14 +102,15 @@ recommend stopping rather than inventing work.
 - live-element light-theme a11y — text-over-glass contrast fine (>=11:1 even worst case); but the NEW per-item badge color had NO contrast floor (white digit on a pale color ~1.3:1). Fixed: badgeInk picks dark/white digit by pill luminance. (Default-green 3.3:1 left as-is — pre-existing plugin-wide design, not a live regression.)
 - showcase rendered end-to-end + watched (realtime, 151s, valid mp4) — CLEAN. Sampled ~7 frames across the reel (dark console, light forms, deploy climax, confirmations): no broken layout, no contrast failure, no overlap/empty frames, coherent arc. No bug. Roster has no dead-air steps, 8 accents, scene-clear present. (Reel is realtime-only — confetti/sparkline refuse --offline by design.)
 - rec-motion easing review — CLEAN. ease-in-out-quad (glide) and the camBez cubic-bezier(.4,0,.2,1) solver (X/Y formulas + bisection invert) both verified correct; glide uses quad (cursor-only), glideChase uses camBez (camera-synced) by design. No bug. Only finding: scrollDeltaFor and smoothScroll duplicate identical scroll-target math across two safeEval closures (no drift yet) — added KEEP-IN-SYNC comments (eval abstraction would be the smell, per the DRY nuance).
+- rec-page theme luminance — 1 bug fixed (DRY-of-a-decision): detectPageLook seeded theme at lum<118 while readLiveTheme used <0.5 (=127.5), so a mid-gray page (118–127) seeded 'light' then flipped 'dark' on the first live read — an unwanted mid-reel recolor. Aligned both to the 0–255 midpoint + KEEP-IN-SYNC comments.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
 - (ledger now covers every candidate originally listed. New angles to consider:
-  rec-page detectPageLook/readLiveTheme luminance math; rec-motion glide easing;
   the preflight.sh script; cross-browser font fallback in captures; a very long
-  reel / many-live-elements stress. Add the one you pick, then move it up.)
+  reel / many-live-elements stress; rec-input fill/select; the presets/ JSON.
+  Add the one you pick, then move it up.)
 
 ## Anchor files (read these, not the whole tree)
 

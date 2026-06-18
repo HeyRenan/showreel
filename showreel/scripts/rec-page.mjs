@@ -36,7 +36,11 @@ export async function detectPageLook(page) {
     for (let y = 0; y < png.height; y += stepY) { px(1, y); px(png.width - 2, y); }
     const med = (arr) => arr.sort((a, b) => a - b)[arr.length >> 1] | 0;
     const hx = (v) => v.toString(16).padStart(2, '0');
-    return { theme: sum / n < 118 ? 'dark' : 'light', bg: '0x' + hx(med(rs)) + hx(med(gs)) + hx(med(bs)) };
+    // Threshold MUST match readLiveTheme's 0.5 cutoff (= 127.5 on this 0–255
+    // scale). They were 118 vs 127.5, so a mid-gray page (lum 118–127) seeded
+    // 'light' here but flipped to 'dark' on the first live read — an unwanted
+    // mid-reel recolor. The 0–255 midpoint is the principled, shared boundary.
+    return { theme: sum / n < 127.5 ? 'dark' : 'light', bg: '0x' + hx(med(rs)) + hx(med(gs)) + hx(med(bs)) };
   } catch { return { theme: 'light', bg: null }; }
 }
 
@@ -50,6 +54,8 @@ export async function readLiveTheme(page) {
       const bg = getComputedStyle(document.body).backgroundColor;
       const m = bg && bg.match(/[\d.]+/g);
       if (!m || (m[3] !== undefined && Number(m[3]) === 0)) return null; // transparent
+      // 0.5 cutoff (the 0–255 midpoint) MUST match detectPageLook's seed
+      // threshold (127.5) so the load-time seed and this per-step read agree.
       const L = (0.299 * +m[0] + 0.587 * +m[1] + 0.114 * +m[2]) / 255;
       return L < 0.5 ? 'dark' : 'light';
     });
