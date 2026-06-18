@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: degenerate ratio forces height, 29th bug)
+  DRY STREAK: 1/15   (last change: degenerate ratio, 29th bug. +1 dry: zoom (1,3] + scale [0.3,3] guard copies identical)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -557,6 +557,22 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   layer (luma detectors, theme, now ratio math) — and the right remedy depends on
   the boundary: same-module → extract a helper; across-safeEval → KEEP-IN-SYNC. The
   guard-in-2-of-3-copies pattern is the tell; grep the rule's literal, count copies.
+- zoom (1,3] + scale [0.3,3] guard copies — CLEAN (no bug, ran last iter's exact
+  procedure, copies identical). Applied "grep the rule's literal, count copies" to
+  the next numeric guard: zoom's (1,3]. Found 4 validator copies (camera-alongside
+  :286, camera-obj :303, follow :431, inset :442) — ALL identical `>1 && <=3` — and
+  the runtime clamp `Math.max(1, Math.min(3, …))` (:699/:709). Unlike ratio (where
+  resolveCaptureHeight forgot the >0 guard), every zoom copy matches: validator is
+  the stricter (1,3] open-low, runtime clamp [1,3] is a defensive SUPERSET, so no
+  valid input is altered (clamp-wider-than-gate is correct, per the ephemeral lens).
+  zoom=1/≤1 rejected at validation, never reaches the clamp; cam.zoom is 0 (no-zoom)
+  or (1,3]. Also checked scale's double-clamp (rec-annotate:2307 host clamp + :2311
+  in-page re-clamp): same [0.3,3] both sides — redundant belt-and-suspenders, not a
+  divergence (re-clamping an already-clamped value is a no-op). NO FIX. LESSON: the
+  same grep-and-count procedure that FOUND the ratio bug came back CLEAN here —
+  identical copies, superset runtime. That's the difference between a real sweep and
+  fabrication: run the proven detector; sometimes it fires (ratio), sometimes it
+  confirms sound (zoom). The procedure is trustworthy BECAUSE it does both.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
