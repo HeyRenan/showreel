@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: batch contact-sheet silently dropped, 28th bug)
+  DRY STREAK: 1/15   (last change: batch contact-sheet, 28th bug. +1 dry: modalLayout + scrollInSpec normalizers subset-complete)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -524,6 +524,22 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   --dry (2 bugs) + TAKE_KEYS (1 bug) drifted. The hand-written CONSUMER is always
   the suspect, never the allowlist. NOTE: this closes the allowlist-mirror sweep —
   STEP_KEYS, MARK_KEYS, TAKE_KEYS, --dry all now verified against their consumers.
+- field-by-field NORMALIZERS subset-complete (modalLayout, scrollInSpec) — CLEAN
+  (no bug, both directions, one false suspect killed). The sheet bug was a normalizer
+  returning a SUBSET of the fields it should; generalized to the other curated specs
+  (fillSpec/selectSpec already clean, cameraSpec had the phantom-out). modalLayout:
+  suspected the doc says {header,html,footer} but the render reads modal.title —
+  author writes {header:"X"}, gets no title. FALSE: modalLayout (:254) maps
+  `title: m.header || m.title`, and rec-annotate:18 normalizes via modalLayout BEFORE
+  reading modal.title (:216) — so header IS honored. Mirror both ways: render reads
+  title/html/text/footer/backdrop/pos; modalLayout returns all six. scrollInSpec:
+  returns {sel,to,dur}; scrollContainer (:612) reads exactly those three positionally
+  — trivially complete. NO FIX. LESSON: extended the SOT-consumer procedure from
+  allowlists to field-curating normalizers (same drift class: a hand-written object
+  literal that forgets a field). Of the curated specs — fill/select/scrollIn/modal
+  hold, only camera (phantom-out) + batch (sheet) drifted. The step-spec layer is now
+  swept. measure-before-claiming again caught me: "render reads .title raw" was false,
+  it reads the modalLayout output.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
