@@ -64,13 +64,21 @@ test('trimSeconds: both sidecars — each input trimmed by its own trimSec', () 
   assert.deepEqual(trimSeconds(true, { trimSec: 0 }, { trimSec: 1 }), { a: 0, b: 1 }, 'trimSec 0 is a valid sidecar value');
 });
 
-test('trimSeconds: missing sidecar(s) — warn + 1.0s default on both', () => {
-  for (const [a, b] of [[null, null], [{ trimSec: 2 }, null], [null, { trimSec: 2 }], [{}, { trimSec: 2 }]]) {
-    const t = trimSeconds(true, a, b);
-    assert.equal(t.a, 1);
-    assert.equal(t.b, 1);
-    assert.match(t.warn, /1\.0s default/);
-  }
+test('trimSeconds: a missing sidecar defaults ONLY that side, keeps the known one', () => {
+  // a known trimSec is real alignment data — it must survive even if the other
+  // side's sidecar is absent (the old all-or-nothing fallback discarded it).
+  assert.deepEqual(trimSeconds(true, null, null), { a: 1, b: 1, warn: trimSeconds(true, null, null).warn });
+  assert.match(trimSeconds(true, null, null).warn, /both/);
+
+  const aOnly = trimSeconds(true, { trimSec: 2 }, null);
+  assert.equal(aOnly.a, 2, 'known A trim kept');
+  assert.equal(aOnly.b, 1, 'missing B defaults to 1');
+  assert.match(aOnly.warn, /B/);
+
+  const bOnly = trimSeconds(true, {}, { trimSec: 2 }); // {} has no trimSec => A missing
+  assert.equal(bOnly.a, 1, 'missing A defaults to 1');
+  assert.equal(bOnly.b, 2, 'known B trim kept');
+  assert.match(bOnly.warn, /A/);
 });
 
 test('sidecarPath appends .timeline.json to the input path', () => {

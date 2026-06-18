@@ -105,13 +105,14 @@ recommend stopping rather than inventing work.
 - rec-page theme luminance — 1 bug fixed (DRY-of-a-decision): detectPageLook seeded theme at lum<118 while readLiveTheme used <0.5 (=127.5), so a mid-gray page (118–127) seeded 'light' then flipped 'dark' on the first live read — an unwanted mid-reel recolor. Aligned both to the 0–255 midpoint + KEEP-IN-SYNC comments.
 - presets/ review — all 3 presets VALID + DRY PASS (every selector resolves on the bundled demo); no broken examples. Doc rot fixed: SKILL.md "55-key grammar" (now 56) and presets/README ">=0.9 vocabulary" — both made un-rottable (point to the cookbook/STEP_KEYS.size instead of a number); dropped a contradictory hardcoded "(56)" in the cookbook that sat next to "must equal STEP_KEYS.size".
 - preflight.sh review — 2 bugs fixed: (a) it printed [ok] for ANY node (only checked existence) while Setup says "Node 18+ required" — now parses the major and warns if <18; (b) its copy-paste Verify command was `node --test scripts/__tests__/` (a dir) which CRASHES (ERR_MODULE_NOT_FOUND) — fixed to the working glob `'scripts/__tests__/*.test.mjs'`. First script a new user runs; both were false-confidence traps.
+- compose-video sync-trim — 1 bug fixed (a test had LOCKED it in): trimSeconds was all-or-nothing — if one sidecar was missing it discarded the OTHER side's known trimSec and defaulted both to 1.0, mis-aligning the side we actually knew. Now per-side fallback (keep known, default only the missing side, warn names which). Replaced the test that asserted the buggy behavior.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
 - (ledger now covers every candidate originally listed. New angles to consider:
   cross-browser font fallback in captures; a very long reel / many-live-elements
-  stress; rec-input fill/select; the prove.mjs CLI parse; compose-video sync-trim.
+  stress; rec-input fill/select; the prove.mjs CLI parse.
   Add the one you pick, then move it up.)
 
 ## Anchor files (read these, not the whole tree)

@@ -52,8 +52,13 @@ export function trimSeconds(syncTrim, aSide, bSide) {
   if (!syncTrim) return { a: 0, b: 0 };
   const sec = (s) => (s && typeof s.trimSec === 'number' ? s.trimSec : null);
   const ta = sec(aSide), tb = sec(bSide);
-  if (ta != null && tb != null) return { a: ta, b: tb };
-  return { a: 1, b: 1, warn: 'sidecar(s) missing — 1.0s default head trim on both' };
+  // Per-side fallback: a known trimSec is real alignment data — keep it even if
+  // the OTHER side's sidecar is missing. Defaulting both to 1.0 the moment one is
+  // absent discarded a valid trim and mis-aligned the side we actually knew.
+  const out = { a: ta != null ? ta : 1, b: tb != null ? tb : 1 };
+  const missing = [ta == null && 'A', tb == null && 'B'].filter(Boolean);
+  if (missing.length) out.warn = 'sidecar missing for ' + missing.join(' & ') + ' — 1.0s default head trim on ' + (missing.length === 2 ? 'both' : 'that side');
+  return out;
 }
 
 export function parseLabels(s) {
