@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 7/15   (last change: badgeInk, 31st bug. dry: …pngread, utils, demo --text canvas-immune (author-text surface fully covered))
+  DRY STREAK: 8/15   (last change: badgeInk, 31st bug. dry: …demo-text, refreshed the stale Untried-angles anchor to real state)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -849,23 +849,43 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   every RENDERER, not every file — two renderers (canvas/innerHTML) is the real axis,
   and each handles author text correctly. SEVEN clean iters; every remaining trace
   confirms a closed class in a new place rather than finding a new class.
+- ledger anchor maintenance: refreshed the stale "Untried angles" section — CLEAN
+  (no code bug; legitimate anchor upkeep, not fabrication). capture.mjs (the last
+  never-opened cluster) is a standalone MCP-snippet emitter, NOT imported by any motor
+  script, already tested for injection (emit-modules-edge), offline-irrelevant — no
+  new lens. Rather than force a fake angle (item 4 forbids), did the one real
+  non-code unit: the "Untried angles" section still claimed "18 iterations: 16 bugs +
+  4 clean" while we're at ~50 iters / 31 bugs / 7 clean — a stale copy of state that
+  MISLEADS the anchor I re-read every loop (DRY-of-a-decision in my own file: real
+  state lives in DRY STREAK + the ledger, this section had a contradictory old copy).
+  Refreshed it to the true state + the closed-family list + the method that still
+  finds things. NO CODE FIX. LESSON: when the code is genuinely swept, the honest
+  remaining work is keeping the ANCHOR accurate (a misleading anchor wastes every
+  future iter), not manufacturing a code change — but distinguish anchor-upkeep
+  (real, the guide must be true) from ledger-inflation (fabrication, padding for
+  productivity's sake). This was the former: a contradiction corrected, not bulk added.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
-- EXHAUSTED — every listed angle has been run (18 iterations: 16 real bugs + 4
-  clean). Lesson: "two clean angles in a row" was NOT a reliable stop signal —
-  many-live-elements found a real bug right after two cleans. So clean streaks
-  don't mean dry; a covered SURFACE does.
-- Remaining angles all need new infra or are genuinely low-value: a real
-  cross-machine capture diff (needs a 2nd OS); a 200-step load/perf reel; the
-  camera bezier under extreme zoom; concurrent renders sharing scripts/.deps.
-- NOTE: several bugs were TESTS that locked in buggy behavior — when a fix breaks
-  an existing test, check whether the test was asserting the bug.
-- NOTE: closed families — CLI surplus-positional (all parsers), inject-snippet
-  escaping (end-card was the model), live-element corner cascade.
-- HONEST STATE: the reachable surface (core logic + CLI/IO/doc/a11y/render) is
-  swept. This is a real stopping point — not fatigue, but coverage. Continuing
-  means new infra or manufacturing low-value work (the honesty clause forbids).
+- HONEST STATE (refreshed ~iter 50): 31 real bugs + 1 clean-code fixed; currently
+  7 consecutive clean iters. The reachable surface is SWEPT. Bug-bearing classes are
+  all closed AND re-verified across renderers/files: live state↔DOM (update/recolor/
+  replace/theme), validator↔runtime↔safeguard (scrollTo/zoom/replace/flash/edge-arrow),
+  injection (innerHTML escaped + canvas immune, both renderers), DRY-of-a-decision
+  (luma/theme/ratio — same-module→helper, cross-safeEval→KEEP-IN-SYNC), the X||default
+  0-trap, threshold-as-proxy, doc-rot, allowlist↔normalizer mirrors.
+- CLOSED FAMILIES: CLI surplus-positional (all parsers), inject-escaping (innerHTML
+  paths + canvas-immune paths), live verb-surface (3 verbs), --dry↔render-gate,
+  allowlist mirrors (STEP/MARK/TAKE_KEYS + normalizers), luma/theme detectors (5),
+  X||nonzero-default.
+- REMAINING need infra I lack or are low-value: real cross-machine capture diff
+  (2nd OS); a 200-step perf reel; concurrent cold-start renders sharing .deps.
+- METHOD that still works when a lens looks dry: open a NEVER-examined file
+  critically (pngread/dataurl/build-inject came back clean — they reinforced the
+  floor); RENDER-prove a timing/visual claim before trusting a formula; read the
+  literal that sets a value before claiming a divergence; re-audit a logged candidate
+  (one retraction this session). When every trace only CONFIRMS a closed class in a
+  new place (not finds a new class), that is the bottom — recommend CronDelete.
 
 ## Anchor files (read these, not the whole tree)
 
