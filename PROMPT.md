@@ -114,20 +114,25 @@ recommend stopping rather than inventing work.
 - doFill re-fill / contenteditable clearing — CLEAN. Re-filling an input replaces (not stacks): "First Value"->cleared->"Second" pixel-proven on the demo. Exercised the contenteditable branch directly on a synthetic page (not assumed): "old content"->cleared->"fresh" pixel-proven. Both clear-then-type paths sound. No bug.
 - tape.mjs vhs flow — CLEAN. q() escaping correct (quotes + backslashes, balanced) on a nasty Type string; validateSteps thorough (shape/unknown-key/ctrl-length/sleep-range). The sleep/wait alias picks sleep and drops wait silently, but they mean the SAME concept (a pause) so the single Sleep is coherent — borderline non-bug, not worth a fix. No real bug.
 - many-live-elements stress — 1 bug fixed (good thing we kept going): multiple live panels with no explicit pos all landed at the default top-right corner and HID each other — only the last showed (red=0/blue=1/green=298 px). Added a deterministic cascade (stack each new panel below/above the ones already at that corner, summing their heights). Now all visible (221/205/478) in a clean vertical stack, pixel + eyeball confirmed. +test. (A false alarm first — my own test had given two panels the same pos; measuring precisely revealed the REAL auto-pos bug underneath.)
+- cross-browser font fallback — CLEAN. 14 bare `system-ui` uses (vs end-card's fuller stack) looked like a determinism risk, but the plugin SHIPS + uses one bundled Chromium for every capture, so resolution is identical local & CI. Verified in that browser: system-ui lays out real text (1264x47 box, non-empty), and every annotation frame inspected this session rendered legible. The research's Mac-vs-CI font warning needs DIFFERENT browsers; not the case here. The end-card stack is cosmetic belt-and-suspenders, not a fix the others need. No bug.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
-- (ledger now covers every candidate originally listed. New angles to consider:
-  cross-browser font fallback in captures; a very long reel / many-live-elements
-  cross-browser font fallback in captures (the last listed untried angle).
-  NOTE 1: several bugs were tests that LOCKED IN buggy behavior — when a fix
-  breaks an existing test, check whether the test was asserting the bug.
-  NOTE 2: the CLI-parser surplus-positional family is now fully closed; the
-  inject-snippet escaping inconsistency is closed (end-card was the model).
-  NOTE 3: severity has dropped to periphery (CLI/UX/doc) and is still dropping.
-  STRONGLY consider stopping after 1-2 more angles — the core is swept, and the
-  honesty clause favors stopping over manufacturing low-value work.)
+- EXHAUSTED — every listed angle has been run (18 iterations: 16 real bugs + 4
+  clean). Lesson: "two clean angles in a row" was NOT a reliable stop signal —
+  many-live-elements found a real bug right after two cleans. So clean streaks
+  don't mean dry; a covered SURFACE does.
+- Remaining angles all need new infra or are genuinely low-value: a real
+  cross-machine capture diff (needs a 2nd OS); a 200-step load/perf reel; the
+  camera bezier under extreme zoom; concurrent renders sharing scripts/.deps.
+- NOTE: several bugs were TESTS that locked in buggy behavior — when a fix breaks
+  an existing test, check whether the test was asserting the bug.
+- NOTE: closed families — CLI surplus-positional (all parsers), inject-snippet
+  escaping (end-card was the model), live-element corner cascade.
+- HONEST STATE: the reachable surface (core logic + CLI/IO/doc/a11y/render) is
+  swept. This is a real stopping point — not fatigue, but coverage. Continuing
+  means new infra or manufacturing low-value work (the honesty clause forbids).
 
 ## Anchor files (read these, not the whole tree)
 
