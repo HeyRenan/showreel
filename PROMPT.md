@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 3/15   (last change: degenerate ratio, 29th bug. dry: zoom/scale, luma re-sweep, hide/restore state↔DOM 4 angles)
+  DRY STREAK: 4/15   (last change: degenerate ratio, 29th bug. dry: zoom/scale, luma, hide/restore, cursor-pos mechanism-real-but-cosmetic)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -607,6 +607,31 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   nothing — live drifted because it kept TWO copies of state (host + DOM); hide
   can't drift because it keeps ONE (DOM, guarded). The lens looks for dual-state; a
   single-source-of-truth design is immune to it by construction.
+- cursor visual ↔ Playwright pointer dual-state (dual-state lens, post-nav) —
+  MECHANISM REAL but cosmetic-severity NOT render-proven → NO FIX (honest priority,
+  logged). The dual-state lens (live bugs) predicts: the visual cursor (#__cursor__,
+  DOM) + the Playwright pointer (real, drives clicks) are TWO states. glide reads
+  start from the VISUAL (`parseFloat(c.style.left)||80`, rec-motion:16) then moves
+  the POINTER (:24); the visual follows via a mousemove listener (cursor-inject:53).
+  Normally synced. PROVEN mismatch after navigation: ensureCursor re-injects the
+  cursor on the new doc (:287) with NO left/top set, so a glide reads 80,80 fallback
+  while the pointer is still at its pre-nav (x,y) — proven in a headless harness
+  (fresh cursor style.left="" → glide reads 80,80, pointer at 400,300). So a post-nav
+  glide starts the pointer from 80,80, jumping it from the real position. BUT: could
+  not render-prove the VISUAL impact — the cursor is a blue arrow and the demo UI is
+  full of blue, so centroid-by-color tracking was ambiguous (caught static buttons,
+  not the moving cursor). Severity is plausibly LOW: it only fires on a glide
+  immediately after a screen-change, where a cursor entering from the corner reads as
+  natural screen entry, not a mid-scene jump; the 509-frame regression scan showed no
+  broken frames. Fix is non-trivial (host doesn't track the pointer position to
+  re-sync the visual). HONEST CALL: mechanism confirmed real, but I did NOT prove the
+  cosmetic impact warrants the coupling a fix needs — per KISS + severity + the
+  honesty clause, logged not fixed (NOT fabricating a fix for unproven-severity, NOT
+  claiming clean for a real mechanism). CANDIDATE: a finer cursor tracker (the cursor
+  arrow has a distinct shape/the --color can be set to a UI-absent hue) could
+  render-prove the jump; if visible mid-reel, fix by syncing style.left/top on
+  ensureCursor. LESSON: "mechanism real, severity unproven" is a legitimate third
+  verdict between bug-fixed and clean — name it honestly, don't force it either way.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
