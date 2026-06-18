@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 3/15   (last change: glide parseFloat||80, 30th bug. dry: fade/cam.s, sparkline/countup, glossary stagger-vs-hold render-proven)
+  DRY STREAK: 4/15   (last change: glide parseFloat||80, 30th bug. dry: …, encode trim-sync + compose-video shortest=1 both intentional)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -696,6 +696,27 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   consumer" rule found a real gap (no stagger cap) but the consumer is NOT naive:
   reserved-height + overlapping fades absorb it. Render-prove a TIMING claim before
   trusting an inequality — the formula isn't the animation.
+- encode trim-sync + compose-video shortest=1 — CLEAN (no bug, both intentional by
+  design). Two independent encode/compose angles while a showcase regression render
+  ran in the background (deferred to monitor). (1) rec-encode trim: TRIM_S (webm?1.0:0)
+  is applied to BOTH the video (`-ss` before `-i`, :127) AND the chrome event
+  timestamps (`tStart - TRIM_S`, :137) — same offset, synced (the design the :131
+  comment states). A sub-frame keyframe-snap residual from input-seek is ffmpeg-
+  inherent + sub-perceptible, not worth render-investigating. (2) compose-video
+  hstack `shortest=1` (:32): a before/after side-by-side ends at the shorter stream,
+  "losing" the longer take's tail — but that's the correct side-by-side convention
+  (the alternative, a frozen/black frame while the longer one plays, is worse);
+  trimSec aligns the HEADS, shortest aligns the TAILS. Deliberate composition
+  semantics, not silent loss. NO FIX. ALSO (completed SAME turn — the monitor fired):
+  showcase visual-regression scan RESOLVED — rendered the full showcase to MP4,
+  extracted 510 frames, scanned for blank/flat (sd<6): ZERO broken across the whole
+  reel after ~8 render-path changes since the last scan (ratio parse, cursor-0, glide
+  Number.isFinite, scrollTo/zoom gates, sheet, flash/edge-arrow safeguards). No visual
+  regression. LESSON: a long background render shouldn't idle the loop — do a real
+  independent angle while it runs (the encode-reads were genuine consumer-reads, not
+  busywork), and the monitor lets the deferred unit finish the SAME turn the render
+  completes. Periodic full-reel regression scans are cheap insurance after a batch of
+  render-path edits — silent compositing breakage is exactly what unit tests miss.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
