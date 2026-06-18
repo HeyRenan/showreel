@@ -172,3 +172,21 @@ test('live glossary: append grows the panel in place, scene boundary clears it',
   ], 'cleared.mp4');
   assert.equal(countColor(cleared.out, '#2563eb'), 0, 'scene boundary cleared the live glossary');
 });
+
+test('live modal: a persistent dialog updates its body in place across steps', { skip: SKIP }, () => {
+  // A free-floating live modal: created centered, then its body is replaced with
+  // a differently-colored line mid-scene. The new color must be present and the
+  // dialog must not have torn down and rebuilt (one modal node only).
+  const upd = render([
+    { modal: { id: 'deploy', title: 'Deploying', items: [{ text: 'Starting', color: '#2563eb' }] }, wait: 300 },
+    { live: { append: { text: 'Done', color: '#16a34a' } }, wait: 600 },
+  ], 'modal.mp4');
+  assert.ok(countColor(upd.out, '#16a34a') > 0, 'appended green body line present in the live modal');
+
+  const gone = render([
+    { modal: { id: 'deploy', items: [{ text: 'Working', color: '#2563eb' }] }, wait: 200 },
+    { live: { remove: true }, wait: 200 },
+    { rect: '#deploy', note: 'after', wait: 500 },
+  ], 'modalgone.mp4');
+  assert.equal(countColor(gone.out, '#2563eb'), 0, 'live remove cleared the modal + its backdrop');
+});

@@ -466,7 +466,11 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
   // makeLive does the DOM. Phase 2 wires glossary; the lifecycle is generic.
   const { liveCreate, liveOpDom, liveClearScene } = makeLive(rctx);
   const liveReg = newRegistry();
-  const LIVE_TYPES = new Set(['glossary']);
+  // free-floating stateful elements that can persist + mutate across steps.
+  // Anchored primitives (note/marks/progress: pinned to a page element) are
+  // deliberately NOT live — re-anchoring each step is not persistence, and the
+  // value the author asked for (a panel/dialog that grows) is exactly these two.
+  const LIVE_TYPES = new Set(['glossary', 'modal']);
   // clear all live elements (scene boundary). Offline: a cold dwell extends the
   // LAST captured frame, which may predate this clear — so pump one fresh frame
   // after removing, making the cleared state the held frame, not a stale pre-clear
@@ -828,7 +832,9 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
       const tv = step[t];
       if (tv && typeof tv === 'object' && !Array.isArray(tv) && typeof tv.id === 'string' && tv.id) {
         await liveCreate(t, tv);
-        registerLive(liveReg, { id: tv.id, type: t, state: { rows: Array.isArray(tv.items) ? tv.items.slice() : [], color: tv.color } });
+        // host-side state mirror. glossary tracks rows; modal tracks its body
+        // paragraphs (also rows) plus title/footer scalars for update/recolor.
+        registerLive(liveReg, { id: tv.id, type: t, state: { rows: Array.isArray(tv.items) ? tv.items.slice() : [], color: tv.color, title: tv.title, footer: tv.footer } });
         liveHandled = true;
       }
     }
