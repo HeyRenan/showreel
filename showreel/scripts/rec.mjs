@@ -89,6 +89,7 @@ import { makeClock, buildConcatList } from './clock.mjs';
 import { convertOutputs } from './rec-encode.mjs';
 import { cursorSnippet, endCardSnippet, detectPageLook, readLiveTheme, loadChromium, OFFLINE_ARGS } from './rec-page.mjs';
 import { makeAnnotator } from './rec-annotate.mjs';
+import { makeLive, newRegistry, registerLive, resolveTarget, applyState, dropLive, clearScene } from './rec-live.mjs';
 import { makeMotion } from './rec-motion.mjs';
 import { makeInput } from './rec-input.mjs';
 import { makeCamera } from './rec-camera.mjs';
@@ -460,6 +461,23 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
   // glideChase rides; the handoff is the return value, not shared state.
   const { ensureCam, camFrame, initialFit, panToInclude, camOut } = makeCamera(rctx);
 
+  // live elements: persist across steps, mutate in place, cleared at scene
+  // boundaries. liveReg is the host-side registry mirror (state of record);
+  // makeLive does the DOM. Phase 2 wires glossary; the lifecycle is generic.
+  const { liveCreate, liveOpDom, liveClearScene } = makeLive(rctx);
+  const liveReg = newRegistry();
+  const LIVE_TYPES = new Set(['glossary']);
+  // clear all live elements (scene boundary). Offline: a cold dwell extends the
+  // LAST captured frame, which may predate this clear — so pump one fresh frame
+  // after removing, making the cleared state the held frame, not a stale pre-clear
+  // one. No-op cost in realtime (tick is a tiny wait).
+  const liveSceneClear = async () => {
+    if (!liveReg.order.length) return;
+    await liveClearScene();
+    clearScene(liveReg);
+    if (offline) await clock.tick();
+  };
+
   // form interactions (doFill/doSelect) live in rec-input.mjs as a factory
   // over rctx + the motion helpers (stage 5d).
   const { doFill, doSelect } = makeInput(rctx, motion);
@@ -562,7 +580,7 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
     for (const sel of executedHides) await applyHide(sel);
     if ('topbar' in step) chromeSet('top', 'bar', step.topbar);
     if ('bottombar' in step) chromeSet('bottom', 'bar', step.bottombar);
-    if (screenPhase(step) === 'before') chromeSet('top', 'screen', step.screen);
+    if (screenPhase(step) === 'before') { await liveSceneClear(); chromeSet('top', 'screen', step.screen); }
     // under follow the cursor must TRAVEL, not park: while the page scrolls,
     // glide it toward the screen center (where a followed target ends up) on
     // the same clock — the fine chase right after stitches into one long move.
@@ -803,8 +821,29 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
       delete step.rect;
       delete step.circle;
     }
-    const hasOverlay = step.modal || (step.marks && step.marks.length) || step.inset || step.glossary ||
-      (box && (step.note || step.rect || step.circle || step.arrow || step.badge != null || step.spotlight));
+    // live elements: a stateful primitive carrying an `id` is born live (persists
+    // instead of wipe-and-rebuild); a `live` step mutates one in place.
+    let liveHandled = false;
+    for (const t of LIVE_TYPES) {
+      const tv = step[t];
+      if (tv && typeof tv === 'object' && !Array.isArray(tv) && typeof tv.id === 'string' && tv.id) {
+        await liveCreate(t, tv);
+        registerLive(liveReg, { id: tv.id, type: t, state: { rows: Array.isArray(tv.items) ? tv.items.slice() : [], color: tv.color } });
+        liveHandled = true;
+      }
+    }
+    if (step.live && typeof step.live === 'object') {
+      const { target, id, reason } = resolveTarget(liveReg, step.live);
+      if (!target) console.log(`LIVE warn step ${stepIndex}: ${reason}`);
+      else {
+        applyState(target, step.live);
+        await liveOpDom(id, step.live);
+        if (step.live.remove) dropLive(liveReg, id);
+      }
+      liveHandled = true;
+    }
+    const hasOverlay = !liveHandled && (step.modal || (step.marks && step.marks.length) || step.inset || step.glossary ||
+      (box && (step.note || step.rect || step.circle || step.arrow || step.badge != null || step.spotlight)));
     if (hasOverlay) {
       const w = await showAnnotations(box, step, sel);
       for (const m of w || []) {
@@ -843,6 +882,7 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
         try { await page.waitForLoadState('domcontentloaded'); } catch { /* no nav */ }
         await clock.wait(ms(900), true);
         try { await restore(); } catch { await clock.wait(ms(900), true); await restore(); }
+        await liveSceneClear();
         chromeSet('top', 'screen', step.screen);
       }
     }

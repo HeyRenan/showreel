@@ -61,9 +61,23 @@ function render(steps, outName, extraArgs = []) {
 // dilutes the stroke below threshold. 15 cleanly separates marked from plain.
 function markerPixelsInLastFrame(mp4) {
   const png = mp4.replace(/\.mp4$/, '.frame.png');
-  execFileSync(ffmpegPath(), ['-y', '-sseof', '-1', '-i', mp4, '-vframes', '1', png], { stdio: 'ignore' });
+  execFileSync(ffmpegPath(), ['-y', '-i', mp4, '-update', '1', png], { stdio: 'ignore' }); // -update 1 overwrites per frame, leaving the true last
   const dec = decodePNGFromFile(png);
   const tgt = parseHexColor(DEFAULT_MARKER_HEX);
+  let hits = 0;
+  for (let y = 0; y < dec.height; y++)
+    for (let x = 0; x < dec.width; x++)
+      if (colorMatches(pixelAt(dec, x, y), tgt, 15)) hits++;
+  return hits;
+}
+
+// count pixels matching an arbitrary hex in the last frame (tol 15, same as the
+// marker helper). Used to prove a specific live row color reached the encode.
+function countColor(mp4, hex) {
+  const png = mp4.replace(/\.mp4$/, '.cc.png');
+  execFileSync(ffmpegPath(), ['-y', '-i', mp4, '-update', '1', png], { stdio: 'ignore' }); // -update 1 overwrites per frame, leaving the true last
+  const dec = decodePNGFromFile(png);
+  const tgt = parseHexColor(hex);
   let hits = 0;
   for (let y = 0; y < dec.height; y++)
     for (let x = 0; x < dec.width; x++)
@@ -136,4 +150,25 @@ test('the marker actually paints: a rect step shows green, a screen-only step do
   const plain = markerPixelsInLastFrame(noMark.out);
   assert.ok(marked > 0, 'the rect marker painted real marker-green pixels (' + marked + ')');
   assert.ok(marked > plain, `marker reel (${marked}) must exceed the unannotated reel (${plain})`);
+});
+
+test('live glossary: append grows the panel in place, scene boundary clears it', { skip: SKIP }, () => {
+  // The live-elements proof. Distinct hues so the assertion cannot pass on the
+  // demo's own colors: a blue first row + a green appended row must BOTH be
+  // present in the same final frame (old row held while the new one appended,
+  // no rebuild). A second reel proves a screen change clears the live panel.
+  const grown = render([
+    { glossary: { id: 'feat', title: 'Shipped', items: [{ badge: 1, text: 'Auth', color: '#2563eb' }] }, wait: 300 },
+    { live: { append: { badge: 2, text: 'Cache', color: '#16a34a' } }, wait: 600 },
+  ], 'grown.mp4');
+  const blue = countColor(grown.out, '#2563eb');
+  const green = countColor(grown.out, '#16a34a');
+  assert.ok(blue > 0, 'first (blue) row still present after append (' + blue + ')');
+  assert.ok(green > 0, 'appended (green) row present (' + green + ')');
+
+  const cleared = render([
+    { glossary: { id: 'feat', items: [{ badge: 1, text: 'Auth', color: '#2563eb' }] }, wait: 200 },
+    { screen: 'Next', wait: 600 },
+  ], 'cleared.mp4');
+  assert.equal(countColor(cleared.out, '#2563eb'), 0, 'scene boundary cleared the live glossary');
 });
