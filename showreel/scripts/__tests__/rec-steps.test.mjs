@@ -600,6 +600,8 @@ import { auditScenes, stepAnchors, stepCamera } from '../rec.mjs';
 test('stepAnchors pulls selectors, skips bare-true and color literals', () => {
   assert.deepEqual(stepAnchors({ highlight: '#x', note: 'hi' }), ['#x']);
   assert.deepEqual(stepAnchors({ flash: '#16a34a' }), []);          // color, not selector
+  assert.deepEqual(stepAnchors({ flash: 'red' }), []);              // NAMED color — not a selector either
+  assert.deepEqual(stepAnchors({ flash: 'rgb(1,2,3)' }), []);       // rgb() color — full-screen wash, never anchors
   assert.deepEqual(stepAnchors({ confetti: 'true' }), []);          // bare true
   assert.deepEqual(stepAnchors({ inset: { sel: '.s', zoom: 2 } }), ['.s']);
   assert.deepEqual(stepAnchors({ trail: { from: '#a', to: '#b' } }), ['#a', '#b']);

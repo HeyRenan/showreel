@@ -635,9 +635,13 @@ const STATE_PRIMITIVES = new Set([
 const TRIGGER_KEYS = new Set(['click', 'fill', 'select', 'option']);
 // The selector-bearing keys an action/primitive anchors to (for the off-screen
 // gate). Color-only flash and bare `true` are excluded by the reader.
+// Keys whose value names a page element the marker anchors to. `flash` is NOT
+// here: it is a full-screen color wash (applyFlash takes a COLOR, never a sel),
+// so its string is a color (named/rgb/hsl/#hex) — treating it as a selector made
+// the safeguard querySelector("red") and false-reject a valid roster.
 const ANCHOR_KEYS = [
   'pulse', 'spotlight', 'blur', 'redact', 'highlight', 'shake', 'countdown',
-  'orbit', 'glow', 'progress', 'typeon', 'checkmark', 'flash', 'ripple',
+  'orbit', 'glow', 'progress', 'typeon', 'checkmark', 'ripple',
   'sparkline', 'countup', 'reveal', 'confetti', 'kenburns', 'inset', 'hide',
   'rect', 'circle', 'badge', 'click', 'fill', 'select', 'glide', 'marks', 'arrow',
 ];
