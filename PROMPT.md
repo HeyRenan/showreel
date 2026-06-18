@@ -144,6 +144,19 @@ recommend stopping rather than inventing work.
   wrong — an enforcement inconsistency. Left as-is: docs warn, and a gate could
   block a valid held-zoom use; a feature call, not a defect.
 - cross-browser font fallback — CLEAN. 14 bare `system-ui` uses (vs end-card's fuller stack) looked like a determinism risk, but the plugin SHIPS + uses one bundled Chromium for every capture, so resolution is identical local & CI. Verified in that browser: system-ui lays out real text (1264x47 box, non-empty), and every annotation frame inspected this session rendered legible. The research's Mac-vs-CI font warning needs DIFFERENT browsers; not the case here. The end-card stack is cosmetic belt-and-suspenders, not a fix the others need. No bug.
+- live `update` field contract (validator↔host↔DOM trace) — 1 bug fixed (the #1
+  class, again): applyState blind-merges EVERY update field into host row state,
+  but the DOM update path rendered only text+color. So `{update:{item,badge:'9'}}`
+  set the badge in host state while the screen kept the old digit; `{update:{item,
+  value:5}}`/`{junk}` polluted host state and never reached the DOM. All reachable,
+  all green, all silently wrong. Fixed with ONE home for the rule: the validator
+  now restricts update to item/text/color/badge (exactly what rowEl renders), and
+  the DOM update path now re-renders badge too (mirroring applyState). KEEP-IN-SYNC
+  both ways. Proven in real Chromium (badge 1→9 on screen; combined text+color+
+  badge applies all three), 525 green, audit clean. LESSON: "esgotado" was wrong
+  AGAIN — I'd traced live state↔DOM in iter-8 but only for the verbs that existed
+  then; the field-level contract of `update` was never traced end to end. Untraced
+  sub-shapes of a "covered" feature are still untried angles.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
