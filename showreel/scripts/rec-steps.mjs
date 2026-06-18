@@ -59,7 +59,16 @@ export function parse(argv) {
   return a;
 }
 
-export const STEP_KEYS = new Set(['click', 'scrollTo', 'scrollIn', 'to', 'wait', 'note', 'arrow', 'badge', 'rect', 'circle', 'blur', 'hide', 'modal', 'glide', 'marks', 'screen', 'zoom', 'topbar', 'bottombar', 'fill', 'text', 'delay', 'select', 'option', 'camera', 'glossary', 'stagger', 'accent', 'inset', 'follow', 'fade', 'speed', 'spotlight', 'redact', 'highlight', 'confetti', 'countup', 'sparkline', 'pulse', 'ripple', 'shake', 'glow', 'checkmark', 'typeon', 'reveal', 'orbit', 'kenburns', 'flash', 'progress', 'countdown', 'trail', 'size', 'dur', 'count', 'intensity']);
+export const STEP_KEYS = new Set(['click', 'scrollTo', 'scrollIn', 'to', 'wait', 'note', 'arrow', 'badge', 'rect', 'circle', 'blur', 'hide', 'modal', 'glide', 'marks', 'screen', 'zoom', 'topbar', 'bottombar', 'fill', 'text', 'delay', 'select', 'option', 'camera', 'glossary', 'stagger', 'accent', 'inset', 'follow', 'fade', 'speed', 'spotlight', 'redact', 'highlight', 'confetti', 'countup', 'sparkline', 'pulse', 'ripple', 'shake', 'glow', 'checkmark', 'typeon', 'reveal', 'orbit', 'kenburns', 'flash', 'progress', 'countdown', 'trail', 'size', 'dur', 'count', 'intensity', 'live']);
+
+// the five live-element mutation verbs. A step's `live` key carries exactly one.
+export const LIVE_OPS = new Set(['append', 'update', 'recolor', 'replace', 'remove']);
+// one-shot animations: events, not state — they fire and dissolve, so they
+// cannot be made live (an `id` on one is an authoring error, not a live element).
+export const EPHEMERAL_TYPES = new Set([
+  'confetti', 'ripple', 'flash', 'shake', 'pulse', 'kenburns', 'sparkline',
+  'glow', 'checkmark', 'typeon', 'reveal', 'orbit', 'countdown', 'countup', 'trail',
+]);
 
 export const GLOSSARY_POS = new Set(['auto', 'top-left', 'top-right', 'bottom-left', 'bottom-right']);
 export const MARK_KEYS = new Set(['sel', 'badge', 'rect', 'circle', 'text']);
@@ -531,6 +540,29 @@ export function validateSteps(steps) {
         if (typeof t.to !== 'string' || !t.to) errors.push(n + ': trail.to must be a non-empty selector string (the comet destination)');
         knobErr('trail', t);
       }
+    }
+    // live-element mutation: exactly one verb, optional string id, 1-based item.
+    if ('live' in s) {
+      const v = s.live;
+      if (!v || typeof v !== 'object' || Array.isArray(v)) {
+        errors.push(n + ': live must be an object with one of ' + [...LIVE_OPS].join('/'));
+      } else {
+        const verbs = [...LIVE_OPS].filter((k) => k in v);
+        if (verbs.length !== 1) errors.push(n + ': live needs exactly one of ' + [...LIVE_OPS].join('/') + ' (got ' + verbs.length + ')');
+        if ('id' in v && (typeof v.id !== 'string' || !v.id)) errors.push(n + ': live.id must be a non-empty selector-free string');
+        for (const verb of ['update', 'recolor']) {
+          const o = v[verb];
+          if (o && typeof o === 'object' && !Array.isArray(o) && 'item' in o
+            && (typeof o.item !== 'number' || !Number.isInteger(o.item) || o.item < 1))
+            errors.push(n + ': live.' + verb + '.item must be a positive integer (1-based row index)');
+        }
+      }
+    }
+    // an ephemeral one-shot animation cannot carry an id — it is not live state.
+    for (const t of EPHEMERAL_TYPES) {
+      const tv = s[t];
+      if (tv && typeof tv === 'object' && !Array.isArray(tv) && 'id' in tv)
+        errors.push(n + ': ' + t + ' is a one-shot animation and cannot be a live element (drop the id)');
     }
   });
   return { ok: !errors.length, errors };

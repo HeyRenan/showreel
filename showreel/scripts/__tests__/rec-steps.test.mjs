@@ -37,6 +37,7 @@ test('every documented step key is accepted', () => {
       : k === 'dur' ? 1200
       : k === 'count' ? 4
       : k === 'intensity' ? 1.3
+      : k === 'live' ? { remove: true }
       : true;
   const r = validateSteps([step]);
   assert.ok(r.ok, r.errors.join('; '));
