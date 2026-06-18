@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 5/15   (last change: badgeInk, 31st bug. dry: threshold-proxy, doc-rot, coverage/UX, light-a11y, pngread decoder correct+scoped)
+  DRY STREAK: 6/15   (last change: badgeInk, 31st bug. dry: …pngread, dataurl-to-png + build-inject utils correct+guarded)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -822,6 +822,20 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   — if pngread were wrong, 30+ pixel-proofs collapse. It's correct + scoped + loudly-
   guarded. FIVE clean iters now; opening a brand-new file came back clean too, which
   (unlike past iters where new files held bugs) genuinely reinforces the floor.
+- dataurl-to-png + build-inject (two more never-opened util files) — CLEAN (correct +
+  guarded, debug-only paths). Continued opening never-examined files. dataurl-to-png:
+  decodeDataUrl strips JSON-quotes + data-url prefix, base64-decodes, validates PNG
+  magic (8 bytes) + length>=67, throws on invalid — sound; only referenced as a
+  standalone debug CLI (annotate's comments, no code call). build-inject: wrap() bakes
+  the payload via JSON.stringify (the correct injection defense — a hostile imageUrl/
+  annotation is JSON-encoded, not break-out-able, same as end-card), src is the
+  controlled annotate source; MCP/debug tool, not the record flow. The injection lens
+  (which gave live-color + annotate-badge) came back CLEAN here — build-inject used
+  JSON.stringify from the start. NO FIX. SIX clean iters; the remaining never-opened
+  files (capture/demo/shot/compose) are utils/drivers reusing already-swept infra.
+  The floor is firm: bug-bearing surfaces (live state, validator↔runtime, injection,
+  DRY-decisions, ||-idiom, thresholds) are all swept; new files keep coming back
+  clean. This is a real bottom, not fatigue — 31 real bugs + 1 clean-code harvested.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
