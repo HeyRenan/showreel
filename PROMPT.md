@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 5/15   (last change: degenerate ratio, 29th bug. dry: zoom/scale, luma, hide, cursor-pos NOT-a-bug (prior verdict RETRACTED))
+  DRY STREAK: 0/15   (last change: glide parseFloat||80 mishandles 0, 30th bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -627,6 +627,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   divergence — twice now an assumed-default vs real-default flipped the verdict
   (this, and the ratio sed-artifact). Re-audit a "logged candidate" before trusting
   it; a candidate is a hypothesis, not a finding.
+- glide `parseFloat(style)||80` mishandles a real 0 (the idiom that misled me) — 1
+  bug fixed. Last iter's retraction taught the idiom `parseFloat(x)||N` treats 0 as
+  absent; turned that into a grep: `parseFloat(...)||` across the motor. Triage of 12
+  hits: borderRadius||N (cosmetic corner fallback, fine), fit||1 (clamped ≥1 after),
+  panToInclude ||0 (0 is both value and fallback, consistent). The two REAL ones:
+  glide + glideChase read the cursor start as `parseFloat(c.style.left)||80`. PROVEN:
+  parseFloat("0px")||80 === 80 (a cursor at the viewport edge, left "0px", reads as
+  absent → an 80px jump), while "0.4px"→0.4. Only NaN should fall back; 0 and the
+  initial -80px are real. Fixed both with Number.isFinite(v)?v:80 (KEEP-IN-SYNC, two
+  safeEval closures). -80 stays -80, 0 stays 0, unset→80. Low severity (cursor exactly
+  at 0 is rare) but a PROVEN wrong 0-handling, fixed at no cost — NOT speculative
+  (the old code demonstrably mis-reads 0), NOT the retracted -80 case (which read
+  correctly). 528 green, audit clean. LESSON: a RETRACTION is generative — being
+  wrong about the cursor (-80 read fine) exposed the real idiom flaw (0 doesn't), and
+  grepping the idiom found the genuine instance two lines away. The bug wasn't where I
+  first claimed it; it was the same SHAPE one edge-case over. Mine a wrong verdict for
+  the true lesson inside it.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
