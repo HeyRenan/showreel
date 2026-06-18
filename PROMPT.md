@@ -107,14 +107,17 @@ recommend stopping rather than inventing work.
 - preflight.sh review — 2 bugs fixed: (a) it printed [ok] for ANY node (only checked existence) while Setup says "Node 18+ required" — now parses the major and warns if <18; (b) its copy-paste Verify command was `node --test scripts/__tests__/` (a dir) which CRASHES (ERR_MODULE_NOT_FOUND) — fixed to the working glob `'scripts/__tests__/*.test.mjs'`. First script a new user runs; both were false-confidence traps.
 - compose-video sync-trim — 1 bug fixed (a test had LOCKED it in): trimSeconds was all-or-nothing — if one sidecar was missing it discarded the OTHER side's known trimSec and defaulted both to 1.0, mis-aligning the side we actually knew. Now per-side fallback (keep known, default only the missing side, warn names which). Replaced the test that asserted the buggy behavior.
 - rec-input doSelect — 1 bug fixed (silent no-op): a select with an option that matched no <select> label (typo, or wrong element) silently did nothing — no value set, no warning, reel rendered as if the step worked. Now warns "select skipped — <sel>: no option matches ... (have: ...)". Also KEEP-IN-SYNC comments on the option-match logic duplicated across the panel-build + value-set safeEvals.
+- prove.mjs parse — 1 bug fixed (a test had LOCKED it in, again): surplus positionals were silently dropped (an unquoted selector with spaces mis-bound the out filename, no error) — the demo/rec parsers guard this, prove did not. Added the too-many-positionals guard; removed the test that documented the footgun as the contract ("surplus ignored, never throw") + added one asserting it throws. (Required positionals were already caught at main() line 364.)
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
 - (ledger now covers every candidate originally listed. New angles to consider:
   cross-browser font fallback in captures; a very long reel / many-live-elements
-  stress; the prove.mjs CLI parse; doFill re-fill / contenteditable clearing.
-  Add the one you pick, then move it up.)
+  stress; doFill re-fill / contenteditable clearing; the shot.mjs CLI parse;
+  tape.mjs vhs flow. Add the one you pick, then move it up.
+  NOTE: two of the last bugs were tests that LOCKED IN buggy behavior — when a
+  fix breaks an existing test, check whether the test was asserting the bug.)
 
 ## Anchor files (read these, not the whole tree)
 

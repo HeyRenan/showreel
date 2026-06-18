@@ -43,6 +43,16 @@ test('parse: batch mode binds ONLY url; selector/out stay undefined', () => {
   assert.equal(a.out, undefined);
 });
 
+test('parse: surplus positionals throw (the unquoted-selector footgun)', () => {
+  // an unquoted selector with spaces splits into extra tokens; binding them
+  // silently put the out filename in the wrong slot. Now it errors.
+  assert.throws(() => parse(['http://x', '.my', 'selector', 'out.png']), /too many positional/);
+  assert.throws(() => parse(['http://x', '--batch', 'j.json', 'extra']), /too many positional/);
+  // the valid arities still pass
+  assert.doesNotThrow(() => parse(['http://x', '#sel', 'o.png']));
+  assert.doesNotThrow(() => parse(['http://x', '--batch', 'j.json']));
+});
+
 test('parse: --circle and --zoom are booleans, not value-consuming', () => {
   const a = parse(['u', 's', 'o', '--circle', '--zoom']);
   assert.equal(a.circle, true);
@@ -50,14 +60,9 @@ test('parse: --circle and --zoom are booleans, not value-consuming', () => {
   assert.equal(a.out, 'o'); // the boolean flags did not swallow the positionals
 });
 
-test('parse: extra positionals are silently dropped (first three win)', () => {
-  // prove.mjs has no "too many positionals" guard (unlike rec-steps); document
-  // the actual contract — surplus tokens are ignored, never throw
-  const a = parse(['u', 's', 'o', 'surplus']);
-  assert.equal(a.url, 'u');
-  assert.equal(a.selector, 's');
-  assert.equal(a.out, 'o');
-});
+// (the old "extra positionals silently dropped" test was removed — it documented
+// the unquoted-selector footgun as the contract; prove now rejects surplus
+// positionals, covered by the "surplus positionals throw" test above.)
 
 // ── parse: validators are SUPPOSED to throw a scoped error ──────────────────
 test('parse: --width rejects non-number / non-integer / below-floor', () => {

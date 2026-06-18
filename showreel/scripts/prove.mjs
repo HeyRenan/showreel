@@ -225,6 +225,15 @@ export function parse(argv) {
     else if (k.startsWith('--')) throw new Error('prove: unknown arg ' + k);
     else pos.push(k);
   }
+  // reject surplus positionals instead of silently mis-binding them — an
+  // unquoted selector with spaces is the usual cause (it splits into extra
+  // tokens, so the out filename lands in the wrong slot with no error). Mirrors
+  // the demo/rec parsers.
+  const maxPos = a.batch ? 1 : 3;
+  if (pos.length > maxPos) {
+    const expected = a.batch ? 'url' : 'url + selector + out';
+    throw new Error(`prove: too many positional args (expected ${expected}): ${pos.slice(maxPos).join(' ')} — quote a selector with spaces?`);
+  }
   if (a.batch) [a.url] = pos;
   else [a.url, a.selector, a.out] = pos;
   return a;
