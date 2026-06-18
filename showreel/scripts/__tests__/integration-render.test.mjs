@@ -39,6 +39,11 @@ const SKIP = READY ? false : 'render deps absent (chromium/ffmpeg/demo) — run 
 
 const env = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: join(DEPS_DIR, 'ms-playwright') };
 
+// All suite renders use --offline: it is ~3x faster than realtime and exercises
+// the same engine logic. The realtime path (wall-clock timers instead of the
+// virtual clock) is verified by hand — live glossary grow + camera:out scene
+// clear both confirmed identical to offline at --fps 30. A realtime test in the
+// suite would triple its CI time for confidence already established; not worth it.
 function render(steps, outName, extraArgs = []) {
   const dir = mkdtempSync(join(tmpdir(), 'showreel-it-'));
   const stepsPath = join(dir, 'steps.json');
