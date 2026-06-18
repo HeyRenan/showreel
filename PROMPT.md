@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 4/15   (last change: degenerate ratio, 29th bug. dry: zoom/scale, luma, hide/restore, cursor-pos mechanism-real-but-cosmetic)
+  DRY STREAK: 5/15   (last change: degenerate ratio, 29th bug. dry: zoom/scale, luma, hide, cursor-pos NOT-a-bug (prior verdict RETRACTED))
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -607,31 +607,26 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   nothing — live drifted because it kept TWO copies of state (host + DOM); hide
   can't drift because it keeps ONE (DOM, guarded). The lens looks for dual-state; a
   single-source-of-truth design is immune to it by construction.
-- cursor visual ↔ Playwright pointer dual-state (dual-state lens, post-nav) —
-  MECHANISM REAL but cosmetic-severity NOT render-proven → NO FIX (honest priority,
-  logged). The dual-state lens (live bugs) predicts: the visual cursor (#__cursor__,
-  DOM) + the Playwright pointer (real, drives clicks) are TWO states. glide reads
-  start from the VISUAL (`parseFloat(c.style.left)||80`, rec-motion:16) then moves
-  the POINTER (:24); the visual follows via a mousemove listener (cursor-inject:53).
-  Normally synced. PROVEN mismatch after navigation: ensureCursor re-injects the
-  cursor on the new doc (:287) with NO left/top set, so a glide reads 80,80 fallback
-  while the pointer is still at its pre-nav (x,y) — proven in a headless harness
-  (fresh cursor style.left="" → glide reads 80,80, pointer at 400,300). So a post-nav
-  glide starts the pointer from 80,80, jumping it from the real position. BUT: could
-  not render-prove the VISUAL impact — the cursor is a blue arrow and the demo UI is
-  full of blue, so centroid-by-color tracking was ambiguous (caught static buttons,
-  not the moving cursor). Severity is plausibly LOW: it only fires on a glide
-  immediately after a screen-change, where a cursor entering from the corner reads as
-  natural screen entry, not a mid-scene jump; the 509-frame regression scan showed no
-  broken frames. Fix is non-trivial (host doesn't track the pointer position to
-  re-sync the visual). HONEST CALL: mechanism confirmed real, but I did NOT prove the
-  cosmetic impact warrants the coupling a fix needs — per KISS + severity + the
-  honesty clause, logged not fixed (NOT fabricating a fix for unproven-severity, NOT
-  claiming clean for a real mechanism). CANDIDATE: a finer cursor tracker (the cursor
-  arrow has a distinct shape/the --color can be set to a UI-absent hue) could
-  render-prove the jump; if visible mid-reel, fix by syncing style.left/top on
-  ensureCursor. LESSON: "mechanism real, severity unproven" is a legitimate third
-  verdict between bug-fixed and clean — name it honestly, don't force it either way.
+- cursor visual ↔ Playwright pointer dual-state (post-nav) — NOT A BUG (and this
+  CORRECTS my own prior-iter verdict — I was wrong). Last iter I logged a "mechanism
+  real, cosmetic" mismatch: ensureCursor re-injects the cursor post-nav, a glide
+  reads start from c.style.left, and I claimed it falls back to 80,80 while the
+  pointer is elsewhere. THAT WAS WRONG — my harness HARDCODED `left:80px` instead of
+  reading the real cursor-inject cssText. The real inject (cursor-inject:48) sets
+  `left:-80px;top:-80px` (off-screen by design), and glide's `parseFloat("-80px")||80`
+  reads -80 (NOT the 80 fallback — only an EMPTY left hits the fallback, which never
+  happens). So post-nav the glide starts at -80,-80: the cursor slides IN FROM THE
+  EDGE — the intended "cursor enters" animation. Visual and glide-start AGREE (both
+  -80); the unrendered pointer ends at the target by glide's end (the click fires
+  there). No descoupling, no jump, no cosmetic glitch. NO FIX, and the prior "logged
+  candidate" is RETRACTED. LESSON (sharp): measure-before-claiming applies to your
+  OWN past conclusions — I asserted a mismatch from an ASSUMED fallback (80,80)
+  without reading the one line that set the real value (-80px). The third verdict
+  "mechanism real, severity unproven" was itself unproven; reading the actual cssText
+  dissolved it. Always read the literal that sets the value before claiming a
+  divergence — twice now an assumed-default vs real-default flipped the verdict
+  (this, and the ratio sed-artifact). Re-audit a "logged candidate" before trusting
+  it; a candidate is a hypothesis, not a finding.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
