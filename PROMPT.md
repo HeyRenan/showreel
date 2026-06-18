@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 1/15   (last change: liveOpDom theme source, 23rd bug. +1 dry: rec-live full dup+z-order sweep)
+  DRY STREAK: 2/15   (last change: liveOpDom theme source, 23rd bug. dry: rec-live sweep, form input validator↔normalizer)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -332,6 +332,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   ≠ audited" rule cuts both ways — applied deliberately to rec-live THIS time, it was
   genuinely clean (no 6th detector). The difference from last iter: I actually ran
   the char-level diff instead of trusting the KEEP-IN-SYNC comments.
+- form-input validator↔normalizer (select/fill) — CLEAN (no bug, measured, two
+  false suspects killed). Applied THE high-yield lens — "validator accepts / runtime
+  silently ignores" (gave live update-badge + replace-keyless) — to the form inputs.
+  Suspect 1: object-form `{select:{sel,value}}` validates (rec-steps:327) but maybe
+  the normalizer only reads the string-form. FALSE: selectSpec:126 covers object-
+  form (sel + value??option); fillSpec:120 is symmetric. rec.mjs uses selectSpec/
+  fillSpec (708/710), so both shapes reach doSelect/doFill — no silent no-op.
+  Suspect 2: `{select:"#x", option:2}` (numeric) is rejected — looked like a
+  legit-value-dropped bug, but option is BY DESIGN the visible label (string only;
+  :326), index is not a supported addressing mode — the reject is correct. Cross-
+  check: validator blocks fill/select with no text/label on BOTH forms, so the
+  normalizer never yields a text:undefined spec in the validated flow — the divergence
+  that bit live (validator looser than runtime) does NOT exist here; the validator is
+  STRICTER than what the normalizer needs. NO FIX. LESSON: same lens, opposite
+  result — form inputs were built validator-first (strict gate, total normalizer),
+  unlike live which grew verb-by-verb and drifted. A lens isn't a bug detector; it's
+  a question. Sometimes the answer is "sound."
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
