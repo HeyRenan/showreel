@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: liveOpDom theme source, 23rd bug)
+  DRY STREAK: 1/15   (last change: liveOpDom theme source, 23rd bug. +1 dry: rec-live full dup+z-order sweep)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -317,6 +317,21 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   liveOpDom twice this session and never noticed its inline theme re-detect. A file
   you've edited is NOT a file you've audited under every lens. The "3 cleans in a
   row" before this proves again: clean streak ≠ dry.
+- rec-live full duplication + z-order sweep (acting on last iter's lesson) — CLEAN
+  (no bug, measured char-by-char). Last iter's lesson was "a file you've EDITED is
+  not a file you've AUDITED under every lens" — the 5th theme detector hid in a
+  rec-live function I'd edited 2x. So I swept rec-live for EVERY duplicated decision
+  across its two safeEval closures. The three duplicated helpers — badgeInk, safeCol,
+  rowEl — I diffed by brace-matching + whitespace-normalizing the actual bodies (not
+  eyeballing): ALL THREE byte-identical between liveCreate and liveOpDom. My 3 edits
+  this session (badge render, safeCol, theme) kept both copies in sync; the KEEP-IN-
+  SYNC comments held. Second angle: z-index hierarchy — mapped every max-z value and
+  its owner (masks 2147483600 < live backdrop/panel 639/640 < effects/cursor/endcard
+  645/646/647). Order is coherent: cursor + end-card + one-shot effects correctly sit
+  ABOVE the live panel; masks below. No wrong occlusion. NO FIX. LESSON: the "edited
+  ≠ audited" rule cuts both ways — applied deliberately to rec-live THIS time, it was
+  genuinely clean (no 6th detector). The difference from last iter: I actually ran
+  the char-level diff instead of trusting the KEEP-IN-SYNC comments.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
