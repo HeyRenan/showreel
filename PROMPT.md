@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 12/15   (last change: badgeInk, 31st bug. dry: …position-clash, countup+typeon divergent-clash but nonsense-precondition)
+  DRY STREAK: 13/15   (last change: badgeInk, 31st bug. dry: …countup+typeon, framedSel cross-step state re-validated each use)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -936,6 +936,22 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   reachable with PLAUSIBLE input AND silent". This is the most bug-qualifying angle in
   12 iters and STILL gated by nonsense — the floor is confirmed even at the category
   level. TWELFTH clean.
+- framedSel cross-step camera state (PLAUSIBLE+silent filter) — CLEAN (re-validated
+  each use). Applied the distilled triage axis "reachable with PLAUSIBLE input AND
+  silent" to cross-step state — the kind normal sequential steps could trip silently
+  (unlike countup+typeon's nonsense). framedSel persists across steps (set on camera-in
+  :699 / zoom-string :702, cleared on screen/modal/out). A step that marks a target
+  while framedSel still points at a prior panel: rec.mjs:638-642 re-checks
+  `he.contains(se)` against the LIVE DOM — if the target is inside the framed panel,
+  trust the camera; if NOT (other panel) cameraFramed=false → bringFullyIntoView
+  re-shows it. And a STALE/orphan framedSel (panel removed) → querySelector(h)=null →
+  cameraFramed=false → re-shows. So the persistent frame is ALWAYS re-validated at the
+  point of use (contains + null-check), never trusted blind. NO FIX. LESSON: cross-step
+  persistent state is only a silent-bug risk if it's READ without re-validation against
+  current reality; framedSel re-queries the DOM every use, so a stale frame degrades
+  to "re-show the target", not "mark off-screen silently". The plausible+silent filter
+  — the strictest I have — finds nothing: persistent state here is re-checked by design.
+  THIRTEENTH clean; even the sharpest triage criterion comes back empty.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
