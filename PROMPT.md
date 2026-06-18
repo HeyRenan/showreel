@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 10/15   (last change: badgeInk, 31st bug. dry: …NOTEINK-glass, multi-mask primitive combos deterministic no silent-clash)
+  DRY STREAK: 11/15   (last change: badgeInk, 31st bug. dry: …combos, position-patch clash converges to static (fragile-but-correct))
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -895,6 +895,25 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   angle (combos) still confirmed the floor: the bug-class (silent property overwrite)
   is absent by the layer-separation design. TENTH clean iter — even an unthought-of
   angle holds.
+- position-patch clash (two primitives patching el.style.position) — CLEAN (no
+  observable bug; the CLOSEST call in 11 iters — converges correct but fragile-by-
+  design). The "silent clash needs two writing the same sink" lesson → applied to
+  `el.style.position`: ~10 primitives patch static→relative to anchor overlays, each
+  with its OWN flag (srPosPatched / srCuPos / local posPatched). REACHABLE clash:
+  {progress:'#x',countup:'#x'} validates OK and both target #x. Traced: primitive A
+  patches (static→relative, flag A); primitive B checks `cs.position==='static'` —
+  now FALSE (A changed it) → B does NOT patch, does NOT set its flag. Static analysis
+  screamed "orphan overlay on cleanup". But it CONVERGES correct: during the step
+  position IS relative (one patch suffices, both overlays anchor right); on cleanup
+  every restore is `position=''` (→ static) and the element ends static = the
+  original. No leaked state. WHY it works: (a) one patch is enough for the duration,
+  (b) all restores target the SAME value (''), so order doesn't matter. NO FIX —
+  no observable bug. But FRAGILE: it holds only because every restorer wants static;
+  if one restored to a specific non-static value, the convergence breaks. Logged as
+  fragility, not a bug (a fix would be speculative — KISS/honesty). LESSON: a
+  reachable clash isn't a bug if all writers CONVERGE on the same final state — the
+  bug condition is divergent restores, not concurrent patches. The closest-to-a-bug
+  angle in 11 iters still resolves correct; the floor holds even here. ELEVENTH clean.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
