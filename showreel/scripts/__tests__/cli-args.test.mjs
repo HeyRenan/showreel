@@ -36,3 +36,10 @@ test('str: a missing value throws (does not swallow the next flag)', () => {
   // the bug this guards: `--label --circle` must not bind "--circle" as the label
   assert.throws(() => str('prove', '--label', '--circle'), /prove: --label needs a value/);
 });
+
+test('num: a whitespace-only value is "missing", not a silent 0', () => {
+  // Number('   ') is 0, not NaN — without a trim guard a whitespace flag value
+  // slipped through as 0, the silent-wrong-value this module exists to prevent.
+  assert.throws(() => num('rec', '--scale', '   '), /rec: --scale needs a number/);
+  assert.throws(() => num('rec', '--scale', '\t'), /needs a number/);
+});

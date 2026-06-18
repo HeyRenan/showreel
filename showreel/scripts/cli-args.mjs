@@ -11,7 +11,10 @@
 // non-numeric value. `opts.int` requires an integer; `opts.min` enforces a
 // floor (e.g. a width can't be 0).
 export function num(scope, flag, raw, opts = {}) {
-  if (raw == null || raw === '') throw new Error(`${scope}: ${flag} needs a number`);
+  // trim first: Number('   ') is 0, not NaN, so a whitespace-only value would
+  // slip through as a silent 0 — the exact silent-wrong-value this module exists
+  // to prevent. An all-whitespace token counts as missing.
+  if (raw == null || String(raw).trim() === '') throw new Error(`${scope}: ${flag} needs a number`);
   const n = Number(raw);
   if (!Number.isFinite(n)) throw new Error(`${scope}: ${flag} must be a number, got "${raw}"`);
   if (opts.int && !Number.isInteger(n)) throw new Error(`${scope}: ${flag} must be a whole number, got "${raw}"`);

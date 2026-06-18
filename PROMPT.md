@@ -95,6 +95,7 @@ recommend stopping rather than inventing work.
 - weak-assertion review (modal no-rebuild) — strengthened
 - subagent-fix critical review (annotate/compose/prove) — clean, 1 imprecise commit note
 - clean-code dedup pass (two rowEl copies) — badge-less drift fixed; reverted an eval over-abstraction
+- cli-args num/str hostile review — 1 bug fixed (whitespace-only value silently became 0)
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
@@ -102,7 +103,6 @@ recommend stopping rather than inventing work.
 - rec-encode stage (mp4/webm/gif encode flags, faststart, trims) — never reviewed
 - tape / shrink modules — never reviewed
 - GUIDE.html + INSTALL flow — never reviewed
-- cli-args parse (str/num helpers) — used everywhere, never hostile-tested directly
 - the showcase reel rendered end-to-end + watched (not just audited)
 - accessibility/contrast of live elements in light theme
 
