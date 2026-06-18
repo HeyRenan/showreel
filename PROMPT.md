@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 1/15   (last change: batch contact-sheet, 28th bug. +1 dry: modalLayout + scrollInSpec normalizers subset-complete)
+  DRY STREAK: 0/15   (last change: degenerate ratio forces height, 29th bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -540,6 +540,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   hold, only camera (phantom-out) + batch (sheet) drifted. The step-spec layer is now
   swept. measure-before-claiming again caught me: "render reads .title raw" was false,
   it reads the modalLayout output.
+- degenerate ratio forces capture height (DRY-of-a-decision, NEW layer: geometry
+  math) — 1 bug fixed, real DRY home extracted. Moved off the step-spec layer to the
+  aspect-ratio helpers (padToRatio / deriveCaptureHeight / resolveCaptureHeight), lens
+  = arithmetic under boundary inputs. The "valid ratio" rule (W:H regex + both dims
+  >0) lived in THREE copies; the >0 guard was in TWO (padToRatio, derive) but NOT
+  resolveCaptureHeight (bare regex .test()). So "0:9"/"5:0" read as a FORCED ratio
+  ONLY in resolveCaptureHeight — it overrode the author's --height to 812 with a
+  "breaks --ratio 0:9" warning, while padToRatio padded nothing and derive returned
+  the default: the ratio never applied, the author silently lost their height for
+  nothing. Proven across all three. Fix: extracted parseRatio (one home, parse + >0
+  guard), routed all three through it. KEY DRY nuance: these are PLAIN module
+  functions, not safeEval closures — so a SHARED HELPER is the correct fix (no eval
+  smell), UNLIKE rec-live's rowEl where duplication+KEEP-IN-SYNC won. +test (3-way
+  consistency), 528 green, audit clean. LESSON: DRY-of-a-decision recurs at EVERY
+  layer (luma detectors, theme, now ratio math) — and the right remedy depends on
+  the boundary: same-module → extract a helper; across-safeEval → KEEP-IN-SYNC. The
+  guard-in-2-of-3-copies pattern is the tell; grep the rule's literal, count copies.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
