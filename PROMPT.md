@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 1/15   (last change: badgeInk, 31st bug. +1 dry: threshold-proxy lens exhausted (no other magic-number-as-comparison))
+  DRY STREAK: 2/15   (last change: badgeInk, 31st bug. dry: threshold-proxy exhausted, author-doc vs 31 contract changes aligned)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -750,6 +750,24 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   sign-tests, or guards — all of which SHOULD be constants. The lens distinguishes
   "threshold approximating a comparison" (bug) from "threshold that IS the boundary"
   (correct). One real (badgeInk), rest sound. The lens is now exhausted.
+- author-doc vs the session's ~31 contract changes (doc-rot lens) — CLEAN (no rot,
+  measured against the live/scrollTo/zoom/batch surfaces). Doc-rot gave bugs early
+  (hardcoded counts, "55-key grammar"), so re-checked the author-facing docs (cookbook,
+  SKILL.md) against the contract I changed 31× this session. The live block (the
+  richest surface, cookbook:95-115) is fully aligned: examples match the current
+  contract (update item+text, replace with items, recolor item/whole), and RULES
+  cover exactly-one-verb / scene-clear / own-step / glossary+modal-only. The
+  restrictions I ADDED (update→text/color/badge only, replace requires items) are
+  guard-rails the examples already imply — no author would write update:{value} (no
+  such row field), and every replace example shows items. scrollTo/zoom "must exist"
+  is the new gate, but that's obvious + gives a clear error, not a doc-able surface.
+  Batch docs never enumerated take-keys (cookbook:321 = "N takes, ONE browser"), so
+  the sheet-propagation fix has no doc to rot. NO FIX. LESSON: I expected doc-rot
+  after 31 changes, but MOST of those were INTERNAL (silent-bug fixes: wrong output→
+  right, doc unchanged) or guard-rails (reject garbage the doc never suggested) — few
+  touched the DOCUMENTED surface. Doc-rot only happens when a change alters what the
+  author TYPES; internal correctness fixes don't rot docs. Classify your own changes:
+  surface-changing vs internal — only the former can rot the contract.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
