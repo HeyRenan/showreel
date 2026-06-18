@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 6/15   (last change: badgeInk, 31st bug. dry: …pngread, dataurl-to-png + build-inject utils correct+guarded)
+  DRY STREAK: 7/15   (last change: badgeInk, 31st bug. dry: …pngread, utils, demo --text canvas-immune (author-text surface fully covered))
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -836,6 +836,19 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   The floor is firm: bug-bearing surfaces (live state, validator↔runtime, injection,
   DRY-decisions, ||-idiom, thresholds) are all swept; new files keep coming back
   clean. This is a real bottom, not fatigue — 31 real bugs + 1 clean-code harvested.
+- demo --text → annotate (author-text injection, the demo/MCP path) — CLEAN (no bug,
+  canvas-immune by construction). Traced author --text end to end (demo:77 → ann
+  {type:'label',text} :137 → b.annotate :185 → ANNOTATE in annotate-canvas.js),
+  expecting the annotate-badge class (raw text in innerHTML). But the demo/MCP path
+  renders via CANVAS fillText (annotate-canvas.js), NOT innerHTML — so author text is
+  rasterized, never injected (same immunity as the chrome strips). The annotate-badge
+  bug was the rec-annotate LIVE path (innerHTML, fixed); this is a DIFFERENT renderer
+  (canvas). NO FIX. LESSON: the author-text surface is now FULLY covered across BOTH
+  renderers — innerHTML paths escaped (badge/live-color fixes), canvas paths immune
+  (chrome, demo/annotate). When a class (injection) is closed, confirm it across
+  every RENDERER, not every file — two renderers (canvas/innerHTML) is the real axis,
+  and each handles author text correctly. SEVEN clean iters; every remaining trace
+  confirms a closed class in a new place rather than finding a new class.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
