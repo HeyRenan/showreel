@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: zoom-string missing render-gate, 27th bug)
+  DRY STREAK: 1/15   (last change: zoom-string missing render-gate, 27th bug. +1 dry: STEP_KEYS↔render mirror both directions)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -490,6 +490,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   (click/scrollTo/blur/hide/redact/highlight/countup/zoom/fill/select/camera/marks)
   is now FULLY mirrored at the render gate (the anchored ones via stepAnchors, the
   view-movers via this block) — that divergence family is closed.
+- STEP_KEYS ↔ render-loop mirror (both directions, programmatic) — CLEAN (no bug,
+  grep-measured both ways, suspects all resolved). Last iter's lesson "when one list
+  should mirror another, check EVERY member" generalized from --dry↔render-gate to
+  the bigger pair: STEP_KEYS (what the validator accepts) ↔ what the render consumes.
+  Direction 1 (validator→render): 7 of 56 keys had no `step.<key>` in rec.mjs —
+  scrollIn/to/text/delay/option/stagger/fade — but ALL are consumed via normalizers
+  (fillSpec reads step.text+delay :119; selectSpec step.option; scrollInSpec
+  step.scrollIn+to; hotHeadFor+annotate step.stagger+fade). None orphaned. Direction
+  2 (render→validator): grepped every `step.<ident>` read in rec.mjs against
+  STEP_KEYS → EMPTY — the render reads no key the validator would reject. Mirror
+  complete both ways. One borderline non-bug: delay+select (delay is typing speed,
+  meaningless for a dropdown) is accepted + silently ignored — low severity, not the
+  silent-wrong-video class, left as-is. NO FIX. LESSON: the mirror-lens that found 2
+  bugs in --dry (an ad-hoc list) found NOTHING in STEP_KEYS (the validator's single
+  source of truth, which the render was built against). Same lens; a SOT-backed pair
+  holds, an ad-hoc pair drifts. Where two lists exist, ask which is the SOT — the
+  other is the suspect.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
