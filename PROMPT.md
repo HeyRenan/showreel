@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 4/15   (last change: glide parseFloat||80, 30th bug. dry: …, encode trim-sync + compose-video shortest=1 both intentional)
+  DRY STREAK: 0/15   (last change: badgeInk L>0.45 mis-picks low-contrast digit, 31st bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -717,6 +717,25 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   busywork), and the monitor lets the deferred unit finish the SAME turn the render
   completes. Periodic full-reel regression scans are cheap insurance after a batch of
   render-path edits — silent compositing breakage is exactly what unit tests miss.
+- badgeInk L>0.45 threshold mis-picks low-contrast digit (a11y/WCAG lens) — 1 bug
+  fixed, computed + render-proven. Re-ran the WCAG-contrast lens (which gave the
+  original badgeInk) on the per-item badge colors after ~30 changes. badgeInk chose
+  the digit via `luminance > 0.45 ? dark : white` — but that threshold optimizes the
+  wrong quantity: for MID-luminance pills, DARK text scores higher contrast than
+  white yet L<0.45 picked white. Computed across 8 colors: green #16a34a white 3.30
+  (AA-FAIL) vs dark 5.42; purple #a855f7 white 3.96 (FAIL) vs dark 4.51 — the
+  threshold picked the FAILING option both times. Fix: compute the real WCAG contrast
+  of white vs dark against the pill, pick the higher (the WCAG-correct method, also
+  simpler than a magic 0.45). Proven non-regressive across all 8 (green/purple
+  improve to AA-pass, the rest identical). Both safeEval closures, KEEP-IN-SYNC.
+  Render-proven: green+purple badges now render the dark digit. 528 green, audit
+  clean. LESSON: a THRESHOLD that approximates a computation is a bug magnet — 0.45
+  was a luminance proxy for "which text contrasts better," but the real answer is
+  max(contrast(white), contrast(dark)), and the proxy diverges from it in the middle
+  band. When you see a magic threshold standing in for a comparison you could compute
+  directly, compute it — the proxy is wrong somewhere by construction. (Same shape as
+  the luma 0.5 detectors, but there 0.5 IS the right midpoint; here 0.45 approximated
+  a contrast crossover that isn't at any fixed L.)
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
