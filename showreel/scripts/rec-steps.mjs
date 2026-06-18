@@ -845,17 +845,19 @@ export async function auditRosterLive(steps, bridge) {
       }
     }
 
-    // scroll targets are EXISTENCE-only (not in stepAnchors): scrolling TO an
+    // VIEW-MOVERS are EXISTENCE-only (not in stepAnchors): moving the view TO an
     // element below the fold is the whole point, so an off-screen check is wrong —
-    // but a MISSING scroll target renders a silently-wrong scene (the view never
-    // moves, no warning). click/fill/select missing are already gated; scrollTo/
-    // scrollIn were the gap (only --dry caught them, which is opt-in).
-    const scrollSels = [];
-    if (typeof s.scrollTo === 'string') scrollSels.push(s.scrollTo);
-    if (typeof s.scrollIn === 'string') scrollSels.push(s.scrollIn);
-    else if (s.scrollIn && typeof s.scrollIn === 'object' && typeof s.scrollIn.sel === 'string') scrollSels.push(s.scrollIn.sel);
-    for (const sel of scrollSels) {
-      if (!(await measure(sel))) errors.push({ step: i + 1, kind: 'missing', message: `scroll target "${sel}" matches no element — the scene never scrolls (silently shows the wrong position).` });
+    // but a MISSING target renders a silently-wrong scene (the view never moves, no
+    // warning). click/fill/select missing are already gated; scrollTo/scrollIn AND
+    // zoom-as-string (a camera frame: rec.mjs camFrame(step.zoom)) were the gap —
+    // only --dry caught them, which is opt-in.
+    const viewMovers = [];
+    if (typeof s.scrollTo === 'string') viewMovers.push(['scroll target', s.scrollTo]);
+    if (typeof s.scrollIn === 'string') viewMovers.push(['scroll target', s.scrollIn]);
+    else if (s.scrollIn && typeof s.scrollIn === 'object' && typeof s.scrollIn.sel === 'string') viewMovers.push(['scroll target', s.scrollIn.sel]);
+    if (typeof s.zoom === 'string' && s.zoom !== 'out') viewMovers.push(['zoom target', s.zoom]);
+    for (const [what, sel] of viewMovers) {
+      if (!(await measure(sel))) errors.push({ step: i + 1, kind: 'missing', message: `${what} "${sel}" matches no element — the scene never ${what === 'zoom target' ? 'frames it (renders wide, reads as a random pan)' : 'scrolls (silently shows the wrong position)'}.` });
     }
 
     // drive real state so later anchors see the post-action DOM

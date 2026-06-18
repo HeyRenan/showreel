@@ -672,4 +672,11 @@ test('auditRosterLive gates a MISSING scrollTo target (silent-wrong-scene)', asy
   // scrollIn object form is gated too
   const miss2 = (await auditRosterLive([{ scrollIn: { sel: '#gone' } }], bridge)).errors;
   assert.equal(miss2.length, 1);
+  // zoom-as-string is a camera frame (view-mover) — same existence gate, same
+  // existence-only rule (framing a below-fold element is valid)
+  const zmiss = (await auditRosterLive([{ zoom: '#gone' }], bridge)).errors;
+  assert.equal(zmiss.length, 1);
+  assert.match(zmiss[0].message, /zoom target/);
+  assert.equal((await auditRosterLive([{ zoom: '#far-down' }], bridge)).errors.length, 0);
+  assert.equal((await auditRosterLive([{ zoom: 'out' }], bridge)).errors.length, 0); // "out" is not a selector
 });
