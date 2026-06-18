@@ -4,7 +4,6 @@
 
 [![ci](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml/badge.svg)](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml)
 [![version](https://img.shields.io/badge/version-1.0.0-blue)](showreel/.claude-plugin/plugin.json)
-[![tests](https://img.shields.io/badge/tests-247%20passing-brightgreen)](#testes)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![claude code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](https://claude.com/claude-code)
 
@@ -136,7 +135,7 @@ node 18+. Opcionais: `ffmpeg` (melhor qualidade de GIF), `vhs` (gravação de te
 ## Testes
 
 ```bash
-cd showreel && node --test 'scripts/__tests__/*.test.mjs'   # 247 testes, sem rede nem browser
+cd showreel && node --test 'scripts/__tests__/*.test.mjs'   # sem rede nem browser
 ```
 
 ## Licença
