@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 1/15   (last change: degenerate ratio, 29th bug. +1 dry: zoom (1,3] + scale [0.3,3] guard copies identical)
+  DRY STREAK: 2/15   (last change: degenerate ratio, 29th bug. dry: zoom/scale guards, luma/theme family re-swept post-30-changes)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -573,6 +573,22 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   identical copies, superset runtime. That's the difference between a real sweep and
   fabrication: run the proven detector; sometimes it fires (ratio), sometimes it
   confirms sound (zoom). The procedure is trustworthy BECAUSE it does both.
+- luma/theme family RE-SWEPT after ~30 session changes (regression check) — CLEAN
+  (no bug, every copy categorized line-by-line). Re-ran grep-and-count on the family
+  I aligned EARLY (iter-8 rec-page, annotate-canvas, then liveOpDom's <128 fix) to
+  confirm ~30 later changes didn't drift it or add an escaped detector. Rec.601
+  weights: 19 copies, ALL identical 0.299/0.587/0.114 (the per-safeEval-closure luma
+  formula — can't share a helper across the eval boundary, so duplication+identical
+  is the accepted state). Rec.709: 2 copies, both badgeInk (WCAG contrast, different
+  purpose, correct). Dark/light THRESHOLDS (where the <128 bug bit): all page-theme
+  detectors now use the midpoint — `< 0.5` (normalized) or `< 127.5` (0-255), NO
+  `<128` survives. The `> 0.45` pair is badgeInk's WCAG threshold (not page-theme).
+  False positives killed by reading: rec-motion's `k < 0.5` is EASING midpoint (k =
+  animation progress), not luma. Every threshold accounted for, none divergent. NO
+  FIX. LESSON: re-sweeping a PREVIOUSLY-FIXED family is real coverage, not a rerun —
+  ~30 changes could have added a 6th detector or drifted a copy (exactly how the
+  liveOpDom <128 escaped the original alignment). It held. The grep-and-count detector
+  doubles as a regression guard for the families it already cleaned.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
