@@ -14,7 +14,8 @@ import { readFileSync, existsSync, mkdtempSync, writeFileSync, statSync, readdir
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { decodePNG, pixelAt } from '../pngread.mjs';
+import { decodePNG, decodePNGFromFile, pixelAt, parseHexColor, colorMatches } from '../pngread.mjs';
+import { DEFAULT_MARKER_HEX } from '../annotate.mjs';
 import { DEPS_DIR, ffmpegPath } from '../ensure-deps.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -49,6 +50,25 @@ function render(steps, outName, extraArgs = []) {
     ...extraArgs,
   ], { env, stdio: 'pipe' });
   return { dir, out };
+}
+
+// pull the LAST frame of the rendered mp4 to a PNG (the held closing frame),
+// then count pixels matching the marker color within tol. The last frame is the
+// dwell on the final annotated step, so a drawn marker is guaranteed visible.
+// tol 15: tight enough that the demo's own muted greens do NOT match, loose
+// enough to survive h.264 chroma subsampling on the pure marker stroke. Probed
+// empirically — at tol 40 the demo UI swamps the signal; at tol 8 the encode
+// dilutes the stroke below threshold. 15 cleanly separates marked from plain.
+function markerPixelsInLastFrame(mp4) {
+  const png = mp4.replace(/\.mp4$/, '.frame.png');
+  execFileSync(ffmpegPath(), ['-y', '-sseof', '-1', '-i', mp4, '-vframes', '1', png], { stdio: 'ignore' });
+  const dec = decodePNGFromFile(png);
+  const tgt = parseHexColor(DEFAULT_MARKER_HEX);
+  let hits = 0;
+  for (let y = 0; y < dec.height; y++)
+    for (let x = 0; x < dec.width; x++)
+      if (colorMatches(pixelAt(dec, x, y), tgt, 15)) hits++;
+  return hits;
 }
 
 test('offline render produces a valid mp4 (full pipeline smoke)', { skip: SKIP }, () => {
@@ -97,4 +117,23 @@ test('a roster with an off-screen anchor is rejected before render', { skip: SKI
     [{ rect: '#this-selector-does-not-exist-anywhere', note: 'nope', wait: 200 }],
     'out.mp4',
   ), /Command failed|exited|status/i);
+});
+
+test('the marker actually paints: a rect step shows green, a screen-only step does not', { skip: SKIP }, () => {
+  // The strongest pipeline proof: not "the video has content" but "the green
+  // annotation reached the encoded pixels." Differential, so it cannot pass by
+  // accident on the demo's own colors — a rect reel must show MORE marker green
+  // in its final frame than a plain screen reel with no annotation at all.
+  const withMark = render(
+    [{ screen: 'IT', wait: 200 }, { rect: '#deploy', note: 'Ship it', wait: 500 }],
+    'mark.mp4',
+  );
+  const noMark = render(
+    [{ screen: 'IT', wait: 200 }, { wait: 500 }],
+    'plain.mp4',
+  );
+  const marked = markerPixelsInLastFrame(withMark.out);
+  const plain = markerPixelsInLastFrame(noMark.out);
+  assert.ok(marked > 0, 'the rect marker painted real marker-green pixels (' + marked + ')');
+  assert.ok(marked > plain, `marker reel (${marked}) must exceed the unannotated reel (${plain})`);
 });
