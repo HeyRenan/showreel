@@ -60,3 +60,11 @@ test('live cannot share a step with an annotation primitive (silent-drop guard)'
   // a bare live op (no sibling annotation) is fine; a wait alongside is fine
   assert.equal(validateSteps([{ live: { append: { text: 'x' } }, wait: 300 } ]).ok, true);
 });
+
+test('live.update requires an item — title/body changes go through replace', () => {
+  // an item-less update mutated host state but not the DOM (silent divergence);
+  // now it is rejected, pointing the author at replace.
+  assert.equal(validateSteps([{ live: { update: { title: 'New' } } }]).ok, false);
+  assert.equal(validateSteps([{ live: { update: { value: 80 } } }]).ok, false);
+  assert.equal(validateSteps([{ live: { update: { item: 1, text: 'ok' } } }]).ok, true);
+});

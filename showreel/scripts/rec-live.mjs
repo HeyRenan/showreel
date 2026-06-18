@@ -58,13 +58,10 @@ export function applyState(entry, op) {
     st.rows = rows || [];
     st.rows.push({ ...op.append });
   } else if (op.update && typeof op.update === 'object') {
-    if ('item' in op.update) {
-      const r = rowAt(op.update.item);
-      if (r) { const { item, ...fields } = op.update; Object.assign(r, fields); }
-    } else {
-      const { item, ...fields } = op.update; // tolerate a stray item key
-      Object.assign(st, fields);
-    }
+    // update edits one row (validator requires item). A missing/out-of-range item
+    // is a no-op, never a throw.
+    const r = rowAt(op.update.item);
+    if (r) { const { item, ...fields } = op.update; Object.assign(r, fields); }
   } else if (op.recolor && typeof op.recolor === 'object') {
     if (op.recolor.item != null) { const r = rowAt(op.recolor.item); if (r && op.recolor.color != null) r.color = op.recolor.color; }
     else if (op.recolor.color != null) st.color = op.recolor.color;

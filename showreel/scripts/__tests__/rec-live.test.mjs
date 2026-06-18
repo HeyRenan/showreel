@@ -49,13 +49,6 @@ test('applyState append/update/recolor/replace mutate state in place', () => {
   assert.equal(e.state.items, undefined, 'replace maps items -> rows, no stray st.items');
 });
 
-test('applyState update without item merges scalar fields (progress value/color)', () => {
-  const e = { id: 'p', type: 'progress', state: { value: 30, color: 'blue' } };
-  applyState(e, { update: { value: 80 } });
-  assert.equal(e.state.value, 80);
-  assert.equal(e.state.color, 'blue'); // untouched fields preserved
-});
-
 test('applyState update/recolor on an out-of-range item is ignored, never throws', () => {
   const e = { id: 'f', type: 'glossary', state: { rows: [{ text: 'A' }] } };
   assert.doesNotThrow(() => applyState(e, { update: { item: 99, text: 'x' } }));

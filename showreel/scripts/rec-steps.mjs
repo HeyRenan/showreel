@@ -561,6 +561,11 @@ export function validateSteps(steps) {
             && (typeof o.item !== 'number' || !Number.isInteger(o.item) || o.item < 1))
             errors.push(n + ': live.' + verb + '.item must be a positive integer (1-based row index)');
         }
+        // update edits ONE row, so it requires an item. Changing a title/footer or
+        // the whole body goes through replace. (Without this, an item-less update
+        // mutated host state but not the DOM — a silent divergence.)
+        if (v.update && typeof v.update === 'object' && !Array.isArray(v.update) && !('item' in v.update))
+          errors.push(n + ': live.update needs an item (1-based row) — use replace to swap the whole body');
       }
     }
     // an ephemeral one-shot animation cannot carry an id — it is not live state.
