@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 1/15   (last change: replace-needs-items, 20th bug. +1 dry: registry-coupling clean)
+  DRY STREAK: 0/15   (last change: live color injection, 21st bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -217,6 +217,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   sync removal — different mechanism, both land the cleared state in the held/next
   frame offline. No divergence. NO FIX — manufacturing one against lockstep-correct
   code is the overengineering the prompt forbids (honesty clause).
+- live color → innerHTML injection (security, untraced inject surface) — 1 bug
+  fixed: a row/badge/accent color was interpolated RAW into a style="" attribute
+  inside innerHTML. esc() strips <>& but LEAVES quotes, so `#000"><b data-pwned=
+  "yes` broke out of the attribute and injected markup into the live panel (proven
+  in real Chromium — data-pwned element appeared). SAME class as the cursor-inject
+  safeColor fix (iter "inject-snippet builders"); live was the last raw inject
+  path. Added safeCol (the SAME charset as cursor-inject: #0-9a-zA-Z(),.%\s/-,
+  fallback DEF) in BOTH safeEval closures, applied to every color that lands in an
+  innerHTML/cssText STRING: row badge bg, panel accent (border + title dot), append
+  rows. Colors set via .style.X assignment (update/recolor) were NEVER a markup
+  vector (browser parses them as CSS values) — left unchanged, measured that
+  distinction before touching them. Proven: create-row/accent/append injections all
+  neutralized, valid #e11d48 still renders. 526 green, audit clean. KEEP-IN-SYNC
+  ties both closures to cursor-inject. LESSON: the inject-escaping "family" I'd
+  called closed (end-card model, cursor-inject) had a THIRD member unaudited — live
+  rowEl. Same as the luma-detector third copy: a "closed family" can hide a member
+  in a file I hadn't re-read through THAT lens.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
