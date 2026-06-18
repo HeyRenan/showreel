@@ -115,9 +115,12 @@ export function makeLive(rctx) {
     // SYNC with liveOpDom's safeCol and cursor-inject's safeColor.
     const safeCol = (s) => String(s == null ? '' : s).replace(/[^#0-9a-zA-Z(),.%\s/-]/g, '').trim() || DEF;
 
-    // readable badge-number color: a pale per-item color needs dark text, not the
-    // default white (white on pale yellow is ~1.3:1, unreadable). Only adjusts for
-    // a parseable #hex; named/rgb colors keep white. KEEP IN SYNC with liveOpDom.
+    // readable badge-number color: pick whichever of dark/white text has the HIGHER
+    // WCAG contrast against the pill, not a luminance threshold. The old L>0.45 cut
+    // mis-chose white for mid-luminance pills where dark scores higher (green
+    // 3.30 vs dark 5.42; purple 3.96 vs 4.51 — both then PASS AA). Computing the
+    // real contrast never regresses a case the threshold already got right. Only a
+    // parseable #hex; named/rgb keep white. KEEP IN SYNC with liveOpDom.
     const badgeInk = (col) => {
       const h = String(col).trim().replace(/^#/, '');
       const x = h.length === 3 ? h.split('').map((d2) => d2 + d2).join('') : h;
@@ -125,7 +128,8 @@ export function makeLive(rctx) {
       const [r2, g2, b2] = [0, 2, 4].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
       const lin = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
       const L = 0.2126 * lin(r2) + 0.7152 * lin(g2) + 0.0722 * lin(b2);
-      return L > 0.45 ? '#0f172a' : '#fff'; // light pill -> dark number
+      const cWhite = 1.05 / (L + 0.05), cDark = (L + 0.05) / (0.0088 + 0.05); // 0.0088 = L of #0f172a
+      return cDark > cWhite ? '#0f172a' : '#fff';
     };
     // one part node, shared by both element types. A glossary part has a badge
     // pill + text; a modal body part is just text (empty badge renders nothing).
@@ -244,7 +248,9 @@ export function makeLive(rctx) {
       const [r2, g2, b2] = [0, 2, 4].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
       const lin = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
       const L = 0.2126 * lin(r2) + 0.7152 * lin(g2) + 0.0722 * lin(b2);
-      return L > 0.45 ? '#0f172a' : '#fff';
+      // max-contrast pick (not L>0.45). KEEP IN SYNC with liveCreate's badgeInk.
+      const cWhite = 1.05 / (L + 0.05), cDark = (L + 0.05) / (0.0088 + 0.05);
+      return cDark > cWhite ? '#0f172a' : '#fff';
     };
     const rowEl = (r) => {
       const d = document.createElement('div');
