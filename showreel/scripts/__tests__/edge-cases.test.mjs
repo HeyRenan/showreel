@@ -10,7 +10,8 @@ import {
   collapseRedundantGlides, autoAnnotateStep, cameraSpec, modalLayout, screenPhase,
   padToRatio, deriveCaptureHeight, resolveCaptureHeight, validateSteps, validateBatch,
   applyOfflineDefaults, looksLikeHostCsv, stepAnchors, stepCamera, auditScenes,
-  STEP_KEYS,
+  stepLabel, camTransitionPlan, clampRelease, offlineMotionConflicts,
+  STEP_KEYS, TAKE_KEYS, THEMES, END_CARD_MODES,
 } from '../rec-steps.mjs';
 import { FRAME } from '../rec-camera.mjs';
 
@@ -487,4 +488,85 @@ test('auditScenes: framing a DIFFERENT panel after out is not churn', () => {
     { camera: { sel: '#b', zoom: 2 } },
   ]).warnings;
   assert.ok(!w.some((x) => x.kind === 'zoom-churn'));
+});
+
+// ── stepLabel: a label fn must ALWAYS yield a string, never throw ───────────
+test('stepLabel: hostile step shapes fall back to "step", never crash', () => {
+  // it runs per-step deep in the render loop; validateSteps guards the door but
+  // a label helper that throws on null is a latent defense-in-depth hole.
+  assert.equal(stepLabel(null), 'step');
+  assert.equal(stepLabel(undefined), 'step');
+  assert.equal(stepLabel('hi'), 'step');
+  assert.equal(stepLabel(5), 'step');
+  assert.equal(stepLabel([]), 'step');
+});
+
+test('stepLabel: note wins, else first known key, else "step"', () => {
+  assert.equal(stepLabel({ note: 'Deploy now', click: '#x' }), 'Deploy now');
+  assert.equal(stepLabel({ note: 0 }), 'note');     // falsy note value -> key fallback finds the 'note' key itself
+  assert.equal(stepLabel({ click: '#x' }), 'click');
+  assert.equal(stepLabel({ unknownOnly: 1 }), 'step'); // no known key
+});
+
+// ── camTransitionPlan / clampRelease: the ordered op contract ──────────────
+test('camTransitionPlan: emits commit -> reflow -> armed-transition, in order', () => {
+  const p = camTransitionPlan({ tx: 10, ty: 20, s: 1.5 }, { tx: 0, ty: 0, s: 1 }, 600);
+  assert.equal(p.length, 3);
+  assert.equal(p[0].transition, 'none');
+  assert.match(p[0].transform, /translate\(10px,20px\) scale\(1\.5\)/);
+  assert.equal(p[1].reflow, true);
+  assert.match(p[2].transition, /transform 600ms/);
+  assert.match(p[2].transform, /translate\(0px,0px\) scale\(1\)/);
+});
+
+test('camTransitionPlan: a malformed cam yields undefined-laced css, but never throws', () => {
+  // documented: camStr does no validation — a {} cam stringifies to "undefinedpx".
+  // upstream (cameraSpec/clampRelease) always supplies {tx,ty,s}; this pins that
+  // the plan builder itself is total and the garbage is loud, not a crash.
+  assert.doesNotThrow(() => camTransitionPlan({}, {}, 300));
+});
+
+test('clampRelease: reasserts pose, reflows, then clears transition (no residual none)', () => {
+  const p = clampRelease({ tx: 5, ty: 6, s: 2 });
+  assert.equal(p[0].transition, 'none');
+  assert.match(p[0].transform, /translate\(5px,6px\) scale\(2\)/);
+  assert.equal(p[1].reflow, true);
+  assert.equal(p[2].transition, ''); // empty, not 'none' — next __camTo animates
+});
+
+// ── cameraSpec: object form without sel keeps zoom, sel undefined ──────────
+test('cameraSpec: object zoom with no sel returns {sel:undefined, zoom}', () => {
+  const c = cameraSpec({ camera: { zoom: 2 } });
+  assert.equal(c.sel, undefined);
+  assert.equal(c.zoom, 2);
+  // a non-number zoom anywhere collapses to 0 (auto-fit), never NaN
+  assert.equal(cameraSpec({ camera: '#a', zoom: 'big' }).zoom, 0);
+  assert.equal(cameraSpec({ camera: { sel: '#a', zoom: 'big' } }).zoom, 0);
+});
+
+// ── offlineMotionConflicts: hostile arrays + multi-hit + index reporting ───
+test('offlineMotionConflicts: reports 1-based step index per incompatible key', () => {
+  const hits = offlineMotionConflicts([{ wait: 1 }, { confetti: '#x' }, { sparkline: { sel: '#s' } }]);
+  assert.deepEqual(hits, [{ step: 2, key: 'confetti' }, { step: 3, key: 'sparkline' }]);
+});
+
+test('offlineMotionConflicts: a single step carrying both keys reports both', () => {
+  const hits = offlineMotionConflicts([{ confetti: true, sparkline: '#s', click: '#a' }]);
+  assert.equal(hits.length, 2);
+  assert.ok(hits.every((h) => h.step === 1));
+});
+
+test('offlineMotionConflicts: non-array / null entries never crash, return []', () => {
+  assert.deepEqual(offlineMotionConflicts('nope'), []);
+  assert.deepEqual(offlineMotionConflicts(null), []);
+  assert.deepEqual(offlineMotionConflicts([null, 5, 'x', {}]), []);
+});
+
+// ── frozen vocab sets: guard against accidental drift ──────────────────────
+test('vocab sets: TAKE_KEYS, THEMES, END_CARD_MODES hold their contract members', () => {
+  for (const k of ['steps', 'out', 'url', 'fps', 'theme', 'accent', 'ratio']) assert.ok(TAKE_KEYS.has(k));
+  for (const t of ['auto', 'light', 'dark']) assert.ok(THEMES.has(t));
+  for (const m of ['gif', 'all', 'none']) assert.ok(END_CARD_MODES.has(m));
+  assert.ok(!THEMES.has('sepia'));         // no silent extra theme
+  assert.ok(!END_CARD_MODES.has('webm'));  // mode list is closed
 });

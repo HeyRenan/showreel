@@ -795,6 +795,7 @@ export async function auditRosterLive(steps, bridge) {
 // Sidecar step label: the human note when present, otherwise the take's first
 // authored action key — enough for compose tooling to name segments.
 export function stepLabel(step) {
+  if (!step || typeof step !== 'object') return 'step';
   if (step.note) return String(step.note);
   const k = Object.keys(step).find((x) => STEP_KEYS.has(x));
   return k || 'step';
