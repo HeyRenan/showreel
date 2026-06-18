@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 2/15   (last change: badgeInk, 31st bug. dry: threshold-proxy exhausted, author-doc vs 31 contract changes aligned)
+  DRY STREAK: 3/15   (last change: badgeInk, 31st bug. dry: threshold-proxy, doc-rot, test-coverage+error-UX of session fixes all guarded)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -768,6 +768,24 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   touched the DOCUMENTED surface. Doc-rot only happens when a change alters what the
   author TYPES; internal correctness fixes don't rot docs. Classify your own changes:
   surface-changing vs internal — only the former can rot the contract.
+- test-coverage + error-message UX of the session's fixes — CLEAN (no bug, no
+  unguarded gap, all messages coherent — and HONESTLY no code change, per rule 4).
+  Checked whether the ~31 fixes have regression guards and whether the new gates'
+  error messages are consistent. Coverage: pure-module fixes (validator update-fields/
+  replace-items/scrollTo-zoom gate/sheet-propagate, parseRatio, stepAnchors edge-arrow/
+  flash) have 61 related assertions; browser-glue fixes (badgeInk, theme, recolor-dot,
+  safeCol, glide-0) have manual render-proofs. parseRatio is exported + guarded
+  INDIRECTLY via its 3 consumers' tests — a direct test would be redundant (the
+  "manufacture tests against guarded code" rule 4 forbids). Error-UX: the gates I
+  added share one shape — kind:'missing', `<what> "<sel>" matches no element — <specific
+  consequence>` (anchor/scroll target/zoom target), and live.update/replace give
+  actionable messages (`only edits text/color/badge (got X)`, `needs items (use
+  items:[] to clear)`). All coherent. NO FIX, NO TEST (adding either would be
+  fabrication). LESSON: a "verify my own fixes are guarded" pass is legitimate due
+  diligence, but when everything IS guarded the honest output is a clean ledger entry
+  with NO code — rule 4 explicitly forbids manufacturing a redundant test to look
+  productive. Three clean iters in a row (threshold-proxy, doc-rot, this) — the vein
+  is thinning (badgeInk was 3 iters back); not dry, but the easy lenses are spent.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
