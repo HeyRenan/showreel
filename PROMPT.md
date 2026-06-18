@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 13/15   (last change: badgeInk, 31st bug. dry: …countup+typeon, framedSel cross-step state re-validated each use)
+  DRY STREAK: 14/15   (last change: badgeInk, 31st bug. dry: …framedSel, chrome timestamps single-source no drift)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -952,6 +952,20 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   to "re-show the target", not "mark off-screen silently". The plausible+silent filter
   — the strictest I have — finds nothing: persistent state here is re-checked by design.
   THIRTEENTH clean; even the sharpest triage criterion comes back empty.
+- chrome/step timestamp accumulation (plausible+silent: time drift) — CLEAN (single-
+  source, no accumulation). Drift would be the textbook plausible+silent bug: every
+  reel accumulates timestamps, a strip appearing slightly off nobody notices. Traced:
+  chromeSet (rec.mjs:497-504) and stepTimes (:927) read `clock.now()` DIRECTLY — the
+  one recording clock (offline vt / realtime wall), the SAME source the video frames
+  are captured against. No manual delta accumulation = no drift. A same-instant
+  re-set (two chromeSet at one clock.now) makes a zero-duration window, filtered by
+  the encode's `t1 > t0 + 0.05`. endT0 (:936) is a single read too. So strip↔content
+  sync is correct BY CONSTRUCTION (shared clock), not by careful arithmetic. NO FIX.
+  LESSON: time-drift bugs come from ACCUMULATING deltas (each step adds to a running
+  total, errors compound); reading a single monotonic source each time can't drift.
+  The motor records absolute clock.now() timestamps, never sums durations — drift-
+  immune by design. FOURTEENTH clean — one more and the 15-dry stop rule unlocks; the
+  verdict has been settled for ~10 iters (vein dry, floor confirmed every which way).
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
