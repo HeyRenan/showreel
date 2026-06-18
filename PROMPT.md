@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 3/15   (last change: badgeInk, 31st bug. dry: threshold-proxy, doc-rot, test-coverage+error-UX of session fixes all guarded)
+  DRY STREAK: 4/15   (last change: badgeInk, 31st bug. dry: threshold-proxy, doc-rot, coverage/UX, light-theme-a11y structurally-impossible)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -786,6 +786,25 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   with NO code — rule 4 explicitly forbids manufacturing a redundant test to look
   productive. Three clean iters in a row (threshold-proxy, doc-rot, this) — the vein
   is thinning (badgeInk was 3 iters back); not dry, but the easy lenses are spent.
+- light-theme text-over-glass contrast (a11y render lens) — CLEAN (no bug, the
+  premise is structurally impossible). Wanted to render-measure WCAG contrast of live
+  text on glass in a LIGHT scene (after the theme + badgeInk fixes). Rendered with
+  --theme light, but measure-before-claiming first traced --theme: rec.mjs:359 sets
+  pageTheme from --theme as a FALLBACK, then :543-544 OVERWRITES it every step with
+  readLiveTheme(page) — the live detection of the real page. The render came out DARK
+  (bg L=0.005) despite --theme light, because the demo IS dark and readLiveTheme wins.
+  That's DESIGN (:538 comment: a mid-reel page theme-flip must be tracked; the overlay
+  must match the page being recorded, not a flag). The consequence: the "illegible
+  text on light glass" case is STRUCTURALLY IMPOSSIBLE — readLiveTheme keeps overlay
+  and page in agreement, and NOTEINK derives from that same theme (the liveOpDom fix).
+  Text-vs-glass can't mismatch by construction. To even test light, I'd need a light
+  PAGE, not a flag — and there the system would still match correctly. NO FIX. LESSON:
+  a render lens needs a reachable STATE, not just a flag — --theme light didn't produce
+  a light render because a stronger signal (readLiveTheme) overrides it. Trace the flag
+  to the value it actually sets before building a test around it (the --theme→
+  readLiveTheme override is the same shape as: read what really sets the value). FOUR
+  clean iters now (threshold-proxy, doc-rot, coverage/UX, this) — the vein is genuinely
+  thin. Next angles need a real second page/OS or are low-value; honesty clause looms.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
