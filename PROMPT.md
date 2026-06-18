@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 1/15   (last change: glide parseFloat||80, 30th bug. +1 dry: fade||400 + cam.s||1 protected, not the cursor-0 class)
+  DRY STREAK: 2/15   (last change: glide parseFloat||80, 30th bug. dry: fade/cam.s, unvalidated-data-input (sparkline/countup) runtime-guarded)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -660,6 +660,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   (validated? 0 meaningful?) decides. Read where the value comes from, not just the
   ||. The cursor-0 fix's class is now exhausted: one real (unvalidated clientX), two
   protected (validated / 0-means-fallback).
+- unvalidated DATA inputs → degenerate arithmetic (sparkline.points, countup.to) —
+  CLEAN (no bug, runtime-guarded by design). Took the cursor-0's distilled rule
+  ("unvalidated AND wrong-handling reachable") to the DATA inputs that feed chart/
+  count math. Both ARE loosely validated: sparkline.points all-equal [5,5,5] passes,
+  countup.to accepts non-numeric "abc". Suspected degenerate math: zero range (div-by-
+  zero → NaN path) and NaN target. PROVEN both guarded in the runtime: sparkline does
+  `span = hi - lo || 1` (range-0 → 1, a flat mid-line) + `pts.map(Number).filter
+  (isFinite)` + `length>=2 ? raw : default` — sound against all-equal/NaN/empty.
+  countup does `src.match(/^(\D*?)([\d.,]+)(\D*)$/); if(!m) return false` + `if(!isFinite
+  (target)) return false` — non-numeric "abc" → graceful no-op dwell, never NaN in the
+  DOM (deliberate: `to` is free text like "$1,234.50"). NO FIX. KEY DISTINCTION from
+  cursor-0/safeguards: those fed unvalidated input STRAIGHT to math/DOM with no
+  downstream guard; sparkline/countup have defensive runtime (||1, regex+isFinite) that
+  neutralizes degenerates. LESSON: "unvalidated input" is necessary but NOT sufficient
+  for a bug — the second half is "AND no downstream guard." A loose validator is fine
+  when the consumer is defensive; the bug is loose-validator + naive-consumer. Read the
+  CONSUMER's guards, not just the validator's gaps.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
