@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 4/15   (last change: badgeInk, 31st bug. dry: threshold-proxy, doc-rot, coverage/UX, light-theme-a11y structurally-impossible)
+  DRY STREAK: 5/15   (last change: badgeInk, 31st bug. dry: threshold-proxy, doc-rot, coverage/UX, light-a11y, pngread decoder correct+scoped)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -805,6 +805,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   readLiveTheme override is the same shape as: read what really sets the value). FOUR
   clean iters now (threshold-proxy, doc-rot, coverage/UX, this) — the vein is genuinely
   thin. Next angles need a real second page/OS or are low-value; honesty clause looms.
+- pngread.mjs — the decoder ALL my pixel-proofs relied on (never-opened file) — CLEAN
+  (correct + well-scoped). Resisted declaring "dry" without opening files I'd never
+  read critically — and pngread is the one that mattered most: every render-proof this
+  session measured pixels through it. If it decoded wrong, my proofs were garbage. It
+  supports ONLY bitDepth 8, interlace 0, colorType 2(RGB)/6(RGBA) — throws (explicit
+  message) on anything else (paletted/gray/interlaced). Traced its motor uses: all
+  decode page.screenshot({type:'png'}) (rec-page:20, prove:341, annotate:315) =
+  Playwright PNG, which is ALWAYS RGBA/8/non-interlaced — so the guards never fire in
+  the real flow, and my measurements were valid (no crashes all session = the inputs
+  were always 6/8/0). The one path taking an EXTERNAL png (annotate vcheck :461, a
+  debug subcommand) throws a CLEAR "unsupported colorType 3" on a paletted input —
+  loud, not silent-wrong. Supporting paletted would be YAGNI (the motor never makes
+  one; the debug path errors clearly). NO FIX. LESSON: opening the never-examined
+  BASE tool (the one my own method depended on) is the highest-value clean to confirm
+  — if pngread were wrong, 30+ pixel-proofs collapse. It's correct + scoped + loudly-
+  guarded. FIVE clean iters now; opening a brand-new file came back clean too, which
+  (unlike past iters where new files held bugs) genuinely reinforces the floor.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
