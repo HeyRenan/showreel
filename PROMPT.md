@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: live color injection, 21st bug)
+  DRY STREAK: 0/15   (last change: annotate badge injection, 22nd bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -234,6 +234,21 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   called closed (end-card model, cursor-inject) had a THIRD member unaudited — live
   rowEl. Same as the luma-detector third copy: a "closed family" can hide a member
   in a file I hadn't re-read through THAT lens.
+- annotate badge → innerHTML injection (security, the inject family's 4th member)
+  — 1 bug fixed: the static glossary + standalone/marks badge baked an author
+  badge value RAW into innerHTML while the SIBLING text on the same construction
+  line was escaped — a `<img src=x onerror=…>` badge injected markup (proven in
+  real Chromium). Three sites, one class: glossary explicit-items row (:444, n raw
+  / t escaped), glossary marks-derived row (:438, same split), drawBadge label
+  (:379 — covers step.badge + mk.badge, baked via add()'s html arg). Escaped all
+  three with the SAME [<>&] strip the siblings already use (drawBadge is the one
+  home for both badge call-sites). Verified NO author-string sink left raw in
+  rec-annotate (grep: every String(step./it./mk./g./modal./gOpt.) now has the
+  strip). 526 green, audit clean. LESSON (repeated, now a firm rule): right after
+  fixing live-color injection I called the inject-escape family closed — and it had
+  a 4th member in rec-annotate, a file I'd never read through the inject lens. The
+  GREEN accent there WAS already saneado (safeAccent) + most text escaped; only
+  badge slipped. A "closed family" is only closed for files re-read under that lens.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
