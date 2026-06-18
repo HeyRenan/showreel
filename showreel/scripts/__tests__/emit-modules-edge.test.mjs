@@ -76,6 +76,17 @@ test('buildCursorSnippet: size/ripple numbers are interpolated into the source',
   assert.match(s, /background:rgba\(22,163,74,0\.18\)/); // fill is the .18 rgba
 });
 
+test('buildCursorSnippet: a quote in the color cannot break out of the cssText', () => {
+  // color is baked raw into a single-quoted cssText; a stray quote would corrupt
+  // the injected snippet. safeColor charset-strips it (end-card JSON-encodes its
+  // text for the same reason). Valid colors pass through untouched.
+  const s = buildCursorSnippet({ color: "red';alert(1);'", size: 28, rippleMs: 750, rippleMax: 110 });
+  const seg = s.match(/solid ([^;]*);background/);
+  assert.ok(seg && !seg[1].includes("'"), 'no quote survives in the baked color');
+  assert.match(buildCursorSnippet({ color: 'rebeccapurple', size: 28, rippleMs: 1, rippleMax: 2 }), /solid rebeccapurple;/);
+  assert.match(buildCursorSnippet({ color: 'rgb(1,2,3)', size: 28, rippleMs: 1, rippleMax: 2 }), /solid rgb\(1,2,3\);/);
+});
+
 test('buildCursorSnippet: the emitted snippet is a self-invoking IIFE', () => {
   // it gets pasted straight into page.evaluate(); it must be one callable expr.
   const s = buildCursorSnippet({ color: '#000', size: 28, rippleMs: 1, rippleMax: 2 });

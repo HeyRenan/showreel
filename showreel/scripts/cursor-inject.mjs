@@ -26,9 +26,19 @@ export function hexToRgba(hex, a) {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+// Restrict a CSS color to the chars a real color uses (#hex, rgb()/hsl(),
+// named). Baked raw into a single-quoted cssText, a stray quote would corrupt
+// the injected snippet — end-card-inject JSON-encodes its text for the same
+// reason; a color sits in a CSS slot, so charset-sanitize instead.
+function safeColor(c) {
+  const s = String(c == null ? '' : c).replace(/[^#0-9a-zA-Z(),.%\s/-]/g, '').trim();
+  return s || '#16a34a';
+}
+
 // Build the injectable cursor + ripple snippet string from resolved options.
 // Pure/deterministic: numbers and color are baked into the returned source.
 export function buildCursorSnippet({ color, size, rippleMs, rippleMax }) {
+  color = safeColor(color);
   const fill = hexToRgba(color, 0.18);
   return `(() => {
   // ---- fake cursor + click ripple (cursor-inject.mjs) ----

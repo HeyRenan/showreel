@@ -109,6 +109,7 @@ recommend stopping rather than inventing work.
 - rec-input doSelect — 1 bug fixed (silent no-op): a select with an option that matched no <select> label (typo, or wrong element) silently did nothing — no value set, no warning, reel rendered as if the step worked. Now warns "select skipped — <sel>: no option matches ... (have: ...)". Also KEEP-IN-SYNC comments on the option-match logic duplicated across the panel-build + value-set safeEvals.
 - prove.mjs parse — 1 bug fixed (a test had LOCKED it in, again): surplus positionals were silently dropped (an unquoted selector with spaces mis-bound the out filename, no error) — the demo/rec parsers guard this, prove did not. Added the too-many-positionals guard; removed the test that documented the footgun as the contract ("surplus ignored, never throw") + added one asserting it throws. (Required positionals were already caught at main() line 364.)
 - CLI parser footgun SWEEP — 3 more parsers fixed (shot.mjs, compose-video.mjs, compose.mjs) all had the same unguarded surplus-positional mis-bind. Closed the whole family: demo/rec/prove/shot/compose-video/compose now all reject too-many positionals with a quote-your-path hint; tape uses positional[0] (immune). +test for compose-video (exported); shot/compose parse aren't exported so fix-only (verified via real CLI). This recurring class is now exhausted.
+- inject-snippet builders — 1 bug fixed: cursor-inject baked the raw --color into a single-quoted cssText with no escaping (a stray quote corrupts the injected snippet), while sibling end-card-inject JSON-encodes its text for exactly that reason. Added safeColor (charset-strip to real CSS-color chars); valid colors untouched. +test. (Author-controlled, so low severity, but the silent-corruption class + the inconsistency with end-card made it worth closing.)
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
@@ -116,12 +117,14 @@ recommend stopping rather than inventing work.
 - (ledger now covers every candidate originally listed. New angles to consider:
   cross-browser font fallback in captures; a very long reel / many-live-elements
   stress; doFill re-fill / contenteditable clearing; tape.mjs vhs flow; the
-  before-after HTML escape; cursor-inject / end-card-inject snippet correctness.
+  before-after HTML escape.
   NOTE 1: several bugs were tests that LOCKED IN buggy behavior — when a fix
   breaks an existing test, check whether the test was asserting the bug.
-  NOTE 2: the CLI-parser surplus-positional family is now fully closed.
-  NOTE 3: severity has dropped to periphery (CLI/UX/doc). If an angle returns
-  clean and the remaining angles are all low-severity, recommend stopping.)
+  NOTE 2: the CLI-parser surplus-positional family is now fully closed; the
+  inject-snippet escaping inconsistency is closed (end-card was the model).
+  NOTE 3: severity has dropped to periphery (CLI/UX/doc) and is still dropping.
+  STRONGLY consider stopping after 1-2 more angles — the core is swept, and the
+  honesty clause favors stopping over manufacturing low-value work.)
 
 ## Anchor files (read these, not the whole tree)
 
