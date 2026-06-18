@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: scrollTo/scrollIn missing render-gate, 26th bug)
+  DRY STREAK: 0/15   (last change: zoom-string missing render-gate, 27th bug)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -472,7 +472,24 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   prior iter logged this as a low-severity candidate "won't claim without render-
   proof" — the render proved it silent-wrong (higher severity than guessed) AND
   proved the fix safe. Deferring to render-proof (not guessing severity) was right.
-- <next iteration: append here>
+- zoom-string missing render-gate (scrollTo's direct sibling) — 1 bug fixed,
+  render-proven. Last iter's lesson "fixing a bug spawns the next angle" pointed
+  straight here: zoom was in the SAME --dry list as scrollTo and had the SAME render
+  gap. zoom-as-string is a camera frame (rec.mjs camFrame(step.zoom)), but stepCamera
+  only reads s.camera, so a zoom-string target escaped both the camera path AND
+  existence checking at render. Render-proven silent: {zoom:"#gone"} rendered "OK",
+  exit 0, no warning — camera never frames it, scene renders WIDE (random pan),
+  author unaware. Chose the minimal-risk fix: NOT touching stepCamera (also used by
+  auditScenes, camera semantics) — instead generalized my scroll-existence block to
+  VIEW-MOVERS (scrollTo + scrollIn + zoom-string), existence-only (framing a below-
+  fold element is valid), zoom-specific message. Render-proven both ways: missing →
+  refused; zoom:"#metrics" → passes; zoom:"out" → ignored (not a selector). +test,
+  527 green, showcase audit clean. LESSON: two fixes in a row from the same --dry-vs-
+  render-gate divergence (scrollTo, then zoom) — when you find ONE list that should
+  mirror another, check EVERY member, not just the one that bit you. The --dry list
+  (click/scrollTo/blur/hide/redact/highlight/countup/zoom/fill/select/camera/marks)
+  is now FULLY mirrored at the render gate (the anchored ones via stepAnchors, the
+  view-movers via this block) — that divergence family is closed.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
