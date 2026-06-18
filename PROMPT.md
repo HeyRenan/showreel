@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 1/15   (last change: dead camera guard, 24th change. +1 dry: ephemeral opts two-layer-by-design)
+  DRY STREAK: 2/15   (last change: dead camera guard, 24th change. dry: ephemeral clamps, ephemeral defaults+combos)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -382,6 +382,23 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   FIX. LESSON: family member #4 — form-inputs SOUND, camera PHANTOM, ephemeral TWO-
   LAYER-BY-DESIGN. Three real answers, none predictable from the family name; and a
   narrower-than-gate clamp is correct, only a WIDER-than-gate one would be the bug.
+- ephemeral opt DEFAULTS + opt-combinations (2nd pass, new falsifiable rule) —
+  CLEAN (no bug, one regex-artifact false alarm killed by reading source). Last
+  iter gave a falsifiable rule ("a clamp WIDER than the gate would be the bug");
+  this iter tested a NEW falsifiable rule on the same layer: "every default must
+  sit inside its own clamp AND the gate" — because clamp(v,lo,hi,d) returns `d`
+  UN-clamped when v is non-numeric, so a default outside [lo,hi] would render a
+  value no author could pass. A grep tabulation flagged `scale clamp[0.3,3]
+  default=0` — scale 0 = zero-size effect (invisible). Read the actual lines (906/
+  1084/…/2307): EVERY scale default is 1 (or a dynamic arg>0); the `=0` was a sed
+  mis-parse, not real. All defaults verified ∈ their clamp ∈ the gate (duration
+  560–2600 ⊂ [200,8000], count 2–28 ⊂ clamp, scale/intensity =1). 2nd angle: opt
+  COMBINATIONS — checked for N*SC-style blowups; element loops are all `i<N` with N
+  = clamp(count)≤60, scale only sizes (never multiplies count), post-clamp math
+  (ZOOM=1+SC*0.06 ⇒ [1.018,1.18]) stays sane. No combinatorial explosion. NO FIX.
+  LESSON: a falsifiable rule that COULD have caught a real bug (default=0 breaks
+  render) but didn't = real coverage, not a shrug — and measure-before-claiming
+  (read the lines, don't trust the grep) killed the one false positive.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
