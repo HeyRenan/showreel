@@ -162,7 +162,7 @@ export function makeLive(rctx) {
       if (spec.title) {
         const h = document.createElement('div');
         h.style.cssText = 'display:flex;align-items:center;gap:9px;padding:14px 20px;border-bottom:1px solid ' + HAIR;
-        h.innerHTML = '<span style="width:9px;height:9px;border-radius:50%;background:' + accent + ';box-shadow:0 0 8px ' + accent + '"></span>'
+        h.innerHTML = '<span class="__live_dot" style="width:9px;height:9px;border-radius:50%;background:' + accent + ';box-shadow:0 0 8px ' + accent + '"></span>'
           + '<span style="color:' + NOTEINK + ';font:700 19px/1.2 system-ui;letter-spacing:-.01em">' + esc(spec.title) + '</span>';
         panel.appendChild(h);
       }
@@ -189,7 +189,7 @@ export function makeLive(rctx) {
         const t = document.createElement('div');
         t.style.cssText = 'display:flex;align-items:center;gap:8px;color:' + NOTEINK + ';font:700 15px system-ui;'
           + 'letter-spacing:-.01em;margin:0 0 11px;padding-bottom:9px;border-bottom:1px solid ' + HAIR;
-        t.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:' + accent
+        t.innerHTML = '<span class="__live_dot" style="width:7px;height:7px;border-radius:50%;background:' + accent
           + ';box-shadow:0 0 7px ' + accent + '"></span>' + esc(spec.title);
         panel.appendChild(t);
       }
@@ -273,7 +273,12 @@ export function makeLive(rctx) {
         const r = rs[op.recolor.item - 1];
         if (r && op.recolor.color) { const b = r.querySelector('span:first-child'); b.style.background = op.recolor.color; b.style.boxShadow = '0 0 0 3px ' + op.recolor.color + '26'; }
       } else if (op.recolor.color) {
+        // the panel accent lives in TWO places at create: the left border AND the
+        // title dot (background + glow). Recolor both, else half the accent flips
+        // (red border, stale-blue dot) — a visible state divergence.
         panel.style.borderLeftColor = op.recolor.color;
+        const dot = panel.querySelector('.__live_dot');
+        if (dot) { dot.style.background = op.recolor.color; dot.style.boxShadow = '0 0 8px ' + op.recolor.color; }
       }
     } else if (op.replace) {
       body.innerHTML = '';
