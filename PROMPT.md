@@ -103,13 +103,14 @@ recommend stopping rather than inventing work.
 - showcase rendered end-to-end + watched (realtime, 151s, valid mp4) — CLEAN. Sampled ~7 frames across the reel (dark console, light forms, deploy climax, confirmations): no broken layout, no contrast failure, no overlap/empty frames, coherent arc. No bug. Roster has no dead-air steps, 8 accents, scene-clear present. (Reel is realtime-only — confetti/sparkline refuse --offline by design.)
 - rec-motion easing review — CLEAN. ease-in-out-quad (glide) and the camBez cubic-bezier(.4,0,.2,1) solver (X/Y formulas + bisection invert) both verified correct; glide uses quad (cursor-only), glideChase uses camBez (camera-synced) by design. No bug. Only finding: scrollDeltaFor and smoothScroll duplicate identical scroll-target math across two safeEval closures (no drift yet) — added KEEP-IN-SYNC comments (eval abstraction would be the smell, per the DRY nuance).
 - rec-page theme luminance — 1 bug fixed (DRY-of-a-decision): detectPageLook seeded theme at lum<118 while readLiveTheme used <0.5 (=127.5), so a mid-gray page (118–127) seeded 'light' then flipped 'dark' on the first live read — an unwanted mid-reel recolor. Aligned both to the 0–255 midpoint + KEEP-IN-SYNC comments.
+- presets/ review — all 3 presets VALID + DRY PASS (every selector resolves on the bundled demo); no broken examples. Doc rot fixed: SKILL.md "55-key grammar" (now 56) and presets/README ">=0.9 vocabulary" — both made un-rottable (point to the cookbook/STEP_KEYS.size instead of a number); dropped a contradictory hardcoded "(56)" in the cookbook that sat next to "must equal STEP_KEYS.size".
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
 - (ledger now covers every candidate originally listed. New angles to consider:
   the preflight.sh script; cross-browser font fallback in captures; a very long
-  reel / many-live-elements stress; rec-input fill/select; the presets/ JSON.
+  reel / many-live-elements stress; rec-input fill/select.
   Add the one you pick, then move it up.)
 
 ## Anchor files (read these, not the whole tree)

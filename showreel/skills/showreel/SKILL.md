@@ -65,7 +65,7 @@ Whatever you pick: every label visibly connects to its target, and the final fra
 
 EVERY explanatory label must visibly connect to its target (arrow on the note, leader on the anchored modal, or centered modal narration) — never floating.
 
-**Before writing any rec steps beyond a straight preset swap, read `references/rec-cookbook.md` — THE CONTRACT:** the 55-key GRAMMAR TABLE (shape, required siblings, forbidden forms, element-vs-viewport anchor), the RENDER-MODE + ANCHORING gates, the authoring procedure, and the one binary pre-flight. Write every step against the table, never from memory. Takes open 1:1; establishing auto-fit is opt-in via `--fit`. Need to reveal something clipped inside an `overflow` div (log/list/chat)? Use `scrollIn` — see cookbook.
+**Before writing any rec steps beyond a straight preset swap, read `references/rec-cookbook.md` — THE CONTRACT:** the full step-key GRAMMAR TABLE (shape, required siblings, forbidden forms, element-vs-viewport anchor), the RENDER-MODE + ANCHORING gates, the authoring procedure, and the one binary pre-flight. Write every step against the table, never from memory. Takes open 1:1; establishing auto-fit is opt-in via `--fit`. Need to reveal something clipped inside an `overflow` div (log/list/chat)? Use `scrollIn` — see cookbook.
 
 ## Terminal recordings (`tape.mjs`)
 
