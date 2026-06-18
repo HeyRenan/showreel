@@ -183,9 +183,13 @@ test('live modal: a persistent dialog updates its body in place across steps', {
   // a differently-colored line mid-scene. The new color must be present and the
   // dialog must not have torn down and rebuilt (one modal node only).
   const upd = render([
-    { modal: { id: 'deploy', title: 'Deploying', items: [{ text: 'Starting', color: '#2563eb' }] }, wait: 300 },
-    { live: { append: { text: 'Done', color: '#16a34a' } }, wait: 600 },
+    { modal: { id: 'deploy', title: 'Deploying', items: [{ badge: 1, text: 'Starting', color: '#2563eb' }] }, wait: 300 },
+    { live: { append: { badge: 2, text: 'Done', color: '#16a34a' } }, wait: 600 },
   ], 'modal.mp4');
+  // BOTH lines must be present in the final frame: the original blue held while
+  // the green appended. (Green-only would mean a rebuild dropped the first line —
+  // the exact failure the live model exists to prevent.)
+  assert.ok(countColor(upd.out, '#2563eb') > 0, 'original blue body line still present (no rebuild)');
   assert.ok(countColor(upd.out, '#16a34a') > 0, 'appended green body line present in the live modal');
 
   const gone = render([
