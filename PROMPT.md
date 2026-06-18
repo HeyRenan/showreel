@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 2/15   (last change: degenerate ratio, 29th bug. dry: zoom/scale guards, luma/theme family re-swept post-30-changes)
+  DRY STREAK: 3/15   (last change: degenerate ratio, 29th bug. dry: zoom/scale, luma re-sweep, hide/restore state↔DOM 4 angles)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -589,6 +589,24 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   ~30 changes could have added a 6th detector or drifted a copy (exactly how the
   liveOpDom <128 escaped the original alignment). It held. The grep-and-count detector
   doubles as a regression guard for the families it already cleaned.
+- hide/restore/executedHides state↔DOM (the live-bug lens on persistent hide state)
+  — CLEAN (no bug, 4 angles traced). Applied the richest lens of the session (state↔
+  DOM divergence — gave the live update/recolor/replace/theme bugs) to the other
+  persistent-state surface: `hide`. Angle 1 idempotency: applyHide guards `if
+  (display==='none' || dataset.srHiding) return` — re-applying is a no-op, so the
+  per-step re-apply (rec.mjs:588) can't corrupt. Angle 2 re-apply: executedHides is
+  re-applied each step + after navigation (:891 restore) because a fresh DOM loses
+  the hide — correct, intentional (hide is narrative + persistent by selector). Angle
+  3 navigation: a prev-screen-only selector (#cookie-bar) just no-ops on the new doc
+  (querySelectorAll empty). Angle 4 restore: re-applies cursor+cam+hides on the new
+  document after a navigating click — a reused id re-hides (expected for a
+  by-selector persistent hide). NO divergence: unlike live (host registry + DOM
+  mirror that drifted), hide uses the DOM ITSELF as source of truth via an idempotent
+  guard — executedHides is the only list, applyHide is idempotent against the real
+  DOM. NO FIX. LESSON: the same lens, on a structurally DIFFERENT design, finds
+  nothing — live drifted because it kept TWO copies of state (host + DOM); hide
+  can't drift because it keeps ONE (DOM, guarded). The lens looks for dual-state; a
+  single-source-of-truth design is immune to it by construction.
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
