@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 0/15   (last change: dead {out:true} camera guard removed — clean-code simplification)
+  DRY STREAK: 1/15   (last change: dead camera guard, 24th change. +1 dry: ephemeral opts two-layer-by-design)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -364,6 +364,24 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   input iter said "a lens is a question, sometimes the answer is sound" — same lens,
   same family (validator↔runtime), and the THIRD member (camera) answered "phantom
   shape." Form inputs sound, camera not — you can't predict which from the family.
+- ephemeral opts: validator gate vs applyX clamp (4th validator↔runtime member) —
+  CLEAN (no bug, FULL clamp table measured, DRY-violation ruled out). The validator
+  range-checks every opt strictly (count[1,60], scale(0,4], intensity[0.2,2],
+  duration[120,12000]; rejects -5 / "lots" / 99999) — a GENERIC sanity gate for all
+  ephemeral types (rec-steps:362-378). Each applyX then clamps with its OWN per-
+  effect range. Suspected DRY-of-a-decision: confetti's runtime clamps duration
+  [200,8000] + scale[0.3,3] are NARROWER than the gate, so author scale:3.5 validates
+  but renders as 3 — "accepted value silently adjusted." Tabulated EVERY runtime
+  clamp (grep): duration [200/600,8000], scale [0.3,3], intensity [0.2,2], count
+  [1,8]/[1,12]/[1,20]/[1,60] — ALL ⊆ the gate, NONE wider. So the validator never
+  rejects a value any effect could use; the gate is the broad sanity ceiling, each
+  applyX the physical fit (particle count ≠ orbit laps ≠ countup digits — genuinely
+  different per effect). Two LEGITIMATE layers, not a drifting single decision.
+  Making the validator per-type (16×4 ranges) is the bloated abstraction the prompt
+  forbids; the silent in-bounds clamp is graceful degradation, not silent-wrong. NO
+  FIX. LESSON: family member #4 — form-inputs SOUND, camera PHANTOM, ephemeral TWO-
+  LAYER-BY-DESIGN. Three real answers, none predictable from the family name; and a
+  narrower-than-gate clamp is correct, only a WIDER-than-gate one would be the bug.
 - <next iteration: append here>
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
