@@ -38,8 +38,12 @@ function ANNOTATE(payload) {
             sctx.drawImage(cv, 0, 0, 64, 48);
             var d = sctx.getImageData(0, 0, 64, 48).data;
             var sum = 0, n = d.length / 4;
-            for (var i = 0; i < d.length; i += 4) sum += d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722;
-            return sum / n < 118 ? 'dark' : 'light';
+            // MUST match rec-page.detectPageLook (same purpose: is the page light
+            // or dark): Rec.601 weights + the 0-255 midpoint threshold. This was
+            // Rec.709 weights + 118, disagreeing with rec-page (601 + 127.5), so a
+            // mid-gray page got different themes on the MCP path vs the rec path.
+            for (var i = 0; i < d.length; i += 4) sum += d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+            return sum / n < 127.5 ? 'dark' : 'light';
           } catch (e) { return 'light'; }
         }
         var theme = (p.theme === 'dark' || p.theme === 'light') ? p.theme : detectTheme();

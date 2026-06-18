@@ -114,6 +114,15 @@ recommend stopping rather than inventing work.
 - doFill re-fill / contenteditable clearing — CLEAN. Re-filling an input replaces (not stacks): "First Value"->cleared->"Second" pixel-proven on the demo. Exercised the contenteditable branch directly on a synthetic page (not assumed): "old content"->cleared->"fresh" pixel-proven. Both clear-then-type paths sound. No bug.
 - tape.mjs vhs flow — CLEAN. q() escaping correct (quotes + backslashes, balanced) on a nasty Type string; validateSteps thorough (shape/unknown-key/ctrl-length/sleep-range). The sleep/wait alias picks sleep and drops wait silently, but they mean the SAME concept (a pause) so the single Sleep is coherent — borderline non-bug, not worth a fix. No real bug.
 - many-live-elements stress — 1 bug fixed (good thing we kept going): multiple live panels with no explicit pos all landed at the default top-right corner and HID each other — only the last showed (red=0/blue=1/green=298 px). Added a deterministic cascade (stack each new panel below/above the ones already at that corner, summing their heights). Now all visible (221/205/478) in a clean vertical stack, pixel + eyeball confirmed. +test. (A false alarm first — my own test had given two panels the same pos; measuring precisely revealed the REAL auto-pos bug underneath.)
+- annotate-canvas.js (MCP-path canvas annotator) — 1 bug fixed: its detectTheme
+  used Rec.709 weights + threshold 118, while rec-page.detectPageLook (SAME
+  purpose: page light/dark) uses Rec.601 + 127.5 — so a mid-gray page got a
+  different theme on the MCP path vs the rec path. (This is the SAME class as the
+  iter-8 rec-page fix; that fix aligned rec-page's two functions but missed this
+  THIRD detector — the memory's "Luma Rec.601 unified" note had skipped it.)
+  Aligned to 601 + 127.5. rec-live's 709 is left — it's WCAG contrast (different
+  purpose, correct formula). No more 118 anywhere. NOTE: a recurring bug surviving
+  in a third copy is itself evidence DRY-of-a-decision needs one home, not 3.
 - concurrent renders sharing scripts/.deps — CLEAN (no bug, design documented).
   Per-render work files are race-safe: rec.mjs uses mkdtempSync for vidDir, so two
   renders get separate dirs (frames/pal.png/list.txt/strips all under it). The one
