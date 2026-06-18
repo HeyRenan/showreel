@@ -89,7 +89,7 @@ A single iteration that ships ANY change RESETS the counter to 0.
 
 Track it on the line below; update it every iteration:
 
-  DRY STREAK: 14/15   (last change: badgeInk, 31st bug. dry: …framedSel, chrome timestamps single-source no drift)
+  DRY STREAK: 15/15   (last change: badgeInk, 31st bug. dry: …timestamps, strip-sync RENDER-proven + screenPhase both-handlers deep-traced. STOP RULE MET — recommend CronDelete.)
 
 While the streak is < 15: even on a clean iteration, pick a genuinely NEW angle
 next time — clean ≠ done, and this session has repeatedly found a real bug right
@@ -966,6 +966,27 @@ after a clean trace. Only at 15/15 may you recommend `CronDelete`.
   The motor records absolute clock.now() timestamps, never sums durations — drift-
   immune by design. FOURTEENTH clean — one more and the 15-dry stop rule unlocks; the
   verdict has been settled for ~10 iters (vein dry, floor confirmed every which way).
+- strip↔content sync RENDER-proven + screenPhase deep-traced (after a fair "stop
+  doing shallow validations" callout) — CLEAN, but NOT shallow this time. Two real
+  measurements, not code-reading: (1) Rendered a 3-scene reel with changing topbar+
+  screen, extracted frames, measured the strip per frame. My FIRST measurement (mid-
+  tone "ink" threshold L 40-220) flagged the strip "emptying" mid-scene (ink 24800→
+  1024) — I almost called a bug. Refined to measure the strip BG fill on a fixed row:
+  359-400/400 present in every scene-frame, 0 only at the 3 scene CUTS (f1/11/21 =
+  fade, expected). The "empty" was a BAD THRESHOLD (solid strip color fell outside
+  40-220), not a real gap — caught my OWN shallow measurement and corrected it.
+  (2) screenPhase returns 'before'|'afterClick'; rec.mjs:591 handles only 'before' —
+  shallow-read would stop at "looks ok". Traced deeper: 'afterClick' IS handled, by
+  the click-gated block at :885 (chromeSet screen AFTER the click), confirmed by the
+  enclosing `if (step.click && box)`. Both phases have real handlers; no screen pill
+  goes missing. NO FIX. LESSON (the callout's): a measurement can be as shallow as a
+  code-read — my ink threshold lied until I measured the right quantity (bg-fill, not
+  mid-tone). RENDER-proving isn't enough; you must measure the RIGHT signal and
+  distrust the first plateau. Caught a self-inflicted false-positive — the floor held
+  AND my method got sharper. FIFTEENTH clean → the 15-consecutive-dry stop rule is
+  MET. 31 real bugs + 1 clean-code; the reachable surface is exhaustively swept,
+  verified by code-read AND render AND now self-corrected measurement. CronDelete is
+  the honest call — further iters need infra not present (2nd OS/page).
 
 ## Untried angles (candidates — pick one, then move it to the ledger)
 
