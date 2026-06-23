@@ -3,7 +3,7 @@
 **Transforme uma URL + seletores CSS num visual pronto — screenshots anotados, GIFs de fluxo, gravações cinematográficas e capturas de terminal. Um comando cada. O agente nunca chuta pixel; toda saída é verificada pixel a pixel antes de salvar.**
 
 [![ci](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml/badge.svg)](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml)
-[![version](https://img.shields.io/badge/version-1.0.0-blue)](showreel/.claude-plugin/plugin.json)
+[![version](https://img.shields.io/badge/version-1.1.0-blue)](showreel/.claude-plugin/plugin.json)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![claude code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](https://claude.com/claude-code)
 
@@ -11,9 +11,9 @@
 
 ## Showcase
 
-[![Veja o showcase completo](assets/showcase-poster.png)](https://github.com/HeyRenan/showreel/releases/download/v1.0.0/showcase.mp4)
+[![Veja o showcase completo](assets/showcase-poster.png)](assets/showcase.mp4)
 
-*Um take só, cada recurso — drawer, câmera, lupa, spotlight, blur ao vivo, formulário digitado, escolha de região, deploy de um clique. Gerado inteiramente pelo plugin na página demo embutida. ([clique pra tocar o MP4 completo](https://github.com/HeyRenan/showreel/releases/download/v1.0.0/showcase.mp4))*
+*Um take só, cada recurso — drawer, câmera, lupa, spotlight, blur ao vivo, formulário digitado, escolha de região, painel de legenda vivo, deploy de um clique. Gerado inteiramente pelo plugin na página demo embutida. ([clique pra tocar o MP4 completo](assets/showcase.mp4))*
 
 > Toda imagem deste README foi gerada pelo próprio Showreel, na página demo "Lumen" embutida. Rode os mesmos comandos, saem os mesmos arquivos.
 
@@ -59,7 +59,8 @@ Cada recurso, um comando. Todos os scripts ficam em `showreel/scripts/`. O agent
 | **Gravação de fluxo** | `rec.mjs` | GIF/MP4 narrado a partir de steps JSON — cursor, ripples, scroll, modais de narração, contador de passos. O GIF do topo é uma chamada só. |
 | **Câmera cinematográfica** | `rec.mjs` | Movimento real de viewport: a página desliza + escala sob um transform animado. `camera` enquadra um elemento, `follow` persegue o cursor, `inset` é uma lupa. |
 | **Spotlight / câmera lenta / auto-anotação** | `rec.mjs` | `spotlight` escurece tudo menos o alvo; `speed` por passo deixa uma animação lenta; `--auto-annotate` contorna um `click`/`fill` cru de graça. |
-| **Render offline** | `rec.mjs --offline` | Renderiza no relógio virtual da página — pausas de leitura colapsam, takes com muito texto terminam numa fração do tempo. Mesmos steps, mesma saída. |
+| **Elementos vivos** | `rec.mjs` | Um `glossary`/`modal` com `id` vira **live** — steps `live` seguintes fazem append/update/recolor/replace/remove das linhas no lugar, sem rebuild, sem piscar. Cores por item, texto casado ao tema. |
+| **Render offline** | `rec.mjs --offline` | Renderiza no relógio virtual da página — pausas de leitura colapsam, takes com muito texto terminam numa fração do tempo. Melhor para takes estáticos/de texto; rajadas de movimento (`confetti`, `sparkline`) exigem um take em realtime. |
 | **Gravação de terminal** | `tape.mjs` | Prova de CLI via [vhs](https://github.com/charmbracelet/vhs): steps JSON → `.tape` → GIF. O GIF do preflight abaixo é uma chamada só. |
 | **Comparação before/after** | `compose.mjs`, `lh-ba.sh` | Dois PNGs ou dois GIFs lado a lado com rótulos. `lh-ba.sh` roda Lighthouse real nos dois branches. |
 | **Otimizador de tamanho** | `shrink.mjs` | Re-encoda gif/png sem perda visível; `--target-kb` percorre uma escada de qualidade. Toda imagem daqui passou por ele. |
@@ -79,7 +80,16 @@ node scripts/rec.mjs <url> --steps-json '[
 ]' out.gif
 ```
 
-**31 chaves de step** (chave desconhecida é rejeitada na entrada): `click, scrollTo, wait, note, arrow, badge, rect, circle, blur, hide, glide, modal, marks, screen, zoom, topbar, bottombar, fill, text, delay, select, option, camera, glossary, stagger, accent, inset, follow, fade, spotlight, speed`.
+**56 chaves de step** (chave desconhecida é rejeitada na entrada):
+
+- **ações** — `click, fill, text, select, option, scrollTo, scrollIn, to, hide`
+- **anotação** — `note, arrow, badge, rect, circle, marks, glossary, inset, modal`
+- **câmera / movimento** — `camera, zoom, follow, glide, speed`
+- **ênfase** — `spotlight, blur, redact, highlight, pulse, ripple, shake, glow, flash`
+- **estado / dados** — `checkmark, typeon, reveal, orbit, kenburns, progress, countdown, countup, sparkline, confetti, trail`
+- **live** — `live` (muta um `glossary`/`modal` no lugar entre steps — append/update/recolor/replace/remove)
+- **chrome / tempo** — `screen, topbar, bottombar, wait, delay, fade, stagger, accent`
+- **knobs por efeito** — `size, dur, count, intensity`
 
 **Escreva rápido:** `--dry` resolve cada seletor na página viva em <1s (`[ok]`/`[MISS]` por step, sem gravar) — corrija os misses, grave uma vez. `--pace fast` corta as pausas ~45% pra rascunho. `--contact-sheet` escreve um mosaico de ~24 frames pra o take se revisar sozinho.
 
@@ -101,6 +111,25 @@ Cada recurso, demonstrado — toda imagem gerada pelo plugin na página demo.
 | **glossary** — painel de legendas | **hide** — some com um elemento | **glide** — scroll animado |
 | ![compose](assets/compose-motion.gif) | ![terminal](assets/terminal.gif) | ![compose-static](assets/compose.png) |
 | **compose** — before/after (movimento) | **tape** — captura de terminal | **compose** — before/after (estático) |
+
+**Elementos vivos & estado** — um painel que cresce no lugar, mais o kit completo de movimento/estado:
+
+| | | |
+|:---:|:---:|:---:|
+| ![live](assets/live.gif) | ![confetti](assets/confetti.gif) | ![countup](assets/countup.gif) |
+| **live** — adiciona linhas no lugar | **confetti** — celebra um sucesso | **countup** — número subindo |
+| ![sparkline](assets/sparkline.gif) | ![progress](assets/progress.gif) | ![countdown](assets/countdown.gif) |
+| **sparkline** — desenha tendência | **progress** — barra de rollout | **countdown** — contagem pré-ação |
+| ![pulse](assets/pulse.gif) | ![ripple](assets/ripple.gif) | ![glow](assets/glow.gif) |
+| **pulse** — anel de atenção | **ripple** — feedback de toque | **glow** — ênfase ativa |
+| ![checkmark](assets/checkmark.gif) | ![reveal](assets/reveal.gif) | ![flash](assets/flash.gif) |
+| **checkmark** — etapa concluída | **reveal** — novo conteúdo entra | **flash** — piscada de status |
+| ![orbit](assets/orbit.gif) | ![trail](assets/trail.gif) | ![shake](assets/shake.gif) |
+| **orbit** — spinner de trabalho | **trail** — conector A→B | **shake** — bloqueado/erro |
+| ![typeon](assets/typeon.gif) | ![kenburns](assets/kenburns.gif) | ![redact](assets/redact.gif) |
+| **typeon** — texto em streaming | **kenburns** — zoom lento | **redact** — esconde dado sensível |
+| ![highlight](assets/highlight.gif) | | |
+| **highlight** — risca de marcador | | |
 
 ### Primitivas de anotação (`demo.mjs`)
 

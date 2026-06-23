@@ -128,8 +128,8 @@ export function makeLive(rctx) {
       const [r2, g2, b2] = [0, 2, 4].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
       const lin = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
       const L = 0.2126 * lin(r2) + 0.7152 * lin(g2) + 0.0722 * lin(b2);
-      const cWhite = 1.05 / (L + 0.05), cDark = (L + 0.05) / (0.0088 + 0.05); // 0.0088 = L of #0f172a
-      return cDark > cWhite ? '#0f172a' : '#fff';
+      const cWhite = 1.05 / (L + 0.05); // keep the white digit unless it fails 3:1
+      return cWhite >= 3 ? '#fff' : '#0f172a'; // light accent (yellow/cyan) → dark
     };
     // one part node, shared by both element types. A glossary part has a badge
     // pill + text; a modal body part is just text (empty badge renders nothing).

@@ -39,6 +39,11 @@
     "wait": 1300
   },
   {
+    "progress": "#stage-deploy",
+    "note": "Rollout fills as the stage completes",
+    "wait": 2000
+  },
+  {
     "marks": [
       {
         "sel": "#stage-build .stage-name",
@@ -307,22 +312,18 @@
   },
   {
     "orbit": "#stage-deploy .stage-ring",
-    "wait": 500
+    "wait": 850
   },
   {
     "trail": {
       "from": "#stage-push",
       "to": "#stage-deploy"
     },
-    "wait": 500
+    "wait": 800
   },
   {
     "glow": "#stage-deploy .stage-ico",
-    "wait": 500
-  },
-  {
-    "progress": ".deploy-progress i",
-    "wait": 600
+    "wait": 800
   },
   {
     "camera": {
@@ -387,7 +388,7 @@
   },
   {
     "ripple": "#svc-cdn",
-    "wait": 500
+    "wait": 800
   },
   {
     "camera": "out",
@@ -403,11 +404,11 @@
   },
   {
     "sparkline": "#p95 .spark",
-    "wait": 600
+    "wait": 950
   },
   {
     "countup": "#rps .value",
-    "wait": 500
+    "wait": 900
   },
   {
     "camera": "out",

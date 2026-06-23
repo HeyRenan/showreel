@@ -74,6 +74,35 @@ export function makeAnnotator(rctx) {
       const SHADOW = '0 10px 30px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.16)';
       const BLUR = 'backdrop-filter:blur(13px) saturate(140%);-webkit-backdrop-filter:blur(13px) saturate(140%)';
       const cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      // LOCAL surface theme: a note/label floats at an arbitrary point that may sit
+      // over a section whose colour is the OPPOSITE of the page's global theme (a
+      // white form inside a dark site, a dark header band, …). Choosing bg/ink from
+      // the global theme then leaves a dark pill on a dark area (or the reverse) —
+      // an invisible box / unreadable text. Sample the real element UNDER the point
+      // (overlays are pointer-events:none so elementFromPoint sees the page), walk up
+      // for a non-transparent background, and return that surface's dark/light verdict.
+      const lumOf = (c) => { const m = c && c.match(/[\d.]+/g); if (!m || (m[3] !== undefined && +m[3] === 0)) return null; return (0.299 * +m[0] + 0.587 * +m[1] + 0.114 * +m[2]) / 255; };
+      // readable ink on a coloured pill. KEEP the established white digit (the
+      // brand look) UNLESS white is genuinely unreadable on this accent — only then
+      // flip to dark. So the default green keeps white (3.3:1, OK for 16px bold),
+      // but a light accent (yellow/cyan) where white vanishes gets dark. Resolves
+      // hex/rgb/named via a probe element's computed colour.
+      const badgeInk = (col) => {
+        const p = document.createElement('span'); p.style.color = col; document.documentElement.appendChild(p);
+        const rgb = getComputedStyle(p).color; p.remove();
+        const m = rgb && rgb.match(/[\d.]+/g); if (!m) return '#fff';
+        const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        const L = 0.2126 * lin(+m[0]) + 0.7152 * lin(+m[1]) + 0.0722 * lin(+m[2]);
+        const cWhite = 1.05 / (L + 0.05);
+        return cWhite >= 3 ? '#fff' : '#0f172a'; // white if it clears 3:1, else dark
+      };
+      const surfaceDark = (cx, cy) => {
+        let el = document.elementFromPoint(cl(cx, 1, W - 1), cl(cy, 1, H - 1));
+        let L = null;
+        while (el && L == null) { L = lumOf(getComputedStyle(el).backgroundColor); el = el.parentElement; }
+        if (L == null) L = (theme === 'dark') ? 0.05 : 0.95; // nothing opaque found → fall back to global
+        return L < 0.5;
+      };
       const W = innerWidth, H = innerHeight;
       const anchorEl = sel ? document.querySelector(sel) : null;
       const wrap = document.createElement('div');
@@ -287,9 +316,17 @@ export function makeAnnotator(rctx) {
           }
         }
       }
-      const drawRect = (b) =>
-        add('left:' + (b.x - 4) + 'px;top:' + (b.y - 4) + 'px;width:' + (b.w + 8) + 'px;height:' + (b.h + 8) + 'px;' +
+      // outline inflates 4px each side for breathing room, but a target flush
+      // against the viewport edge (e.g. a deploy button half-cut by the frame)
+      // would push the border off-screen — it reads as the rect "extrapolating"
+      // the element. Clamp every edge inside [2, W-2]/[2, H-2] (2px so the 3px
+      // border stays visible), so the outline hugs the visible bounds instead.
+      const drawRect = (b) => {
+        const x0 = cl(b.x - 4, 2, W - 2), y0 = cl(b.y - 4, 2, H - 2);
+        const x1 = cl(b.x + b.w + 4, 2, W - 2), y1 = cl(b.y + b.h + 4, 2, H - 2);
+        add('left:' + x0 + 'px;top:' + y0 + 'px;width:' + Math.max(0, x1 - x0) + 'px;height:' + Math.max(0, y1 - y0) + 'px;' +
           'border:3px solid ' + GREEN + ';border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.35)');
+      };
       // spotlight: dim the whole frame EXCEPT a clear window around the target,
       // pulling the eye to one element.
       //
@@ -406,10 +443,12 @@ export function makeAnnotator(rctx) {
         const at = mark
           ? settle([topCenter, botCenter, ...sides], wpx, 28, true, 'badge ' + label)
           : settle([...sides, topCenter, botCenter, ...corners, ...insides], wpx, 28, false, 'badge ' + label);
+        // digit colour by contrast against the accent pill, not a fixed #fff — a
+        // light accent (yellow/cyan) would swallow white. Mirrors live badgeInk.
         const d = add('left:' + at.x + 'px;top:' + at.y + 'px;min-width:28px;width:' + wpx + 'px;height:28px;border-radius:14px;' +
           'background:' + GREEN + ';border:2px solid rgba(255,255,255,.92);' +
           'box-shadow:0 2px 8px rgba(0,0,0,.45),0 0 0 4px ' + GREEN + '2e;' +
-          'color:#fff;font:700 16px system-ui;display:flex;align-items:center;justify-content:center', label, 4);
+          'color:' + (badgeInk(GREEN)) + ';font:700 16px system-ui;display:flex;align-items:center;justify-content:center', label, 4);
         // pop-scale entrance (overshoot) — a badge should snap in, not fade.
         d.style.opacity = '0';
         d.style.transform = 'scale(.4)';
@@ -454,7 +493,7 @@ export function makeAnnotator(rctx) {
           : '') + rows.map((g) =>
           '<div data-gd="' + g.delay + '" style="display:flex;gap:10px;align-items:center;margin:8px 0;opacity:0;transform:translateX(-6px);transition:opacity .4s ease,transform .4s cubic-bezier(.22,1,.36,1)">' +
           '<span style="flex:0 0 auto;min-width:22px;height:22px;border-radius:11px;background:' + GREEN + ';border:1.5px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px ' + GREEN + '26;' +
-          'color:#fff;font:700 12px/19px system-ui;text-align:center;padding:0 4px">' + g.n + '</span>' +
+          'color:' + badgeInk(GREEN) + ';font:700 12px/19px system-ui;text-align:center;padding:0 4px">' + g.n + '</span>' +
           '<span style="color:' + NOTEINK + ';font:400 15px/1.4 system-ui">' + g.t + '</span></div>').join('');
         const gw = gOpt.width || 320;
         const panel = add('left:-9999px;top:0;width:' + gw + 'px;background:' + GLASS + ';' + BLUR + ';border:1px solid ' + HAIR + ';border-left:2px solid ' + GREEN + ';' +
@@ -590,7 +629,13 @@ export function makeAnnotator(rctx) {
         const noteX = at.x, noteY = at.y;
         const below = noteY >= box.y + box.h;
         const vertical = noteX < box.x + box.w && noteX + noteW > box.x && (below || noteY + noteH <= box.y);
-        add('left:' + noteX + 'px;top:' + noteY + 'px;background:' + NOTEBG + ';color:' + NOTEINK + ';font:600 17px system-ui;letter-spacing:-.01em;white-space:nowrap;' +
+        // contrast against the REAL surface under the note, not the global theme —
+        // a note over a white form inside a dark site must still be a dark pill with
+        // light text. High opacity so the surface behind can't bleed the verdict.
+        const nDark = surfaceDark(noteX + noteW / 2, noteY + noteH / 2);
+        const NBG = nDark ? 'rgba(17,26,44,0.97)' : 'rgba(255,255,255,0.97)';
+        const NINK = nDark ? '#f8fafc' : '#0f172a';
+        add('left:' + noteX + 'px;top:' + noteY + 'px;background:' + NBG + ';color:' + NINK + ';font:600 17px system-ui;letter-spacing:-.01em;white-space:nowrap;' +
           'padding:9px 14px 9px 13px;border-radius:10px;border:1px solid ' + HAIR + ';border-left:2px solid ' + GREEN + ';box-shadow:' + SHADOW + ';' +
           'display:flex;align-items:center;gap:8px',
           '<span style="width:7px;height:7px;border-radius:50%;background:' + GREEN + ';box-shadow:0 0 7px ' + GREEN + ';flex:0 0 auto"></span><span>' + txt + '</span>', 6);
@@ -2188,13 +2233,17 @@ const applyFlash = async (color, opts) => {
         // of the proportional rail (default 1). count/intensity n/a for a bar.
         const DUR = clamp(o.duration, 200, 8000, 1100);
         const SC = clamp(o.scale, 0.3, 3, 1);
-        await safeEval(({ s, col, SC, DUR }) => {
+        const skip = await safeEval(({ s, col, SC, DUR }) => {
           const el = document.querySelector(s);
-          if (!el) return;
-          if (el.dataset.srProgress) return;
+          if (!el) return 'no-element';
+          if (el.dataset.srProgress) return 'already-running';
           const r = el.getBoundingClientRect();
           const cs = getComputedStyle(el);
-          if (r.width < 2 || r.height < 2 || cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) < 0.05) return;
+          // a zero-width target (e.g. a fill <i> that starts at width:0) gives the
+          // rail nothing to span — it would paint an invisible bar. This used to
+          // return silently, which read as "progress never appeared". Now it
+          // reports the reason so the render run surfaces the dead step.
+          if (r.width < 2 || r.height < 2 || cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) < 0.05) return 'zero-box';
           el.dataset.srProgress = '1';
           // Element-anchored: attach as a CHILD so the rail inherits the element box
           // and any ancestor camera transform (a body-level div diverges under zoom).
@@ -2221,14 +2270,20 @@ const applyFlash = async (color, opts) => {
           const BOT = clampN(H * 0.55, 4, 14);
           const RAD = H + 6; // fully rounded pill
           // DESIGN SYSTEM tokens — the rail is a GLASS pill, not a flat fill.
-          const GLASS = dark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.82)';
+          // LIGHT THEME used a near-white glass + 8% track, so on a white card the
+          // whole pill vanished and only a thin green fill remained (read as "the
+          // bar barely appears"). On light, tint the track darker, thicken the
+          // border, and lift it with a real drop shadow so the rail reads.
+          const GLASS = dark ? 'rgba(15,23,42,0.72)' : 'rgba(241,245,249,0.94)';
           // blur scales gently with thickness so big rails read as deeper glass.
           const BL = clampN(H * 1.4, 9, 18);
           const BLUR = 'backdrop-filter:blur(' + BL + 'px) saturate(140%);-webkit-backdrop-filter:blur(' + BL + 'px) saturate(140%)';
-          const HAIR = dark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(15,23,42,0.10)';
-          const SHADOW = '0 ' + (H * 1.1).toFixed(1) + 'px ' + (H * 3.3).toFixed(1) + 'px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.16)';
-          const GLOW = dark ? '0 0 ' + (H * 1.8).toFixed(1) + 'px 2px ' + accent : '0 6px 18px ' + accent + '55';
-          const TRACK = dark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.08)';
+          const HAIR = dark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(15,23,42,0.18)';
+          const SHADOW = dark
+            ? '0 ' + (H * 1.1).toFixed(1) + 'px ' + (H * 3.3).toFixed(1) + 'px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.16)'
+            : '0 ' + (H * 0.8).toFixed(1) + 'px ' + (H * 2.4).toFixed(1) + 'px rgba(15,23,42,.20),inset 0 1px 0 rgba(255,255,255,.6)';
+          const GLOW = dark ? '0 0 ' + (H * 1.8).toFixed(1) + 'px 2px ' + accent : '0 4px 12px ' + accent + '66';
+          const TRACK = dark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.16)';
           const SHEEN = dark ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.9)';
           // fill + sheen transition length tracks the chosen DUR (in seconds) so the
           // fill speed is tunable, not hardcoded at 1.1s.
@@ -2247,11 +2302,14 @@ const applyFlash = async (color, opts) => {
           const groove = document.createElement('div');
           groove.style.cssText = 'position:absolute;inset:0;border-radius:' + RAD + 'px;background:' + TRACK + ';';
           // accent fill = scene color, solid + accent glow per the system. It fills
-          // 0->100% on the entrance ease (transform-only, 60fps) over DUR.
+          // 0->100% over DUR by ANIMATING WIDTH, not transform:scaleX. A scaleX
+          // transition inside an overflow:hidden pill is dropped from the video
+          // capture at larger render widths (≥~1024px the compositor tiles the
+          // layer and culls the transformed child) — the bar then never appears.
+          // Animating `width` keeps the fill a plainly-rasterized box every frame.
           const fill = document.createElement('div');
-          fill.style.cssText = 'position:absolute;inset:0;border-radius:' + RAD + 'px;background:' + accent + ';'
-            + 'box-shadow:' + GLOW + ';transform:scaleX(0);transform-origin:left center;'
-            + 'transition:transform ' + FS + 's cubic-bezier(.18,.7,.3,1);';
+          fill.style.cssText = 'position:absolute;left:0;top:0;bottom:0;width:0;border-radius:' + RAD + 'px;background:' + accent + ';'
+            + 'box-shadow:' + GLOW + ';transition:width ' + FS + 's cubic-bezier(.18,.7,.3,1);';
           // a travelling sheen riding the leading edge — premium, opacity/transform only.
           const sheen = document.createElement('div');
           sheen.style.cssText = 'position:absolute;top:0;bottom:0;width:40%;left:-40%;'
@@ -2265,10 +2323,13 @@ const applyFlash = async (color, opts) => {
           // the entrance — never set opacity 0 and 1 in the same frame.
           requestAnimationFrame(() => { requestAnimationFrame(() => {
             rail.style.opacity = '1'; rail.style.transform = 'translateY(0) scaleX(1)';
-            fill.style.transform = 'scaleX(1)';
+            fill.style.width = '100%';
             sheen.style.opacity = '1'; sheen.style.left = '100%';
           }); });
         }, { s: sel, col: color || '', SC, DUR });
+        if (skip === 'zero-box')
+          console.error('rec: WARN progress "' + sel + '" — target has no visible box (width/height < 2px, or hidden). A 0-width fill element (e.g. ".deploy-progress i") can\'t host a bar; point progress at the sized container instead.');
+        if (skip) return; // nothing drawn — don't hold the clock for an absent bar
         // host life tracks the chosen fill duration (+ entrance settle) so the full
         // fill + brim is captured, not cut nor left lingering into the next step.
         await clock.wait(ms(DUR + 350), true);
