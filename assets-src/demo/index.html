@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen — Deploy Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0E14; --panel:#131722; --raised:#1A1F2C; --sunken:#0c1018;
+    --line:#1E2530; --line-2:#283041;
+    --ink:#E6EAF2; --mut:#8A93A6; --faint:#4a5468;
+    --acc:#5B8CFF; --acc-2:#7C5CF6;
+    --run:#FFB84D; --ok:#34D399; --fail:#F25555;
+    /* soft tints + focus ring — one source for the alphas that recurred inline */
+    --acc-soft:rgba(91,140,255,.12); --ring:rgba(91,140,255,.3);
+    --ok-soft:rgba(52,211,153,.12); --fail-soft:rgba(242,85,85,.12);
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --ui:"Inter",-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0}
+  ::selection{background:rgba(91,140,255,.3)}
+  html{scrollbar-width:none} ::-webkit-scrollbar{display:none}
+  body{color:var(--ink);font-family:var(--ui);min-height:100vh;line-height:1.5;
+    background:
+      radial-gradient(1200px 600px at 85% -10%,rgba(91,140,255,.10) 0%,transparent 55%),
+      radial-gradient(900px 700px at -10% 20%,rgba(124,92,246,.07) 0%,transparent 50%),
+      var(--bg);
+    background-attachment:fixed}
+
+  /* ───── console chrome ───── */
+  header.console-bar{display:flex;align-items:center;gap:14px;padding:16px 24px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;
+    background:rgba(11,14,20,.85);backdrop-filter:blur(14px)}
+  .logo{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em;font-size:1.05rem}
+  .logo i{width:26px;height:26px;border-radius:8px;display:inline-block;
+    background:conic-gradient(from 210deg,var(--acc),var(--acc-2) 55%,var(--acc));
+    box-shadow:0 0 12px rgba(91,140,255,.4)}
+  #env-switch{font-family:var(--mono);font-size:.78rem;font-weight:500;color:var(--mut);
+    background:var(--raised);border:1px solid var(--line-2);padding:5px 12px;border-radius:8px;
+    display:flex;align-items:center;gap:8px}
+  #env-switch::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);
+    box-shadow:0 0 5px var(--ok)}
+  .status-dot{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.76rem;
+    color:var(--mut);margin-left:6px}
+  .status-dot i{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok)}
+  .bar-actions{margin-left:auto;display:flex;gap:10px}
+  .btn{font-family:var(--ui);background:var(--raised);border:1px solid var(--line-2);color:var(--ink);
+    padding:8px 16px;border-radius:9px;font-size:.86rem;font-weight:500;cursor:pointer;
+    transition:border-color .18s,box-shadow .18s,background .18s}
+  .btn:hover{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+  #theme{min-width:92px;text-align:left}
+  .btn:focus-visible{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring)}
+
+  /* floating, content-height menu (not a full-height rail) so a camera can
+     actually frame+magnify it — a 280x839 full-height panel can't be zoomed
+     without cropping, which made the menu scene render wide. */
+  nav.drawer{position:fixed;right:18px;top:70px;width:248px;z-index:7;
+    background:linear-gradient(180deg,var(--panel),var(--sunken));border:1px solid var(--line-2);
+    border-radius:14px;padding:10px;transition:opacity .25s ease,transform .25s cubic-bezier(.4,0,.2,1);
+    box-shadow:0 24px 60px rgba(0,0,0,.55);opacity:0;transform:translateY(-8px) scale(.98);
+    transform-origin:top right;pointer-events:none}
+  nav.drawer.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+  .nav-item{display:flex;align-items:center;gap:11px;color:var(--mut);text-decoration:none;
+    padding:12px 14px;border-radius:9px;font-size:.92rem;border-left:2px solid transparent;
+    transition:all .16s ease}
+  .nav-item:hover{background:var(--acc-soft);color:var(--ink);border-left-color:var(--acc)}
+  .nav-item b{font-family:var(--mono);font-size:.7rem;color:var(--mut);margin-left:auto;font-weight:500;
+    padding:1px 6px;border-radius:5px;background:var(--sunken)}
+
+  /* ───── layout ───── */
+  main{max-width:1180px;margin:0 auto;padding:32px 24px 90px}
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;
+    box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 18px 40px rgba(0,0,0,.28)}
+  .panel__head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .panel__head h2{font-size:1rem;font-weight:600;letter-spacing:-.015em}
+  .pipeline .panel__head h2{font-size:1.12rem}
+  .panel__head .tag{font-family:var(--mono);font-size:.68rem;color:var(--mut);text-transform:uppercase;
+    letter-spacing:.08em}
+
+  /* ───── pipeline (the hero) ───── */
+  ul.stages{list-style:none;display:flex;align-items:stretch;gap:0;padding:6px 2px 10px}
+  li.stage{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;
+    padding:8px 4px}
+  .stage-link{position:absolute;top:32px;left:50%;width:100%;height:2px;background:var(--line-2);
+    z-index:0;overflow:hidden}
+  li.stage:last-child .stage-link{display:none}
+  .stage-link i{position:absolute;inset:0;width:0;background:linear-gradient(90deg,var(--acc),var(--acc-2));
+    box-shadow:0 0 8px var(--acc)}
+  .stage-ico{width:60px;height:60px;border-radius:16px;background:var(--raised);
+    border:1px solid var(--line-2);display:grid;place-items:center;position:relative;z-index:1;
+    font-family:var(--mono);font-size:1.05rem;color:var(--mut);transition:all .25s ease}
+  .stage-ring{position:absolute;inset:-5px;border-radius:20px;border:2px solid transparent;z-index:0}
+  .stage .badge{width:20px;height:20px;border-radius:50%;background:var(--line-2);display:grid;
+    place-items:center;font-size:.7rem;color:var(--mut);transition:all .2s ease}
+  .stage-name{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--mut)}
+  .stage .chip{font-family:var(--mono);font-size:.64rem;padding:2px 8px;border-radius:99px;
+    background:var(--line);color:var(--mut);border:1px solid var(--line-2)}
+  li.stage.running .stage-ico{border-color:var(--run);color:var(--run);box-shadow:0 0 0 4px rgba(255,184,77,.12)}
+  li.stage.running .stage-name{color:var(--run)}
+  li.stage.running .chip{background:rgba(255,184,77,.12);color:var(--run);border-color:rgba(255,184,77,.3)}
+  li.stage.done .stage-ico{border-color:var(--ok);color:var(--ok)}
+  li.stage.done .badge{background:var(--ok);color:#06281c}
+  li.stage.done .stage-name{color:var(--ink)}
+  li.stage.fail .stage-ico{border-color:var(--fail);color:var(--fail);box-shadow:0 0 0 4px rgba(242,85,85,.14)}
+  li.stage.fail .stage-name{color:var(--fail)}
+  li.stage.fail .badge{background:var(--fail);color:#fff}
+  li.stage.fail .chip{background:rgba(242,85,85,.12);color:var(--fail);border-color:rgba(242,85,85,.3)}
+  li.stage.done .chip{background:rgba(52,211,153,.12);color:var(--ok);border-color:rgba(52,211,153,.3)}
+  .deploy-progress-wrap{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+  .deploy-progress-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+  .deploy-progress-label b{font-size:.78rem;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  .deploy-progress{height:5px;border-radius:99px;background:var(--sunken);overflow:hidden}
+  .deploy-progress i{display:block;height:100%;width:0;border-radius:99px;
+    background:linear-gradient(90deg,var(--acc),var(--acc-2));
+    transition:width .3s ease}
+
+  /* ───── log stream ───── */
+  .log-stream__body{font-family:var(--mono);font-size:.78rem;line-height:1.9;height:208px;
+    overflow:auto;background:var(--sunken);border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+    color:var(--mut);position:relative}
+  .log-stream__body .line{white-space:pre-wrap}
+  .line--ok{color:var(--ok)} .line--err{color:var(--fail)}
+  .line .ts{color:var(--faint);margin-right:8px}
+
+  /* ───── metrics cluster ───── */
+  .kpi{background:var(--raised);border:1px solid var(--line-2);border-radius:12px;padding:16px}
+  .metrics .kpi + .kpi{margin-top:12px}
+  .kpi__label{font-size:.74rem;color:var(--mut);display:flex;align-items:center;justify-content:space-between}
+  .kpi b.value{font-family:var(--mono);font-size:1.55rem;font-weight:700;display:block;margin-top:6px;
+    font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .kpi .spark{display:block;margin-top:10px;width:100%;height:34px}
+  .kpi .delta{font-family:var(--mono);font-size:.7rem;padding:1px 7px;border-radius:99px;
+    background:rgba(52,211,153,.12);color:var(--ok)}
+  .kpi .delta.down{background:rgba(242,85,85,.12);color:var(--fail)}
+
+  /* ───── topology ───── */
+  .topo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative}
+  .svc-node{background:var(--raised);border:1px solid var(--line-2);border-radius:12px;padding:12px 16px;
+    display:flex;align-items:center;gap:11px;position:relative;transition:border-color .2s,box-shadow .2s}
+  .svc-node:hover{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+  .svc-node .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 4px var(--ok);flex:none;transition:all .2s}
+  .svc-node .nm{font-family:var(--mono);font-size:.8rem}
+  .svc-node .st{font-family:var(--mono);font-size:.66rem;color:var(--ok);margin-left:auto}
+  .svc-node--focus{border-color:var(--acc)}
+  .topology[data-rollout] .svc-node{border-color:rgba(52,211,153,.4)}
+  .topology[data-rollout] .svc-node .st{color:var(--ok)}
+
+  /* ───── deploy panel ───── */
+  .deploy-panel{display:flex;flex-direction:column;gap:14px}
+  .cta{font-family:var(--ui);display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    background:linear-gradient(92deg,var(--acc),var(--acc-2));color:#fff;border:none;padding:16px 24px;
+    border-radius:11px;font-size:1rem;font-weight:600;cursor:pointer;width:100%;
+    box-shadow:0 8px 22px rgba(91,140,255,.28);transition:transform .14s,box-shadow .2s,filter .2s}
+  body.light .cta{box-shadow:0 8px 22px rgba(43,82,201,.22)}
+  .cta:hover{transform:translateY(-1px);box-shadow:0 12px 28px var(--ring)}
+  .cta:focus-visible{outline:none;box-shadow:0 0 0 3px var(--ring)}
+  .cta .spin{display:none;width:15px;height:15px;border:2px solid rgba(255,255,255,.45);
+    border-top-color:#fff;border-radius:50%;animation:sr-spin .7s linear infinite}
+  @keyframes sr-spin{to{transform:rotate(360deg)}}
+  .cta.loading{filter:saturate(.85)} .cta.loading .spin{display:inline-block}
+  .cta.done{background:linear-gradient(92deg,#10b981,#059669);box-shadow:0 8px 22px rgba(16,185,129,.36)}
+  .cta .chk{display:none;font-weight:800}
+  .cta.done .chk{display:inline-block;animation:sr-pop .35s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes sr-pop{from{transform:scale(0)}to{transform:scale(1)}}
+  @keyframes sr-shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}
+    30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+  /* .blocked = persistent error colour (stays for the whole guard scene);
+     .shaking = the one-shot shake animation (removed after it plays) */
+  .cta.blocked{background:linear-gradient(92deg,var(--fail),#c0392b);box-shadow:0 8px 22px rgba(242,85,85,.32)}
+  .cta.shaking{animation:sr-shake .5s cubic-bezier(.36,.07,.19,.97)}
+  .timer{font-family:var(--mono);font-size:.78rem;color:var(--mut);display:none;align-items:center;gap:9px;
+    padding:10px 13px;background:var(--raised);border:1px solid var(--line-2);border-radius:9px}
+  .timer.show{display:flex}
+  .timer.warn{color:var(--fail);border-color:rgba(242,85,85,.3);background:rgba(242,85,85,.07)}
+  .timer b{font-variant-numeric:tabular-nums;margin-left:auto}
+  .toast{font-family:var(--ui);position:absolute;left:0;top:calc(100% + 12px);
+    transform:translateY(8px);opacity:0;background:var(--ok);color:#06281c;font-weight:600;
+    padding:10px 18px;border-radius:10px;white-space:nowrap;z-index:6;transition:all .3s ease;
+    box-shadow:0 12px 30px rgba(52,211,153,.35);font-size:.85rem}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.grace{background:var(--raised);color:var(--ink);border:1px solid var(--line-2);
+    font-family:var(--mono);font-size:.78rem;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+
+  /* ───── history table ───── */
+  .hist-wrap{margin-top:16px}
+  table.deploy-history{width:100%;border-collapse:collapse;font-size:.86rem}
+  .deploy-history th,.deploy-history td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .deploy-history td{font-size:.82rem}
+  .deploy-history th{color:var(--mut);font-weight:600;font-size:.7rem;text-transform:uppercase;
+    letter-spacing:.08em;font-family:var(--mono)}
+  .deploy-history td.bn,.deploy-history td.email{font-family:var(--mono)}
+  .deploy-history tbody tr{transition:background .15s ease}
+  .deploy-history tbody tr:hover{background:rgba(91,140,255,.05)}
+  .deploy-history tr:last-child td{border-bottom:none}
+  .pill{font-family:var(--mono);padding:2px 10px;border-radius:99px;font-size:.7rem}
+  .pill.ok{background:rgba(52,211,153,.12);color:var(--ok);border:1px solid rgba(52,211,153,.25)}
+  .pill.run{background:var(--acc-soft);color:var(--acc);border:1px solid rgba(91,140,255,.25)}
+  tr.row--new{display:none}
+  tr.row--new.show{display:table-row}
+
+  /* ───── form ───── */
+  #invite-panel{margin-top:16px}
+  .invite{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:end}
+  .field label{display:block;color:var(--mut);font-size:.76rem;margin-bottom:6px;font-weight:500}
+  .field input,.field select{width:100%;font-family:var(--ui);background:var(--sunken);border:1px solid var(--line-2);
+    color:var(--ink);padding:10px 12px;border-radius:8px;font-size:.88rem;outline:none;
+    transition:border-color .18s,box-shadow .18s}
+  .field input::placeholder{color:var(--faint)}
+  .field input:hover,.field select:hover{border-color:rgba(91,140,255,.4)}
+  /* custom chevron: native arrow sits flush on the border — replace it with an
+     SVG inset from the right edge, and reserve right padding so the text never
+     runs under it. */
+  .field select{appearance:none;-webkit-appearance:none;-moz-appearance:none;
+    padding-right:40px;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%238A93A6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;background-position:right 14px center}
+  .field input:focus,.field select:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+  .cta-row--form{position:relative}
+  .cta--form{width:auto;padding:11px 20px}
+
+  /* ───── deploy detail (kenburns) ───── */
+  .deploy-detail{margin-top:16px;display:grid;grid-template-columns:1.4fr 1fr;gap:24px;align-items:center}
+  .artifact-frame{border-radius:12px;overflow:hidden;border:1px solid var(--line-2);height:200px;position:relative}
+  img.artifact-preview{width:100%;height:100%;object-fit:cover;display:block}
+  .detail__commit{font-family:var(--mono);font-size:.82rem}
+  .detail__commit .sha{color:var(--acc)}
+  .detail__diff{color:var(--mut);font-size:.84rem;margin-top:10px}
+
+  /* ───── light variant ───── */
+  body.light{
+    --bg:#F6F8FB; --panel:#FFFFFF; --raised:#F1F4F9; --sunken:#EEF1F7;
+    --line:#E3E8F0; --line-2:#D5DCE8;
+    --ink:#1A1F2C; --mut:#5A6478; --faint:#7A8499;
+    --acc:#2B52C9; --acc-2:#5B3BCE;
+    --run:#E08A1E; --ok:#0FA968; --fail:#E0383C;
+    --acc-soft:rgba(43,82,201,.10); --ring:rgba(43,82,201,.28);
+    --ok-soft:rgba(15,169,104,.12); --fail-soft:rgba(224,56,60,.10);
+  }
+  body.light{background:
+    radial-gradient(1200px 600px at 85% -10%,rgba(52,97,230,.12) 0%,transparent 55%),
+    radial-gradient(900px 700px at -10% 20%,rgba(124,92,246,.08) 0%,transparent 50%),
+    var(--bg);background-attachment:fixed}
+  body.light header.console-bar{background:rgba(246,248,251,.85)}
+  body.light .panel{box-shadow:0 12px 30px rgba(20,30,60,.08)}
+</style>
+</head>
+<body>
+<header class="console-bar">
+  <div class="logo"><i></i>Lumen</div>
+  <div id="env-switch">Production</div>
+  <div class="status-dot"><i id="live-dot"></i><span>Live</span></div>
+  <div class="bar-actions">
+    <button class="btn" id="theme" aria-label="Toggle color theme">☀ Light</button>
+    <button class="btn" id="menu" aria-expanded="false" aria-controls="drawer">Menu</button>
+  </div>
+</header>
+
+<nav class="drawer" id="drawer" role="dialog" aria-label="Workspace navigation" aria-hidden="true">
+  <a class="nav-item" href="#">Overview <b>⌘1</b></a>
+  <a class="nav-item" href="#">Pipelines <b>⌘2</b></a>
+  <a class="nav-item" href="#">Services <b>⌘3</b></a>
+  <a class="nav-item" href="#">Monitoring <b>⌘4</b></a>
+  <a class="nav-item" href="#">Team <b>⌘5</b></a>
+  <a class="nav-item" href="#">Settings <b>⌘,</b></a>
+</nav>
+
+<main>
+  <div class="grid">
+    <!-- PIPELINE -->
+    <section class="panel pipeline" id="pipeline">
+      <div class="panel__head"><h2>Release pipeline</h2><span class="tag">lumen-web · main</span></div>
+      <ul class="stages">
+        <li class="stage done" id="stage-build" data-stage="build">
+          <div class="stage-link" data-edge="build-test"><i></i></div>
+          <div class="stage-ico"><span class="stage-ring"></span>◆</div>
+          <span class="badge">✓</span><span class="stage-name">Build</span><span class="chip">cached</span>
+        </li>
+        <li class="stage done" id="stage-test" data-stage="test">
+          <div class="stage-link" data-edge="test-push"><i></i></div>
+          <div class="stage-ico"><span class="stage-ring"></span>▣</div>
+          <span class="badge">✓</span><span class="stage-name">Test</span><span class="chip">312 ok</span>
+        </li>
+        <li class="stage done" id="stage-push" data-stage="push">
+          <div class="stage-link" data-edge="push-deploy"><i></i></div>
+          <div class="stage-ico"><span class="stage-ring"></span>↥</div>
+          <span class="badge">✓</span><span class="stage-name">Push</span><span class="chip">ghcr.io</span>
+        </li>
+        <li class="stage" id="stage-deploy" data-stage="deploy">
+          <div class="stage-ico"><span class="stage-ring"></span>⬢</div>
+          <span class="badge">·</span><span class="stage-name">Deploy</span><span class="chip">ready</span>
+        </li>
+      </ul>
+      <div class="deploy-progress-wrap">
+        <div class="deploy-progress-label"><span>Rollout</span><b id="rollout-pct">0%</b></div>
+        <div class="deploy-progress"><i></i></div>
+      </div>
+    </section>
+
+    <!-- LOG STREAM -->
+    <section class="panel log-stream" id="deploy-log">
+      <div class="panel__head"><h2>Build log</h2><span class="tag">streaming</span></div>
+      <div class="log-stream__body" id="log-body" role="log" aria-live="polite">
+        <div class="line"><span class="ts">10:42:01</span>queued release for lumen-web@main</div>
+        <div class="line line--ok"><span class="ts">10:42:02</span>build cache hit · 312 tests passed</div>
+        <div class="line"><span class="ts">10:42:03</span>image pushed → ghcr.io/lumen-web:a1f3c9d</div>
+        <div class="line"><span class="ts">10:42:04</span>resolved 1,284 dependencies from lockfile</div>
+        <div class="line"><span class="ts">10:42:05</span>scanned image · 0 critical vulnerabilities</div>
+        <div class="line"><span class="ts">10:42:06</span>signed artifact · provenance attested</div>
+        <div class="line"><span class="ts">10:42:07</span>warmed edge cache across 4 regions</div>
+        <div class="line" id="log-approval"><span class="ts">10:42:08</span>awaiting deploy approval…</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="grid-3">
+    <!-- METRICS -->
+    <section class="panel metrics" id="metrics">
+      <div class="panel__head"><h2>Live metrics</h2><span class="tag">post-deploy</span></div>
+      <div class="kpi" id="p95" data-metric="p95">
+        <div class="kpi__label"><span>p95 latency</span><span class="delta down">▼ 21 ms</span></div>
+        <b class="value" data-countup>184 ms</b>
+        <svg class="spark" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <div class="kpi" id="rps" data-metric="rps">
+        <div class="kpi__label"><span>throughput</span><span class="delta">▲ 8%</span></div>
+        <b class="value" data-countup>2,940 rps</b>
+      </div>
+    </section>
+
+    <!-- TOPOLOGY -->
+    <section class="panel topology" id="topology">
+      <div class="panel__head"><h2>Services</h2><span class="tag">fleet</span></div>
+      <div class="topo-grid">
+        <div class="svc-node svc-node--focus" id="svc-api" data-service="checkout-api"><span class="dot"></span><span class="nm">checkout-api</span><span class="st">live</span></div>
+        <div class="svc-node" id="svc-worker" data-service="search-worker"><span class="dot"></span><span class="nm">search-worker</span><span class="st">live</span></div>
+        <div class="svc-node" id="svc-cdn" data-service="image-cdn"><span class="dot"></span><span class="nm">image-cdn</span><span class="st">live</span></div>
+        <div class="svc-node" id="svc-db" data-service="postgres"><span class="dot"></span><span class="nm">postgres</span><span class="st">live</span></div>
+      </div>
+    </section>
+
+    <!-- DEPLOY ACTION -->
+    <section class="panel deploy-panel" id="deploy-panel">
+      <div class="panel__head"><h2>Ship</h2><span class="tag">main → prod</span></div>
+      <div class="cta-row--form">
+        <button class="cta" id="deploy"><span class="spin"></span><span class="chk">✓</span><span class="lbl">Deploy to production</span></button>
+        <div class="toast" id="toast" role="status" aria-live="polite">Build #1249 live</div>
+        <div class="toast grace" id="cancel-toast" role="status" aria-live="polite">Cancel deploy (5s)</div>
+      </div>
+      <div class="timer" id="schedule-countdown"><span>Scheduled release in</span><b>12:30</b></div>
+      <div class="timer warn" id="rollback-countdown"><span>Auto-rollback in</span><b>04:59</b></div>
+    </section>
+  </div>
+
+  <!-- HISTORY -->
+  <section class="panel hist-wrap" id="history-panel">
+    <div class="panel__head"><h2>Deploy history</h2><span class="tag">newest first</span></div>
+    <table class="deploy-history" id="history">
+      <thead><tr><th>Build</th><th>Author</th><th>Email</th><th>Status</th></tr></thead>
+      <tbody id="history-body">
+        <tr class="row--new" id="row-new"><td class="bn">#1249</td><td>You</td><td class="email" id="email-new" data-private>you@lumen.dev</td><td><span class="pill run" id="pill-new">Rolling out</span></td></tr>
+        <tr id="row-1248"><td class="bn">#1248</td><td>Dana Reeves</td><td class="email" id="email-1248" data-private>dana.reeves@example.com</td><td><span class="pill ok">Live</span></td></tr>
+        <tr id="row-1247"><td class="bn">#1247</td><td>Yuki Tanaka</td><td class="email" id="email-1247" data-private>yuki.tanaka@example.com</td><td><span class="pill ok">Live</span></td></tr>
+        <tr id="row-1246"><td class="bn">#1246</td><td>Sam Okafor</td><td class="email" id="email-1246" data-private>sam.okafor@example.com</td><td><span class="pill ok">Live</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- INVITE / CONFIG FORM -->
+  <section class="panel" id="invite-panel">
+    <div class="panel__head"><h2>Invite a teammate</h2><span class="tag">access</span></div>
+    <form class="invite" id="invite-form" onsubmit="return false">
+      <div class="field"><label for="iname">Name</label><input id="iname" data-cursor-stop type="text" placeholder="Dana Reeves" autocomplete="off"></div>
+      <div class="field"><label for="iemail">Work email</label><input id="iemail" data-cursor-stop type="email" placeholder="dana@company.com" autocomplete="off"></div>
+      <div class="field"><label for="region">Region</label>
+        <select id="region" data-cursor-stop>
+          <option value="">Choose…</option>
+          <option value="us-east">US East</option>
+          <option value="eu-west">EU West</option>
+          <option value="sa-east">São Paulo</option>
+          <option value="ap-south">Singapore</option>
+        </select>
+      </div>
+      <div class="cta-row--form">
+        <button class="cta cta--form" id="invite" data-cursor-stop>Send invite</button>
+        <div class="toast" id="invite-toast" role="status" aria-live="polite">Invite sent ✓</div>
+      </div>
+    </form>
+  </section>
+
+  <!-- DEPLOY DETAIL (kenburns) -->
+  <section class="panel deploy-detail" id="deploy-detail">
+    <div class="artifact-frame">
+      <img class="artifact-preview" data-kenburns alt="Deployed lumen-web app preview"
+        src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='800' height='400'&gt;&lt;defs&gt;&lt;linearGradient id='g' x1='0' y1='0' x2='1' y2='1'&gt;&lt;stop offset='0' stop-color='%235B8CFF'/&gt;&lt;stop offset='1' stop-color='%237C5CF6'/&gt;&lt;/linearGradient&gt;&lt;/defs&gt;&lt;rect width='800' height='400' fill='%230c1018'/&gt;&lt;rect width='800' height='400' fill='url(%23g)' opacity='.22'/&gt;&lt;circle cx='620' cy='90' r='150' fill='%235B8CFF' opacity='.18'/&gt;&lt;rect x='60' y='250' width='320' height='16' rx='8' fill='%23E6EAF2' opacity='.9'/&gt;&lt;rect x='60' y='285' width='480' height='10' rx='5' fill='%238A93A6' opacity='.7'/&gt;&lt;rect x='60' y='305' width='400' height='10' rx='5' fill='%238A93A6' opacity='.5'/&gt;&lt;text x='60' y='150' fill='%23E6EAF2' font-family='monospace' font-size='34' font-weight='700'&gt;lumen-web&lt;/text&gt;&lt;/svg&gt;">
+    </div>
+    <div>
+      <div class="detail__commit"><span class="sha">a1f3c9d</span> · feat: edge cache warmup</div>
+      <div class="detail__diff">+248 −31 across 12 files · deployed to 4 regions</div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+
+  // drawer (with aria sync)
+  $('#menu').addEventListener('click',()=>{
+    const open=$('#drawer').classList.toggle('open');
+    $('#menu').setAttribute('aria-expanded',open);
+    $('#drawer').setAttribute('aria-hidden',!open);
+  });
+
+  // theme
+  $('#theme').addEventListener('click',function(){
+    const light=document.body.classList.toggle('light');
+    this.textContent=light?'☾ Dark':'☀ Light';
+  });
+
+  // static p95 sparkline path (the showreel sparkline primitive overlays its own draw)
+  (function(){
+    const pts=[26,22,28,20,24,17,19,14,16,12,13,11],w=120,h=34,
+      max=Math.max(...pts),min=Math.min(...pts);
+    const d=pts.map((p,i)=>`${i?'L':'M'}${(i/(pts.length-1)*w).toFixed(1)},${(h-((p-min)/(max-min||1))*(h-6)-3).toFixed(1)}`).join(' ');
+    $('#p95 .spark').innerHTML=`<path d="${d}" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  })();
+
+  // ── countdown driver: ticks a timer from mm:ss while shown
+  function tick(el){
+    const b=el.querySelector('b');let [m,s]=b.textContent.split(':').map(Number);
+    el._iv&&clearInterval(el._iv);
+    el._iv=setInterval(()=>{ if(s===0){if(m===0){clearInterval(el._iv);return;}m--;s=59;}else s--;
+      b.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); },1000);
+  }
+
+  // ── blocked gate branch: a real first attempt that fails the deploy gate.
+  // Leaves the fail state UP (red stage, ticking rollback) so the guard scene
+  // shows genuine blocked state; the next deploy click clears it and ships.
+  let gateArmed=false; // set true to make the first deploy click fail the gate
+  function blockGate(){
+    const dep=$('#stage-deploy'),btn=$('#deploy');
+    dep.classList.add('fail');dep.querySelector('.badge').textContent='!';
+    dep.querySelector('.chip').textContent='gate failed';
+    btn.classList.add('blocked');btn.classList.add('shaking');
+    const rb=$('#rollback-countdown');rb.classList.add('show');tick(rb);
+    $('#log-body').insertAdjacentHTML('beforeend','<div class="line line--err"><span class="ts">10:42:05</span>deploy gate FAILED · health check threshold</div>');
+    setTimeout(()=>btn.classList.remove('shaking'),600); // shake plays once; red (.blocked) STAYS for the scene
+  }
+
+  // ── successful deploy flow: clears any fail, runs the pipeline, lands history
+  function runDeploy(){
+    const b=$('#deploy'),lbl=b.querySelector('.lbl'),bar=$('.deploy-progress i'),dep=$('#stage-deploy');
+    if(b.classList.contains('loading')||b.classList.contains('done'))return;
+    dep.classList.remove('fail');dep.querySelector('.badge').textContent='·';
+    $('#rollback-countdown').classList.remove('show');
+    b.classList.remove('blocked');b.classList.add('loading');lbl.textContent='Deploying…';
+    dep.classList.add('running');dep.querySelector('.chip').textContent='deploying';
+    // cancel grace window
+    const cg=$('#cancel-toast');cg.classList.add('show');setTimeout(()=>cg.classList.remove('show'),1600);
+    const pct=$('#rollout-pct');
+    let w=0;const t=setInterval(()=>{w=Math.min(100,w+8);bar.style.width=w+'%';if(pct)pct.textContent=w+'%';
+      if(w>=100){clearInterval(t);
+        b.classList.remove('loading');b.classList.add('done');lbl.textContent='Deployed';
+        dep.classList.remove('running');dep.classList.add('done');
+        dep.querySelector('.badge').textContent='✓';dep.querySelector('.chip').textContent='live';
+        $('#topology').setAttribute('data-rollout','');
+        $('#log-body').insertAdjacentHTML('beforeend','<div class="line line--ok"><span class="ts">10:42:09</span>deploy complete · #1249 live in 4 regions</div>');
+        // land history: reveal new row, flip pill to live
+        const r=$('#row-new');r.classList.add('show');
+        const p=$('#pill-new');p.className='pill ok';p.textContent='Live';
+        const to=$('#toast');to.classList.add('show');setTimeout(()=>to.classList.remove('show'),20000);
+      }},150);
+  }
+  // first click on an armed gate fails (guard scene); next click ships for real.
+  $('#deploy').addEventListener('click',()=>{
+    if(gateArmed){ gateArmed=false; blockGate(); return; }
+    runDeploy();
+  });
+
+  // invite
+  $('#invite').addEventListener('click',()=>{
+    const name=($('#iname').value||'teammate').trim();
+    const t=$('#invite-toast');t.textContent='Invite sent to '+name+' ✓';
+    t.classList.add('show');setTimeout(()=>t.classList.remove('show'),20000);
+  });
+
+  // ── URL state hooks for the reel / static captures
+  const q=new URLSearchParams(location.search);
+  if(q.get('theme')==='light'){document.body.classList.add('light');$('#theme').textContent='☾ Dark';}
+  if(q.get('gate')==='fail')gateArmed=true; // first deploy click will fail the gate
+  if(q.get('schedule')==='1'){const sc=$('#schedule-countdown');sc.classList.add('show');tick(sc);}
+  if(q.get('row')==='new')$('#row-new').classList.add('show');
+  // expose for the reel to call between steps if needed
+  window.__lumen={blockGate,runDeploy,tick};
+</script>
+</body>
+</html>

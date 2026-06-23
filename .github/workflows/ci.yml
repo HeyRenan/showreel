@@ -1,0 +1,35 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: ffmpeg for the encode tests
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - name: unit suite
+        run: node --test showreel/scripts/__tests__/*.test.mjs
+
+  roster-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: install chromium for the live audit
+        run: cd showreel/scripts && node ensure-deps.mjs
+      - name: ffmpeg for the end-to-end render
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - name: audit the showcase roster (off-screen / broken-anchor gate)
+        run: |
+          node showreel/scripts/audit-roster.mjs \
+            "file://$PWD/assets-src/demo/index.html?gate=fail" \
+            assets-src/showcase-steps.json \
+            --width 1280 --height 676
+      - name: end-to-end offline render (full pipeline, needs chromium + ffmpeg)
+        run: node --test showreel/scripts/__tests__/integration-render.test.mjs
