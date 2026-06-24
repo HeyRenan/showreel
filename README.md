@@ -3,7 +3,7 @@
 **Turn a URL + CSS selectors into a finished visual — annotated screenshots, flow GIFs, cinematic recordings and terminal captures. One command each. The agent never guesses pixels; every output is pixel-verified before it's saved.**
 
 [![ci](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml/badge.svg)](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml)
-[![version](https://img.shields.io/badge/version-1.1.0-blue)](showreel/.claude-plugin/plugin.json)
+[![version](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/HeyRenan/showreel/main/showreel/.claude-plugin/plugin.json&query=$.version&label=version&color=blue)](showreel/.claude-plugin/plugin.json)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![claude code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](https://claude.com/claude-code)
 

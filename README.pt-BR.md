@@ -3,7 +3,7 @@
 **Transforme uma URL + seletores CSS num visual pronto — screenshots anotados, GIFs de fluxo, gravações cinematográficas e capturas de terminal. Um comando cada. O agente nunca chuta pixel; toda saída é verificada pixel a pixel antes de salvar.**
 
 [![ci](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml/badge.svg)](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml)
-[![version](https://img.shields.io/badge/version-1.1.0-blue)](showreel/.claude-plugin/plugin.json)
+[![version](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/HeyRenan/showreel/main/showreel/.claude-plugin/plugin.json&query=$.version&label=version&color=blue)](showreel/.claude-plugin/plugin.json)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![claude code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](https://claude.com/claude-code)
 
