@@ -9,6 +9,16 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.1.3] — 2026-06-24
+
+### Fixed
+- **Demo build log was out of chronological order.** On a failed gate the demo
+  appended "deploy gate FAILED" stamped `10:42:05` — a duplicate of the static
+  "scanned image · 10:42:05" line, and it landed *after* `10:42:08 awaiting deploy
+  approval`, so the log read 06 → 07 → 08 → 05 → 09. The failure now stamps
+  `10:42:09` and the success `10:42:11`, so the log is monotonic with no duplicate
+  timestamps (verified by driving the gate→ship flow). Re-rendered the showcase.
+
 ## [1.1.2] — 2026-06-24
 
 ### Fixed
@@ -120,6 +130,7 @@ First stable release — the full capture motor.
   offline two implementations of the same time contract. 530 tests, no network or
   browser needed.
 
+[1.1.3]: https://github.com/HeyRenan/showreel/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/HeyRenan/showreel/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/HeyRenan/showreel/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/HeyRenan/showreel/compare/v1.0.1...v1.1.0

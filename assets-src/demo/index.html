@@ -450,7 +450,7 @@
     dep.querySelector('.chip').textContent='gate failed';
     btn.classList.add('blocked');btn.classList.add('shaking');
     const rb=$('#rollback-countdown');rb.classList.add('show');tick(rb);
-    $('#log-body').insertAdjacentHTML('beforeend','<div class="line line--err"><span class="ts">10:42:05</span>deploy gate FAILED · health check threshold</div>');
+    $('#log-body').insertAdjacentHTML('beforeend','<div class="line line--err"><span class="ts">10:42:09</span>deploy gate FAILED · health check threshold</div>');
     setTimeout(()=>btn.classList.remove('shaking'),600); // shake plays once; red (.blocked) STAYS for the scene
   }
 
@@ -471,7 +471,7 @@
         dep.classList.remove('running');dep.classList.add('done');
         dep.querySelector('.badge').textContent='✓';dep.querySelector('.chip').textContent='live';
         $('#topology').setAttribute('data-rollout','');
-        $('#log-body').insertAdjacentHTML('beforeend','<div class="line line--ok"><span class="ts">10:42:09</span>deploy complete · #1249 live in 4 regions</div>');
+        $('#log-body').insertAdjacentHTML('beforeend','<div class="line line--ok"><span class="ts">10:42:11</span>deploy complete · #1249 live in 4 regions</div>');
         // land history: reveal new row, flip pill to live
         const r=$('#row-new');r.classList.add('show');
         const p=$('#pill-new');p.className='pill ok';p.textContent='Live';
