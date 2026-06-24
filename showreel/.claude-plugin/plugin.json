@@ -1,6 +1,6 @@
 {
   "name": "showreel",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Your UI, on its showreel \u2014 annotated screenshots, feature demos, cinematic flow recordings (gif/mp4), terminal captures and before/after composites in one command each. Self-contained Chromium motor, deterministic placement, self-validated output; no MCP, cheap on tokens.",
   "author": {
     "name": "Renan"

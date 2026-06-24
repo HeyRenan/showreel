@@ -7,7 +7,7 @@ import { writeFileSync } from 'node:fs';
 import { Browser } from '../lib/browser.mjs';
 import { num } from './cli-args.mjs';
 
-function parse(argv) {
+export function parse(argv) {
   const a = { width: 900, height: 1400, dpr: 1, pad: 16 };
   const pos = [];
   for (let i = 0; i < argv.length; i++) {
@@ -56,4 +56,6 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });
+}

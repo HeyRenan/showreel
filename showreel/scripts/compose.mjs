@@ -109,7 +109,7 @@ async function composeGifs(a, labels) {
   console.log('OK ' + a.out);
 }
 
-function parse(argv) {
+export function parse(argv) {
   const a = { gap: 24, pad: 28, labelH: 44 };
   const pos = [];
   for (let i = 0; i < argv.length; i++) {

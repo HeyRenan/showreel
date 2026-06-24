@@ -9,6 +9,19 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.1.6] — 2026-06-24
+
+### Fixed
+- **`shot.mjs` ran `main()` on import.** Unlike every other script it had no
+  entry-point guard, so importing it (to reuse `parse`, or from a test) executed
+  the CLI against the importer's argv — printing usage and calling `process.exit`.
+  Wrapped `main()` in the standard `import.meta.url` guard.
+
+### Tests
+- Exported `parse` from `shot`/`compose` and added argument-parsing tests for
+  `shot`, `compose` and `tape` — the CLI parsers that had no dedicated coverage.
+  547 tests.
+
 ## [1.1.5] — 2026-06-24
 
 ### Fixed
@@ -161,6 +174,7 @@ First stable release — the full capture motor.
   offline two implementations of the same time contract. 530 tests, no network or
   browser needed.
 
+[1.1.6]: https://github.com/HeyRenan/showreel/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/HeyRenan/showreel/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/HeyRenan/showreel/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/HeyRenan/showreel/compare/v1.1.2...v1.1.3
