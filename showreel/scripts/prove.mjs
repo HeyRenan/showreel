@@ -41,6 +41,18 @@ function outputByteSize(path) {
   try { return statSync(path).size; } catch { return 0; }
 }
 
+// The box vcheck judges marker dominance against. A circle marker is drawn padded
+// OUT beyond the target rect, so most of its green ring falls outside that rect —
+// judging against the bare rect fails a perfectly drawn ring. Use the ellipse's
+// own bounding box instead; a rect/blur marker keeps the target rect.
+export function dominanceTarget(annotations, targetRect) {
+  const circle = annotations.find((an) => an.type === 'circle');
+  if (!circle) return targetRect;
+  const radiusX = circle.rx != null ? circle.rx : circle.r;
+  const radiusY = circle.ry != null ? circle.ry : circle.r;
+  return { x: circle.x - radiusX, y: circle.y - radiusY, w: radiusX * 2, h: radiusY * 2 };
+}
+
 // Draw order is load-bearing: blur masks first (so a zoom of a masked region
 // stays masked), zoom snapshots the still-unmarked pixels (a green marker
 // magnified into the inset would count as green OUTSIDE the target and tank
@@ -295,9 +307,9 @@ async function proveOne(b, job) {
   annotated = await b.crop(annotated, region);
   writeFileSync(job.out, annotated);
 
-  // target rect in cropped coordinates
+  const judgeBox = dominanceTarget(annotations, layout.rect);
   const croppedTarget = {
-    x: layout.rect.x - region.x, y: layout.rect.y - region.y, w: layout.rect.w, h: layout.rect.h,
+    x: judgeBox.x - region.x, y: judgeBox.y - region.y, w: judgeBox.w, h: judgeBox.h,
   };
   const decoded = decodePNG(annotated);
   const res = visualCheck(decoded, croppedTarget, { hex: DEFAULT_MARKER_HEX });

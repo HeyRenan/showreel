@@ -186,7 +186,9 @@ async function main() {
     return;
   }
 
-  if (!a.url || (!a.steps && !a.stepsJson) || !a.out) {
+  // --dry only resolves selectors and reports; it writes nothing, so it does not
+  // need an output path (requiring one contradicted the documented quick check).
+  if (!a.url || (!a.steps && !a.stepsJson) || (!a.out && !a.dry)) {
     console.error('usage: rec.mjs <url> --steps steps.json out.gif  |  --steps-json \'[...]\'  |  --batch takes.json');
     process.exit(2);
   }
@@ -224,7 +226,7 @@ async function main() {
   // camera frame or to a hidden/zero-area element — the off-screen and
   // breaks-the-screen failures that PLACE warnings can't catch. --no-safeguards
   // skips it for the rare authored exception.
-  if (!a.noSafeguards) {
+  if (!a.noSafeguards && !a.dry) {
     const sgBrowser = await chromium.launch();
     const sgCtx = await sgBrowser.newContext({ viewport: { width: a.width, height: a.height }, ...(auth.storageState ? { storageState: auth.storageState } : {}) });
     await applyCookies(sgCtx);
@@ -256,7 +258,20 @@ async function main() {
     for (let i = 0; i < steps.length; i++) {
       const st = steps[i];
       const sels = [];
-      for (const k of ['click', 'scrollTo', 'blur', 'hide', 'redact', 'highlight']) if (typeof st[k] === 'string') sels.push([k, st[k]]);
+      // every key whose value is a selector (a string, or an object with a `sel`).
+      // text-valued keys (note/text/option/screen/modal) are deliberately absent.
+      const SELECTOR_KEYS = ['click', 'scrollTo', 'scrollIn', 'to', 'blur', 'hide', 'redact', 'highlight',
+        'spotlight', 'rect', 'circle', 'glow', 'pulse', 'ripple', 'shake', 'orbit', 'checkmark', 'flash',
+        'progress', 'countdown', 'sparkline', 'typeon', 'reveal', 'kenburns', 'confetti', 'inset', 'glide'];
+      for (const k of SELECTOR_KEYS) {
+        const v = st[k];
+        if (typeof v === 'string') sels.push([k, v]);
+        else if (v && typeof v === 'object' && typeof v.sel === 'string') sels.push([k, v.sel]);
+      }
+      if (st.trail && typeof st.trail === 'object') {
+        if (typeof st.trail.from === 'string') sels.push(['trail.from', st.trail.from]);
+        if (typeof st.trail.to === 'string') sels.push(['trail.to', st.trail.to]);
+      }
       if (st.countup && st.countup !== true) sels.push(['countup', typeof st.countup === 'string' ? st.countup : st.countup.sel]);
       if (typeof st.zoom === 'string' && st.zoom !== 'out') sels.push(['zoom', st.zoom]);
       const fl = fillSpec(st);

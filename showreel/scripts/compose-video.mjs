@@ -137,6 +137,9 @@ async function main() {
       : 'compose-video: ' + bad);
     process.exit(2);
   }
+  for (const input of [a.aIn, a.bIn]) {
+    if (!existsSync(input)) { console.error('compose-video: input not found: ' + input); process.exit(2); }
+  }
   try { execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' }); }
   catch { console.error('compose-video: needs system ffmpeg (brew install ffmpeg)'); process.exit(3); }
   const t = trimSeconds(a.syncTrim, loadSidecar(a.aIn), loadSidecar(a.bIn));

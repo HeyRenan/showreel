@@ -137,6 +137,12 @@ async function main() {
     console.error('usage: compose.mjs a.(png|gif) b.(png|gif) out.(png|gif) [--labels "Before,After"] [--height N]');
     process.exit(2);
   }
+  for (const input of [a.aPng, a.bPng]) {
+    if (!existsSync(input)) {
+      console.error('compose: input not found: ' + input);
+      process.exit(2);
+    }
+  }
   const labels = (a.labels || 'A,B').split(',').map((s) => s.trim());
   const gifIn = /\.gif$/i.test(a.aPng) || /\.gif$/i.test(a.bPng);
   if (gifIn || /\.gif$/i.test(a.out)) {

@@ -9,6 +9,28 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.1.5] — 2026-06-24
+
+### Fixed
+- **`prove --circle` always failed vcheck.** Dominance was judged against the bare
+  target rect, but the circle marker is drawn padded OUT beyond it, so most of its
+  green ring read "outside" (~0.37 vs the 0.6 floor) — a correctly drawn ring
+  exited non-zero. It is now judged against the ellipse's own box.
+- **`rec --dry` was unusable as documented.** It required an output path (though it
+  writes nothing), was preempted by the safeguard audit on a missing selector, and
+  only checked a subset of selector keys — `rect`/`circle`/`spotlight`/`glow`/… were
+  skipped, so a missing selector there read as a false PASS. `--dry` now runs with
+  no output, reports `[MISS]` for every missing selector across all selector-bearing
+  keys, and exits non-zero on any miss.
+
+### Changed
+- `compose` / `compose-video` report `input not found: <path>` for a missing input
+  instead of leaking a raw `ENOENT`/ffmpeg error (matches `shrink`/`demo`/`shot`).
+
+### Tests
+- Added unit + render-real regression tests for `prove --circle` and `rec --dry`
+  (found by intensive testing). 541 tests.
+
 ## [1.1.4] — 2026-06-24
 
 ### Internal
@@ -139,6 +161,7 @@ First stable release — the full capture motor.
   offline two implementations of the same time contract. 530 tests, no network or
   browser needed.
 
+[1.1.5]: https://github.com/HeyRenan/showreel/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/HeyRenan/showreel/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/HeyRenan/showreel/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/HeyRenan/showreel/compare/v1.1.1...v1.1.2
