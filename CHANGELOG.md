@@ -9,6 +9,22 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.0.1] — 2026-06-24
+
+### Fixed
+- **Spotlight notes legible on the dimmed field**: a `note` paired with `spotlight`
+  chose its pill colour from the bright page underneath — but the spotlight dim is a
+  `pointer-events:none` overlay the colour probe (`elementFromPoint`) can't see, so on
+  a light page the note resolved a glaring white box on a dark scene (same grammar,
+  different placement, different look). The note now judges the EFFECTIVE surface —
+  page luminance composited with the spotlight dim — and resolves a dark, high-contrast
+  pill wherever it lands.
+
+### Internal
+- Dropped the dead `NOTEBG` token; the note surface is resolved per-placement.
+- Added a render-real regression test that drives the full pipeline and asserts the
+  spotlight note pill on rasterized frames. 531 tests.
+
 ## [1.0.0] — 2026-06-23
 
 First stable release — the full capture motor.
@@ -61,4 +77,5 @@ First stable release — the full capture motor.
   offline two implementations of the same time contract. 530 tests, no network or
   browser needed.
 
+[1.0.1]: https://github.com/HeyRenan/showreel/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/HeyRenan/showreel/commits/v1.0.0

@@ -66,10 +66,9 @@ export function makeAnnotator(rctx) {
       // accent left-edge, floating shadow, inset top highlight.
       const isDark = theme === 'dark';
       const GLASS = isDark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.80)';
-      // notes float WITHOUT a dim backdrop, so they need more opacity than cards
-      // to stay legible over busy UI.
-      const NOTEBG = isDark ? 'rgba(17,26,44,0.92)' : 'rgba(255,255,255,0.94)';
-      const NOTEINK = isDark ? '#f8fafc' : '#0f172a'; // contrast vs NOTEBG, not T.ink
+      // ink for the glossary/modal glass cards — contrast vs the GLASS surface
+      // (light card ⇒ dark ink, dark card ⇒ light ink), not the page's T.ink.
+      const NOTEINK = isDark ? '#f8fafc' : '#0f172a';
       const HAIR = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.10)';
       const SHADOW = '0 10px 30px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.16)';
       const BLUR = 'backdrop-filter:blur(13px) saturate(140%);-webkit-backdrop-filter:blur(13px) saturate(140%)';
@@ -96,13 +95,14 @@ export function makeAnnotator(rctx) {
         const cWhite = 1.05 / (L + 0.05);
         return cWhite >= 3 ? '#fff' : '#0f172a'; // white if it clears 3:1, else dark
       };
-      const surfaceDark = (cx, cy) => {
+      const surfaceLumAt = (cx, cy) => {
         let el = document.elementFromPoint(cl(cx, 1, W - 1), cl(cy, 1, H - 1));
         let L = null;
         while (el && L == null) { L = lumOf(getComputedStyle(el).backgroundColor); el = el.parentElement; }
         if (L == null) L = (theme === 'dark') ? 0.05 : 0.95; // nothing opaque found → fall back to global
-        return L < 0.5;
+        return L;
       };
+      const surfaceDark = (cx, cy) => surfaceLumAt(cx, cy) < 0.5;
       const W = innerWidth, H = innerHeight;
       const anchorEl = sel ? document.querySelector(sel) : null;
       const wrap = document.createElement('div');
@@ -632,7 +632,27 @@ export function makeAnnotator(rctx) {
         // contrast against the REAL surface under the note, not the global theme —
         // a note over a white form inside a dark site must still be a dark pill with
         // light text. High opacity so the surface behind can't bleed the verdict.
-        const nDark = surfaceDark(noteX + noteW / 2, noteY + noteH / 2);
+        const noteCx = noteX + noteW / 2, noteCy = noteY + noteH / 2;
+        let nLum = surfaceLumAt(noteCx, noteCy);
+        // a spotlight dims everything outside the lit window, but that dim overlay
+        // is pointer-events:none so elementFromPoint can't see it — the page reads
+        // bright and the note would pick a glaring white pill on a dark scene (same
+        // grammar, different placement, different look). Judge against the EFFECTIVE
+        // surface: composite the dim over the sampled page luminance, so the dim's
+        // own darkness drives the verdict. Skip when the note sits over the bright
+        // lit window itself (there the page really is undimmed).
+        if (step.spotlight && box) {
+          const litPad = 12; // matches drawSpotlight's default window padding
+          const overLit = noteCx > box.x - litPad && noteCx < box.x + box.w + litPad &&
+            noteCy > box.y - litPad && noteCy < box.y + box.h + litPad;
+          const dimParts = (T.spotlight || 'rgba(8,14,28,.66)').match(/[\d.]+/g);
+          if (!overLit && dimParts) {
+            const dimAlpha = dimParts[3] !== undefined ? +dimParts[3] : 1;
+            const dimLum = (0.299 * +dimParts[0] + 0.587 * +dimParts[1] + 0.114 * +dimParts[2]) / 255;
+            nLum = nLum * (1 - dimAlpha) + dimLum * dimAlpha;
+          }
+        }
+        const nDark = nLum < 0.5;
         const NBG = nDark ? 'rgba(17,26,44,0.97)' : 'rgba(255,255,255,0.97)';
         const NINK = nDark ? '#f8fafc' : '#0f172a';
         add('left:' + noteX + 'px;top:' + noteY + 'px;background:' + NBG + ';color:' + NINK + ';font:600 17px system-ui;letter-spacing:-.01em;white-space:nowrap;' +
