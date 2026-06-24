@@ -9,6 +9,21 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.1.2] — 2026-06-24
+
+### Fixed
+- **showcase.mp4 deploy arc was broken.** The v1.1.0 re-render dropped the
+  `?gate=fail` query param, so the first `#deploy` click shipped instead of
+  failing the gate — the whole blocked → auto-rollback → fixed → shipped story
+  then played over an already-"Deployed" console (orphaned rollback note, "gate
+  blocked" over a live stage). Re-rendered with the gate armed; the fail scene
+  (red button, ticking rollback) and the ship now read correctly.
+
+### Added
+- `assets-src/build-showcase.sh` — reproducible showcase render that bakes in the
+  required `?gate=fail` param and the `--width 1280` (1280×720) framing, so the
+  reel can't be regenerated wrong again.
+
 ## [1.1.1] — 2026-06-24
 
 ### Internal
@@ -105,6 +120,7 @@ First stable release — the full capture motor.
   offline two implementations of the same time contract. 530 tests, no network or
   browser needed.
 
+[1.1.2]: https://github.com/HeyRenan/showreel/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/HeyRenan/showreel/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/HeyRenan/showreel/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/HeyRenan/showreel/compare/v1.0.0...v1.0.1
