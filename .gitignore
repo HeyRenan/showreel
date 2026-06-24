@@ -5,3 +5,9 @@ showreel/.preview/
 .preview/.deps/
 
 .superpowers/
+
+# internal dev artifacts — kept locally, not published
+PROMPT.md
+PROJECT-GUIDE.md
+docs/superpowers/
+.preview/build-guide.mjs
