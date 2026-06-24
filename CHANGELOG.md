@@ -9,6 +9,15 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.1.1] — 2026-06-24
+
+### Internal
+- De-duplicated `textNeighbors` (the autoplace text-obstacle scan was copy-pasted
+  byte-for-byte in `prove.mjs` and `demo.mjs`) into a single `Browser.textNeighbors`
+  method, keeping `lib/autoplace.mjs` pure (no browser I/O).
+- Replaced a silent `statSync` try/catch in `prove.mjs` with a named
+  `outputByteSize` helper, so a missing/unreadable output reads as 0 by intent.
+
 ## [1.1.0] — 2026-06-24
 
 ### Fixed
@@ -96,6 +105,7 @@ First stable release — the full capture motor.
   offline two implementations of the same time contract. 530 tests, no network or
   browser needed.
 
+[1.1.1]: https://github.com/HeyRenan/showreel/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/HeyRenan/showreel/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/HeyRenan/showreel/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/HeyRenan/showreel/commits/v1.0.0

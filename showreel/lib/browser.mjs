@@ -114,6 +114,35 @@ export class Browser {
     return geo;
   }
 
+  // Visible text-bearing rects in the viewport (excluding the target and its
+  // descendants) — extra autoplace obstacles so callouts and zoom insets never
+  // land on page text that the sibling-only measure() misses.
+  async textNeighbors(selector) {
+    return this.page.evaluate((sel) => {
+      const target = document.querySelector(sel);
+      const viewportWidth = window.innerWidth, viewportHeight = window.innerHeight;
+      const boxes = [];
+      const seenKeys = new Set();
+      const textNodes = document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,a,button,td,th,li,label,code,b,strong,em,span,small');
+      for (const node of textNodes) {
+        if (boxes.length >= 50) break;
+        if (target && (node === target || target.contains(node) || node.contains(target))) continue;
+        if (!(node.textContent || '').trim()) continue;
+        const style = getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden' || +style.opacity === 0) continue;
+        const rect = node.getBoundingClientRect();
+        if (rect.width < 8 || rect.height < 8) continue;
+        if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= viewportWidth || rect.top >= viewportHeight) continue;
+        const box = { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height) };
+        const key = box.x + ':' + box.y + ':' + box.w + ':' + box.h;
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        boxes.push(box);
+      }
+      return boxes;
+    }, selector);
+  }
+
   // Shrink the viewport to the REAL content extent (the furthest visible bottom
   // edge), so a full-page shot has no dead space. scrollHeight is unreliable for
   // absolutely/fixed-positioned content, so we scan element rects.

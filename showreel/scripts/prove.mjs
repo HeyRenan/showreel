@@ -35,33 +35,10 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
 const NEUTRAL = 'neutral'; // engine resolves vs page tone (light on dark, dark on light)
 
-// Visible text-bearing rects in the viewport (excluding the target and its
-// descendants) — extra autoplace obstacles so callouts/zoom insets never land
-// on page text the sibling-only measure() misses.
-async function textNeighbors(b, selector) {
-  return b.page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const out = [];
-    const seen = new Set();
-    const nodes = document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,a,button,td,th,li,label,code,b,strong,em,span,small');
-    for (const n of nodes) {
-      if (out.length >= 50) break;
-      if (el && (n === el || el.contains(n) || n.contains(el))) continue;
-      if (!(n.textContent || '').trim()) continue;
-      const s = getComputedStyle(n);
-      if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) continue;
-      const r = n.getBoundingClientRect();
-      if (r.width < 8 || r.height < 8) continue;
-      if (r.right <= 0 || r.bottom <= 0 || r.left >= vw || r.top >= vh) continue;
-      const box = { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
-      const key = box.x + ':' + box.y + ':' + box.w + ':' + box.h;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(box);
-    }
-    return out;
-  }, selector);
+// Byte size of a written output, or 0 when it is missing or unreadable (which
+// the caller treats as an empty-output failure).
+function outputByteSize(path) {
+  try { return statSync(path).size; } catch { return 0; }
 }
 
 // Ancestor boxes innermost -> outermost (up to body) for crop snapping.
@@ -264,7 +241,7 @@ async function proveOne(b, job) {
   const calloutW = clamp(Math.round((job.label || '').length * fontSize * 0.62) + 28, 120, 420);
   const calloutH = Math.round(fontSize * 1.3) + 20; // matches pill(): size*1.3 + 2*padY(10)
 
-  const textNbrs = await textNeighbors(b, job.selector);
+  const textNbrs = await b.textNeighbors(job.selector);
   // Zoom inset placed FIRST so the callout ladder dodges it (inset is the
   // biggest box; callout adapts, collision check gates).
   const zoomSpot = job.zoom
@@ -354,8 +331,7 @@ async function proveOne(b, job) {
     const ok = typeof job.expect === 'string' ? (txt || '').includes(job.expect) : !!txt;
     if (!ok) { console.error('prove: target text missing on ' + job.selector); reason = 'target-text'; }
   }
-  let size = 0;
-  try { size = statSync(job.out).size; } catch { size = 0; }
+  const size = outputByteSize(job.out);
   if (!reason && size <= 0) reason = 'empty-output';
   if (reason) {
     console.log('FAIL ' + job.out + ' reason=' + reason);

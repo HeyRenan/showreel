@@ -23,35 +23,6 @@ const NEUTRAL = 'neutral'; // engine resolves vs page tone (light on dark, dark 
 const GREEN = '#16a34a';
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-// Visible text-bearing rects in the viewport (excluding the target and its
-// descendants) — extra autoplace obstacles so callouts/zoom insets never land
-// on page text the sibling-only measure() misses.
-async function textNeighbors(b, selector) {
-  return b.page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const out = [];
-    const seen = new Set();
-    const nodes = document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,a,button,td,th,li,label,code,b,strong,em,span,small');
-    for (const n of nodes) {
-      if (out.length >= 50) break;
-      if (el && (n === el || el.contains(n) || n.contains(el))) continue;
-      if (!(n.textContent || '').trim()) continue;
-      const s = getComputedStyle(n);
-      if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) continue;
-      const r = n.getBoundingClientRect();
-      if (r.width < 8 || r.height < 8) continue;
-      if (r.right <= 0 || r.bottom <= 0 || r.left >= vw || r.top >= vh) continue;
-      const box = { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
-      const key = box.x + ':' + box.y + ':' + box.w + ':' + box.h;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(box);
-    }
-    return out;
-  }, selector);
-}
-
 // Ancestor boxes innermost -> outermost (up to body) for crop snapping.
 async function ancestorBoxes(b, selector) {
   return b.page.evaluate((sel) => {
@@ -107,7 +78,7 @@ async function captureOne(b, job) {
   const boxes = [{ x: t.x, y: t.y, w: t.w, h: t.h }];
 
   const vp = geo.viewport;
-  const textNbrs = await textNeighbors(b, job.selector);
+  const textNbrs = await b.textNeighbors(job.selector);
   const labelW = clamp(Math.round(text.length * fontSize * 0.62) + 20, 80, 420);
   const labelH = Math.round(fontSize * 1.3) + 12;
 
