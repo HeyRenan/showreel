@@ -23,22 +23,6 @@ const NEUTRAL = 'neutral'; // engine resolves vs page tone (light on dark, dark 
 const GREEN = '#16a34a';
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-// Ancestor boxes innermost -> outermost (up to body) for crop snapping.
-async function ancestorBoxes(b, selector) {
-  return b.page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const out = [];
-    let n = el && el.parentElement;
-    while (n) {
-      const r = n.getBoundingClientRect();
-      out.push({ x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) });
-      if (n === document.body) break;
-      n = n.parentElement;
-    }
-    return out;
-  }, selector);
-}
-
 export function parse(argv) {
   const a = { width: 1280, height: 900, kind: 'rect' };
   const pos = [];
@@ -162,7 +146,7 @@ async function captureOne(b, job) {
   const maxY = Math.max(...boxes.map((x) => x.y + x.h)) + PAD;
   // Snap the crop to the smallest ancestor boundary that contains it so the
   // window never slices a table row / card mid-text.
-  const ancestors = await ancestorBoxes(b, job.selector);
+  const ancestors = await b.ancestorBoxes(job.selector);
   const region = snapCropToAncestor({
     crop: { x: minX, y: minY, w: maxX - minX, h: maxY - minY },
     ancestors,

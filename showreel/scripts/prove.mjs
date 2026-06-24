@@ -41,22 +41,6 @@ function outputByteSize(path) {
   try { return statSync(path).size; } catch { return 0; }
 }
 
-// Ancestor boxes innermost -> outermost (up to body) for crop snapping.
-async function ancestorBoxes(b, selector) {
-  return b.page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const out = [];
-    let n = el && el.parentElement;
-    while (n) {
-      const r = n.getBoundingClientRect();
-      out.push({ x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) });
-      if (n === document.body) break;
-      n = n.parentElement;
-    }
-    return out;
-  }, selector);
-}
-
 // Draw order is load-bearing: blur masks first (so a zoom of a masked region
 // stays masked), zoom snapshots the still-unmarked pixels (a green marker
 // magnified into the inset would count as green OUTSIDE the target and tank
@@ -302,7 +286,7 @@ async function proveOne(b, job) {
   const maxY = Math.max(...boxes.map((bx) => bx.y + bx.h)) + PAD;
   // Snap the crop to the smallest ancestor boundary that contains it so the
   // window never slices a table row / card mid-text.
-  const ancestors = await ancestorBoxes(b, job.selector);
+  const ancestors = await b.ancestorBoxes(job.selector);
   const region = snapCropToAncestor({
     crop: { x: minX, y: minY, w: maxX - minX, h: maxY - minY },
     ancestors,

@@ -143,6 +143,23 @@ export class Browser {
     }, selector);
   }
 
+  // Ancestor boxes innermost → outermost (up to body) — lets a tight crop snap to
+  // a meaningful container instead of the bare element.
+  async ancestorBoxes(selector) {
+    return this.page.evaluate((sel) => {
+      const target = document.querySelector(sel);
+      const boxes = [];
+      let node = target && target.parentElement;
+      while (node) {
+        const rect = node.getBoundingClientRect();
+        boxes.push({ x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height) });
+        if (node === document.body) break;
+        node = node.parentElement;
+      }
+      return boxes;
+    }, selector);
+  }
+
   // Shrink the viewport to the REAL content extent (the furthest visible bottom
   // edge), so a full-page shot has no dead space. scrollHeight is unreliable for
   // absolutely/fixed-positioned content, so we scan element rects.

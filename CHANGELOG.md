@@ -9,6 +9,15 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.1.4] — 2026-06-24
+
+### Internal
+- De-duplicated `ancestorBoxes` — the crop-snapping ancestor walk was copy-pasted
+  byte-for-byte in `prove.mjs` and `demo.mjs` (same pattern as the v1.1.1
+  `textNeighbors` cleanup). Moved to a single `Browser.ancestorBoxes` method,
+  keeping `lib/autoplace.mjs` pure. No behavior change (verified by real `demo` +
+  `prove` renders; 536 tests green).
+
 ## [1.1.3] — 2026-06-24
 
 ### Fixed
@@ -130,6 +139,7 @@ First stable release — the full capture motor.
   offline two implementations of the same time contract. 530 tests, no network or
   browser needed.
 
+[1.1.4]: https://github.com/HeyRenan/showreel/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/HeyRenan/showreel/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/HeyRenan/showreel/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/HeyRenan/showreel/compare/v1.1.0...v1.1.1
