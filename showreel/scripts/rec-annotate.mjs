@@ -6,6 +6,31 @@
 
 import { modalLayout } from './rec-steps.mjs';
 
+// progress rail geometry + lane choice (pure, so it is unit-testable away from
+// the page). The rail is a glass pill on the host's lower edge; every dimension
+// derives from the host box, then clamps so a 28px chip still reads and a wide
+// table does not get a chunky bar. `scale` (default 1) multiplies the base.
+//
+// LANE: if the host has clear room in its bottom padding, the rail sits INSIDE
+// (the premium card look). If the host's own content runs flush to the bottom
+// (a pipeline node whose last child is a status chip), an inside rail would sit
+// ON TOP of that chip — so the rail drops to an UNDER lane, a clean underline
+// just beneath the host edge, and never occludes the content.
+export function progressRailGeometry({ width, height, hostBottom, contentBottom }, scale = 1) {
+  const clampN = (value, lo, hi) => Math.max(lo, Math.min(hi, value));
+  const shortSide = Math.min(width, height);
+  const railHeight = clampN(shortSide * 0.14 * scale, 4, 16 * scale);
+  const sideInset = clampN(width * 0.07, 5, 22);
+  const insideGap = clampN(railHeight * 0.55, 4, 14);
+  const radius = railHeight + 6;
+  const clearBelowContent = hostBottom - contentBottom;
+  const roomNeededInside = railHeight + insideGap + 4;
+  const lane = clearBelowContent >= roomNeededInside ? 'inside' : 'under';
+  const underGap = 4;
+  const bottom = lane === 'inside' ? insideGap : -(railHeight + underGap);
+  return { H: railHeight, INS: sideInset, BOT: insideGap, RAD: radius, bottom, lane };
+}
+
 export function makeAnnotator(rctx) {
   // pageTheme is read LIVE off rctx (not destructured) so a mid-reel theme
   // toggle reaches every annotation built after it — rec.mjs refreshes
@@ -2290,47 +2315,56 @@ const applyFlash = async (color, opts) => {
         // of the proportional rail (default 1). count/intensity n/a for a bar.
         const DUR = clamp(o.duration, 200, 8000, 1100);
         const SC = clamp(o.scale, 0.3, 3, 1);
-        const skip = await safeEval(({ s, col, SC, DUR }) => {
+        // MEASURE: read host geometry + surface in one page pass. The lane
+        // decision is computed in Node (progressRailGeometry, unit-tested), then
+        // DRAW paints it — so the "never cover a trailing chip" logic is testable.
+        const m = await safeEval(({ s }) => {
           const el = document.querySelector(s);
-          if (!el) return 'no-element';
-          if (el.dataset.srProgress) return 'already-running';
+          if (!el) return { skip: 'no-element' };
+          if (el.dataset.srProgress) return { skip: 'already-running' };
           const r = el.getBoundingClientRect();
           const cs = getComputedStyle(el);
           // a zero-width target (e.g. a fill <i> that starts at width:0) gives the
-          // rail nothing to span — it would paint an invisible bar. This used to
-          // return silently, which read as "progress never appeared". Now it
-          // reports the reason so the render run surfaces the dead step.
-          if (r.width < 2 || r.height < 2 || cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) < 0.05) return 'zero-box';
+          // rail nothing to span — it would paint an invisible bar. Report the
+          // reason so the render run surfaces the dead step.
+          if (r.width < 2 || r.height < 2 || cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) < 0.05) return { skip: 'zero-box' };
           el.dataset.srProgress = '1';
-          // Element-anchored: attach as a CHILD so the rail inherits the element box
-          // and any ancestor camera transform (a body-level div diverges under zoom).
+          // Element-anchored: the rail attaches as a CHILD (DRAW step) so it
+          // inherits the box and any ancestor camera transform. Needs a positioned
+          // host; patch static → relative and remember to revert.
           if (cs.position === 'static') { el.style.position = 'relative'; el.dataset.srProgPatched = '1'; }
           // surface luminance: prefer the element's own bg, else walk up.
-          const lum = (c) => { const m = c && c.match(/\d+/g); return m ? (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) / 255 : 0.1; };
+          const lum = (c) => { const mm = c && c.match(/\d+/g); return mm ? (0.299 * mm[0] + 0.587 * mm[1] + 0.114 * mm[2]) / 255 : 0.1; };
           let bg = cs.backgroundColor, p = el;
           while ((!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') && p.parentElement) { p = p.parentElement; bg = getComputedStyle(p).backgroundColor; }
           const dark = lum(bg || 'rgb(10,15,30)') < 0.5;
-          const accent = col || (dark ? 'rgb(74,222,128)' : 'rgb(22,163,74)');
-          // PROPORTIONAL SIZING — every key dimension DERIVES from the target box,
-          // then clamps so a 28px chip still reads and a 1024px table does not get a
-          // chunky bar. scale (default 1) multiplies the proportional base.
-          const sc = SC;
+          // lowest content edge inside the host — drives the lane so a trailing
+          // chip/label flush to the bottom is never painted over.
+          let contentBottom = r.top;
+          for (const child of el.children) { const cr = child.getBoundingClientRect(); if (cr.bottom > contentBottom && cr.bottom <= r.bottom + 1) contentBottom = cr.bottom; }
+          return { r: { width: r.width, height: r.height, bottom: r.bottom }, dark, contentBottom };
+        }, { s: sel });
+        if (m && m.skip === 'zero-box')
+          console.error('rec: WARN progress "' + sel + '" — target has no visible box (width/height < 2px, or hidden). A 0-width fill element (e.g. ".deploy-progress i") can\'t host a bar; point progress at the sized container instead.');
+        if (!m || m.skip) return; // nothing drawn — don't hold the clock for an absent bar
+        // COMPUTE (pure, unit-tested): rail geometry + clean-lane choice.
+        const geom = progressRailGeometry({ width: m.r.width, height: m.r.height, hostBottom: m.r.bottom, contentBottom: m.contentBottom }, SC);
+        const accentColor = color || (m.dark ? 'rgb(74,222,128)' : 'rgb(22,163,74)');
+        // DRAW: build the glass rail with the computed lane + design tokens.
+        await safeEval(({ s, g, dark, accent, DUR }) => {
+          const el = document.querySelector(s);
+          if (!el) return;
+          const H = g.H, INS = g.INS, RAD = g.RAD;
+          // an UNDER-lane rail sits below the host edge; if the host clips, reveal
+          // it (and remember to restore overflow on cleanup) so it is not cut off.
+          if (g.lane === 'under') {
+            const cs = getComputedStyle(el);
+            if (/hidden|clip|auto|scroll/.test(cs.overflow + cs.overflowX + cs.overflowY)) { el.style.overflow = 'visible'; el.dataset.srProgOverflow = '1'; }
+          }
           const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-          const shortSide = Math.min(r.width, r.height);
-          // rail thickness ~ 14% of the box's short side; floor 4px (tiny stays
-          // visible), ceil 16px (wide/tall does not balloon). scale grows it.
-          const H = clampN(shortSide * 0.14 * sc, 4, 16 * sc);
-          // side inset ~ 7% of width so margins track the box; floor 5px, ceil 22px.
-          const INS = clampN(r.width * 0.07, 5, 22);
-          // bottom gap ~ 0.55x the thickness, clamped — keeps the pill tucked just
-          // inside the lower edge regardless of box height.
-          const BOT = clampN(H * 0.55, 4, 14);
-          const RAD = H + 6; // fully rounded pill
-          // DESIGN SYSTEM tokens — the rail is a GLASS pill, not a flat fill.
-          // LIGHT THEME used a near-white glass + 8% track, so on a white card the
-          // whole pill vanished and only a thin green fill remained (read as "the
-          // bar barely appears"). On light, tint the track darker, thicken the
-          // border, and lift it with a real drop shadow so the rail reads.
+          // DESIGN SYSTEM tokens — the rail is a GLASS pill, not a flat fill. On a
+          // light surface, tint the track darker + lift with a real shadow so the
+          // whole pill reads (a near-white glass on white would vanish).
           const GLASS = dark ? 'rgba(15,23,42,0.72)' : 'rgba(241,245,249,0.94)';
           // blur scales gently with thickness so big rails read as deeper glass.
           const BL = clampN(H * 1.4, 9, 18);
@@ -2342,28 +2376,25 @@ const applyFlash = async (color, opts) => {
           const GLOW = dark ? '0 0 ' + (H * 1.8).toFixed(1) + 'px 2px ' + accent : '0 4px 12px ' + accent + '66';
           const TRACK = dark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.16)';
           const SHEEN = dark ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.9)';
-          // fill + sheen transition length tracks the chosen DUR (in seconds) so the
-          // fill speed is tunable, not hardcoded at 1.1s.
+          // fill + sheen transition tracks DUR (seconds) so the fill speed is tunable.
           const FS = (DUR / 1000).toFixed(3);
           const rail = document.createElement('div');
           rail.className = '__sr_mask__';
           rail.dataset.srFor = s;
-          // glass track pill resting just inside the bottom edge; radius pill, soft
-          // shadow + hairline so it reads as a surface, not a painted line. Enters with
-          // a brief rise + settle on the entrance ease. Dimensions are proportional.
-          rail.style.cssText = 'position:absolute;left:' + INS + 'px;right:' + INS + 'px;bottom:' + BOT + 'px;height:' + H + 'px;z-index:2147483600;'
+          // glass track pill on the host's lower edge — inside the bottom padding,
+          // or as an underline just beneath it for content-flush hosts (g.bottom).
+          // Enters with a brief rise + settle on the entrance ease.
+          rail.style.cssText = 'position:absolute;left:' + INS + 'px;right:' + INS + 'px;bottom:' + g.bottom + 'px;height:' + H + 'px;z-index:2147483600;'
             + 'border-radius:' + RAD + 'px;overflow:hidden;pointer-events:none;opacity:0;transform:translateY(4px) scaleX(.94);transform-origin:center;'
             + 'background:' + GLASS + ';border:' + HAIR + ';box-shadow:' + SHADOW + ';' + BLUR + ';'
             + 'transition:opacity .6s cubic-bezier(.18,.7,.3,1),transform .6s cubic-bezier(.18,.7,.3,1);';
           // a tinted track groove inside the glass so the unfilled portion reads.
           const groove = document.createElement('div');
           groove.style.cssText = 'position:absolute;inset:0;border-radius:' + RAD + 'px;background:' + TRACK + ';';
-          // accent fill = scene color, solid + accent glow per the system. It fills
-          // 0->100% over DUR by ANIMATING WIDTH, not transform:scaleX. A scaleX
-          // transition inside an overflow:hidden pill is dropped from the video
-          // capture at larger render widths (≥~1024px the compositor tiles the
-          // layer and culls the transformed child) — the bar then never appears.
-          // Animating `width` keeps the fill a plainly-rasterized box every frame.
+          // accent fill = scene color. It fills 0->100% over DUR by ANIMATING WIDTH,
+          // not transform:scaleX (a scaleX transition inside an overflow:hidden pill
+          // is dropped from the video capture at large render widths). Width stays a
+          // plainly-rasterized box every frame.
           const fill = document.createElement('div');
           fill.style.cssText = 'position:absolute;left:0;top:0;bottom:0;width:0;border-radius:' + RAD + 'px;background:' + accent + ';'
             + 'box-shadow:' + GLOW + ';transition:width ' + FS + 's cubic-bezier(.18,.7,.3,1);';
@@ -2376,17 +2407,14 @@ const applyFlash = async (color, opts) => {
           rail.appendChild(groove);
           rail.appendChild(fill);
           el.appendChild(rail);
-          // PULSE-BUG GUARD: paint the hidden state, THEN on the next frame trigger
-          // the entrance — never set opacity 0 and 1 in the same frame.
+          // PULSE-BUG GUARD: paint the hidden state, THEN trigger the entrance on
+          // the next frame — never set opacity 0 and 1 in the same frame.
           requestAnimationFrame(() => { requestAnimationFrame(() => {
             rail.style.opacity = '1'; rail.style.transform = 'translateY(0) scaleX(1)';
             fill.style.width = '100%';
             sheen.style.opacity = '1'; sheen.style.left = '100%';
           }); });
-        }, { s: sel, col: color || '', SC, DUR });
-        if (skip === 'zero-box')
-          console.error('rec: WARN progress "' + sel + '" — target has no visible box (width/height < 2px, or hidden). A 0-width fill element (e.g. ".deploy-progress i") can\'t host a bar; point progress at the sized container instead.');
-        if (skip) return; // nothing drawn — don't hold the clock for an absent bar
+        }, { s: sel, g: geom, dark: m.dark, accent: accentColor, DUR });
         // host life tracks the chosen fill duration (+ entrance settle) so the full
         // fill + brim is captured, not cut nor left lingering into the next step.
         await clock.wait(ms(DUR + 350), true);
@@ -2401,6 +2429,7 @@ const applyFlash = async (color, opts) => {
             setTimeout(() => {
               rail.remove();
               if (el.dataset.srProgPatched) { el.style.position = ''; delete el.dataset.srProgPatched; }
+              if (el.dataset.srProgOverflow) { el.style.overflow = ''; delete el.dataset.srProgOverflow; }
               delete el.dataset.srProgress;
             }, 380);
           }

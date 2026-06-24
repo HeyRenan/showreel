@@ -9,6 +9,25 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.1.0] — 2026-06-24
+
+### Fixed
+- **`progress` rail no longer reads as broken.** The rail anchored to the host's
+  bottom edge, so on a content-flush node (a pipeline stage whose last child is a
+  status chip) it painted ON TOP of that chip and flashed by — in the showcase and
+  the README gif it looked like nothing happened. The rail now picks a lane: it
+  stays INSIDE a host that has bottom padding (the premium card look), and drops to
+  a clean UNDER lane just beneath a content-flush host so the chip is never covered.
+
+### Changed
+- The `progress` geometry + lane choice moved to a pure, unit-tested function
+  (`progressRailGeometry`), split measure → compute → draw. An under-lane rail also
+  reveals a clipping host's overflow for the duration, then restores it.
+
+### Assets
+- Re-rendered `assets/showcase.mp4` (+ poster) and `assets/progress.gif` so the
+  rollout actually reads. The renders also pick up the v1.0.1 spotlight-note fix.
+
 ## [1.0.1] — 2026-06-24
 
 ### Fixed
@@ -77,5 +96,6 @@ First stable release — the full capture motor.
   offline two implementations of the same time contract. 530 tests, no network or
   browser needed.
 
+[1.1.0]: https://github.com/HeyRenan/showreel/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/HeyRenan/showreel/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/HeyRenan/showreel/commits/v1.0.0
