@@ -213,7 +213,9 @@ export function parse(argv) {
 }
 
 // One proof against an already-open page. Returns 'PASS' | 'FAIL' | 'NO_SPACE'.
-async function proveOne(b, job) {
+// Exported so auto.mjs can run the SAME capture+gate path on machine-discovered
+// elements — the verdict semantics stay identical to a hand-authored proof.
+export async function proveOne(b, job) {
   const geo = await b.measureVisible(job.selector);
 
   // Measure the blur region up front so autoplace treats it as an obstacle
