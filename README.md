@@ -23,7 +23,7 @@ A [Claude Code](https://claude.com/claude-code) plugin for **visual documentatio
 
 You point it at a page and name elements by **CSS selector**. Showreel measures the DOM, draws the annotation exactly on target, and **validates the result before exit** — a bad capture is an error, never a shipped file. No screenshot → eyeball → retry loop, no pixel coordinates, no tokens burned guessing.
 
-- **Self-contained** — bundles its own headless Chromium; no browser MCP, no credentials, nothing sent anywhere.
+- **Self-contained** — bundles its own headless Chromium; no browser MCP, no credentials, no telemetry. The only network is rendering the page URL you ask for, plus a one-time Playwright + Chromium download on first run (from npm and Microsoft's CDN; pre-warm it with `preflight.sh`).
 - **Deterministic** — same selectors in, same pixels out. Placement is computed, not guessed.
 - **Cheap** — `--batch` renders many captures in one browser launch.
 
