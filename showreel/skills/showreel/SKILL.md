@@ -18,6 +18,7 @@ Default output dir: `./showreel-out/` in the current project (create it; respect
 | Need | Command | Output |
 |---|---|---|
 | Annotated screenshot (marker + callout, self-validated) | `node scripts/prove.mjs <url> "<selector>" out.png --label "menu opens"` | `PASS out.png kb=<n>` |
+| Quick auto-annotate — URL only, no selectors (discovers salient elements: heading, primary action, nav, hero, cards; role-based notes; same gate) | `node scripts/auto.mjs <url> [--max N] [--out-dir DIR]` | `PASS <out> kb=<n>` per element, then `AUTO <k>/<n> PASS`; writes `index.json` |
 | N annotated shots, ONE browser launch (DEFAULT for 2+) | `node scripts/prove.mjs <url> --batch jobs.json` — jobs: `[{selector,out,label,circle,blur,zoom}]` | `PASS <out> kb=<n>` / `FAIL <out> reason=<short>` per job, then `PROVE <k>/<n> PASS` |
 | Desktop layout (defaults are 900x1400 portrait = mobile breakpoint!) | add `--width 1440 --height 900` to prove/shot/demo | |
 | Per-shot options | `circle` (ring hugging target), `blur "<sel>"` (pixelate region), `zoom` (magnified inset) | |
@@ -35,6 +36,7 @@ Default output dir: `./showreel-out/` in the current project (create it; respect
 
 ## Picking the right tool
 
+- **Don't know the selectors / want a fast overview of a page** → `auto` (URL only; it picks the salient elements). For precise control of WHICH element + WHAT note → `prove`.
 - **Static UI state** → `prove` (annotated) or `shot` (clean crop).
 - **Motion / multi-step flow in a browser** → `rec`.
 - **CLI / terminal behavior** → `tape` (vhs). Browser things never go through vhs; terminal things never through rec.
