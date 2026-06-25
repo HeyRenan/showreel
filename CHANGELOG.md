@@ -9,6 +9,22 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.3.0] — 2026-06-25
+
+### Added
+- **`beautify.mjs` — share-ready frames.** Wraps any PNG in a browser-window
+  (traffic lights + url bar), card, or minimal frame — soft shadow, rounded
+  corners, gradient background — and sizes the canvas to a social aspect with
+  `--ratio 16:9|9:16|1:1` (the window is centered, never cropped). Flags
+  `--frame`, `--bg "c1,c2"`, `--pad`, `--radius`, `--url`, `--no-shadow`. New pure
+  geometry module `beautify-frame.mjs` (`frameLayout`, `resolveBackground`) plus a
+  `Browser.beautify` in-page compositor; the README "Share-ready frames" image is
+  one `beautify` call.
+
+### Tests
+- Added `beautify.test.mjs` — frame layout (window/card/minimal), ratio
+  enlargement, background resolution, CLI parse. 572 tests.
+
 ## [1.2.0] — 2026-06-25
 
 ### Added
