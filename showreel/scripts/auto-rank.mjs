@@ -55,10 +55,17 @@ function overlapFraction(a, b) {
 function scoreOf(cand, viewport) {
   const vpArea = Math.max(1, viewport.w * viewport.h);
   const roleWeight = ROLE_WEIGHT[cand.role] || 0.4;
+  // selRank: how strong the SELECTOR that matched this element is within its
+  // role (1 = the first, most specific selector like `.cta`/`[type=submit]`;
+  // →0 = the generic fallback like bare `button`). This is what separates a real
+  // primary CTA from a tiny icon toggle — both are buttons, but `.cta` is the
+  // intended action. Without it, small buttons tie on area (~0 normalized) and a
+  // top-of-page toggle wins on position alone.
+  const selRank = cand.selRank != null ? cand.selRank : 0;
   const verticalBias = 1 - clamp((cand.rect.y || 0) / Math.max(1, viewport.h), 0, 1);
   const areaNorm = clamp((cand.area || 0) / vpArea, 0, 0.6) / 0.6;
   const interactiveBonus = cand.isInteractive ? 0.15 : 0;
-  return 0.45 * roleWeight + 0.20 * verticalBias + 0.20 * areaNorm + 0.15 * interactiveBonus;
+  return 0.35 * roleWeight + 0.25 * selRank + 0.10 * verticalBias + 0.15 * areaNorm + 0.15 * interactiveBonus;
 }
 
 // Rank raw candidates into the top-N salient, non-overlapping picks. Pure and
@@ -176,12 +183,17 @@ function collectImpl(stableSelector) {
   const out = [];
   for (const { role, sels, one } of ROLES) {
     let taken = 0;
-    for (const sel of sels) {
+    for (let si = 0; si < sels.length; si++) {
+      const sel = sels[si];
       let nodes;
       try { nodes = document.querySelectorAll(sel); } catch (e) { continue; }
       for (const node of nodes) {
         if (claimed.has(node)) continue;
         if (!visible(node)) continue;
+        const text = (node.innerText || node.textContent || '').trim();
+        // A metric is a number — a status pill or section header that merely has
+        // "stat"/"metric" in its class is not. Drop digit-less key-metric matches.
+        if (role === 'key-metric' && !/\d/.test(text)) continue;
         const rect = round(node.getBoundingClientRect());
         const tag = node.tagName.toLowerCase();
         const isInteractive = /^(a|button|input|select)$/.test(tag) || node.matches('[role=button],[type=submit]');
@@ -190,7 +202,11 @@ function collectImpl(stableSelector) {
           role, tag,
           selector: stableSelector(node),
           rect, area: rect.w * rect.h,
-          text: (node.innerText || node.textContent || '').trim().slice(0, 120),
+          // selRank: 1 for the first (strongest) selector in the role's list,
+          // decaying toward the generic fallback — lets ranking prefer a real
+          // `.cta` over a bare `button`.
+          selRank: (sels.length - si) / sels.length,
+          text: text.slice(0, 120),
           isInteractive,
         });
         taken++;

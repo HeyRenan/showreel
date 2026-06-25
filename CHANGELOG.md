@@ -24,6 +24,14 @@ by CSS selectors and JSON steps.
 ### Changed
 - Exported `proveOne` from `prove.mjs` (behavior unchanged) so `auto` runs the
   exact same capture + gate path as a hand-authored proof.
+- `auto` ranking prefers the stronger selector within a role (a real `.cta` over a
+  bare `button`) and requires a digit for `key-metric` candidates — so it marks the
+  actual primary action and real numbers, not an icon toggle or a status pill.
+
+### Docs
+- README (EN + pt-BR): new "Zero config — just a URL" section showing four
+  elements auto-discovered and annotated from one `auto.mjs` command, plus an
+  Auto row at the top of the capability table.
 
 ### Tests
 - Added `auto.test.mjs` — pure ranking, role labels, option helpers, CLI parse,

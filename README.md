@@ -48,12 +48,30 @@ node scripts/prove.mjs https://example.com ".cards .card:first-child" out.png --
 
 `/showreel:guide` opens a visual setup guide. Local-folder install and full paths in [INSTALL.md](INSTALL.md).
 
+## Zero config — just a URL
+
+Don't know the selectors? Point Showreel at a page and it finds the salient elements itself — heading, primary action, navigation, metrics, hero, cards — annotates each with a role-based note, and runs the same `vcheck` gate as `prove`. One browser launch.
+
+```bash
+node scripts/auto.mjs https://your-app.example.com
+```
+
+| | |
+|:---:|:---:|
+| ![auto-discovered primary action](assets/auto-action.png) | ![auto-discovered key metric](assets/auto-metric.png) |
+| **primary action** — discovered + zoomed | **key metric** — discovered |
+| ![auto-discovered form](assets/auto-form.png) | ![auto-discovered hero image](assets/auto-hero.png) |
+| **key input form** — discovered | **hero image** — discovered |
+
+*All four shots came from one `auto.mjs` command against the bundled demo page — not a selector written. It prints a `PASS` line per element, then `AUTO <k>/<n> PASS`, plus an `index.json` manifest. A discovered element that vanishes before capture (SPA re-render, themed swap) is a soft skip, never a failure.*
+
 ## What it can do
 
 Every capability, one command each. All scripts live in `showreel/scripts/`. The agent always speaks in **selectors + text**, never pixels.
 
 | Capability | Script | What you get |
 |---|---|---|
+| **Auto (URL only)** | `auto.mjs` | Discovers the salient elements itself — heading, primary action, nav, hero, metrics, cards — role-based notes, same `vcheck` gate. One launch; writes PNGs + `index.json`. No selectors. `--max N`. |
 | **Annotated proof** | `prove.mjs` | DOM-exact rectangle + callout + arrow, pixel-verified (`vcheck`) — exits 0 only on PASS. Flags: `--circle`, `--blur "<sel>"`, `--zoom`, `--batch jobs.json`. |
 | **Annotation primitives** | `demo.mjs` | One concept per image: `rect`, `circle`, `arrow`, `badge`, `blur`, `zoom`, `callout`, `label`. `--batch` = 8 captures in one launch. |
 | **Flow recording** | `rec.mjs` | Narrated GIF/MP4 from JSON steps — cursor motion, ripples, scrolling, narration modals, step stamps. The hero GIF above is one call. |
