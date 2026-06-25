@@ -1,5 +1,0 @@
-[
-  { "scrollTo": ".step:nth-of-type(1)", "note": "Point at any UI in selectors + text", "arrow": true, "wait": 4400 },
-  { "scrollTo": ".step:nth-of-type(4)", "note": "One command, an annotated shot", "arrow": true, "wait": 4600 },
-  { "modal": "Self-validated before it ships.", "wait": 2600 }
-]

@@ -35,7 +35,7 @@
 
   <div class="term">
     <div class="bar"><span></span><span></span><span></span></div>
-    <pre><span class="prompt">$ </span><span class="cmd">claude plugin marketplace add HeyRenan/showreel-marketplace
+    <pre><span class="prompt">$ </span><span class="cmd">claude plugin marketplace add HeyRenan/showreel
 claude plugin install showreel@showreel</span>
 </pre>
   </div>
@@ -43,7 +43,7 @@ claude plugin install showreel@showreel</span>
 
   <div class="term">
     <div class="bar"><span></span><span></span><span></span></div>
-    <pre><span class="prompt">$ </span><span class="cmd">claude plugin marketplace add ~/.claude/plugins/showreel-marketplace
+    <pre><span class="prompt">$ </span><span class="cmd">claude plugin marketplace add ~/.claude/plugins/showreel
 claude plugin install showreel@showreel</span>
 </pre>
   </div>
@@ -54,7 +54,7 @@ claude plugin install showreel@showreel</span>
 
   <div class="term">
     <div class="bar"><span></span><span></span><span></span></div>
-    <pre><span class="prompt">$ </span><span class="cmd">bash ~/.claude/plugins/showreel-marketplace/showreel/scripts/preflight.sh</span>
+    <pre><span class="prompt">$ </span><span class="cmd">bash ~/.claude/plugins/showreel/showreel/scripts/preflight.sh</span>
 showcase preflight
 ------------------
   [ok]   node v20.19.5
@@ -74,7 +74,7 @@ Linux only: if Chromium fails to launch after install, run: sudo $PWD/scripts/.d
 
   <div class="term">
     <div class="bar"><span></span><span></span><span></span></div>
-    <pre><span class="prompt">$ </span><span class="cmd">node ~/.claude/plugins/showreel-marketplace/showreel/scripts/ensure-deps.mjs</span>
+    <pre><span class="prompt">$ </span><span class="cmd">node ~/.claude/plugins/showreel/showreel/scripts/ensure-deps.mjs</span>
 {
   "playwright": true,
   "chromium": true,
@@ -120,7 +120,7 @@ PASS /tmp/sc-guide-proof.png</pre>
 
   <div class="term">
     <div class="bar"><span></span><span></span><span></span></div>
-    <pre><span class="prompt">$ </span><span class="cmd">cd ~/.claude/plugins/showreel-marketplace/showreel &amp;&amp; node --test scripts/__tests__/</span>
+    <pre><span class="prompt">$ </span><span class="cmd">cd ~/.claude/plugins/showreel/showreel &amp;&amp; node --test scripts/__tests__/</span>
 # pass — all tests, no network or browser needed</pre>
   </div>
 <p>Done. Invoke <code class="inline">/showreel</code> and describe what to capture — annotated screenshots, isolated primitives (<code class="inline">demo.mjs</code>), tight crops (<code class="inline">shot.mjs</code>), flow GIFs, terminal recordings, BEFORE/AFTER composites (<code class="inline">compose.mjs</code>, <code class="inline">lh-ba.sh</code>).</p></div>
