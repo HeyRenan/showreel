@@ -23,7 +23,7 @@ Plugin de [Claude Code](https://claude.com/claude-code) para **documentação vi
 
 Você aponta pra uma página e nomeia elementos por **seletor CSS**. O Showreel mede o DOM, desenha a anotação exata no alvo, e **valida o resultado antes de sair** — uma captura ruim é erro, nunca um arquivo entregue. Sem loop de screenshot → olhar → tentar de novo, sem coordenada de pixel, sem queimar token chutando.
 
-- **Autossuficiente** — embute o próprio Chromium headless; sem MCP de browser, sem credencial, nada enviado pra lugar nenhum.
+- **Autossuficiente** — embute o próprio Chromium headless; sem MCP de browser, sem credencial, sem telemetria. A única rede é renderizar a URL que você pedir, mais um download único do Playwright + Chromium no primeiro uso (do npm e da CDN da Microsoft; pré-aqueça com `preflight.sh`).
 - **Determinístico** — mesmos seletores entram, mesmos pixels saem. A posição é calculada, não chutada.
 - **Barato** — `--batch` renderiza várias capturas num único launch do browser.
 
