@@ -9,6 +9,26 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.2.0] — 2026-06-25
+
+### Added
+- **`auto.mjs` — URL-only quick path.** Point it at a page with no selectors: it
+  discovers the salient elements (main heading, primary action, navigation, hero
+  image, key metrics, cards), annotates each with a role-based note, and runs the
+  same `vcheck` gate as `prove`. One browser launch; writes N annotated PNGs plus
+  an `index.json` manifest, then an `AUTO <k>/<n> PASS|FAIL` line. Flags `--max`,
+  `--width`, `--height`, `--dpr`, `--out-dir`. A discovered element that vanishes
+  before capture (SPA re-render, themed dark/light swap) is a soft skip, not a
+  failure. New pure core `auto-rank.mjs` (ranking, role→label, in-page collector).
+
+### Changed
+- Exported `proveOne` from `prove.mjs` (behavior unchanged) so `auto` runs the
+  exact same capture + gate path as a hand-authored proof.
+
+### Tests
+- Added `auto.test.mjs` — pure ranking, role labels, option helpers, CLI parse,
+  and `summarize` reuse (pins `auto` to the same gate as `prove`). 563 tests.
+
 ## [1.1.6] — 2026-06-24
 
 ### Fixed
