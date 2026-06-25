@@ -48,12 +48,30 @@ node scripts/prove.mjs https://example.com ".cards .card:first-child" out.png --
 
 `/showreel:guide` abre um guia visual de setup. Instalação por pasta local e caminhos completos em [INSTALL.md](INSTALL.md).
 
+## Sem configuração — só a URL
+
+Não sabe os seletores? Aponte o Showreel pra uma página e ele acha os elementos salientes sozinho — título, ação principal, navegação, métricas, hero, cards — anota cada um com uma nota por papel e roda o mesmo gate `vcheck` do `prove`. Um único launch.
+
+```bash
+node scripts/auto.mjs https://seu-app.exemplo.com
+```
+
+| | |
+|:---:|:---:|
+| ![ação principal descoberta](assets/auto-action.png) | ![métrica descoberta](assets/auto-metric.png) |
+| **ação principal** — descoberta + com zoom | **métrica-chave** — descoberta |
+| ![formulário descoberto](assets/auto-form.png) | ![imagem hero descoberta](assets/auto-hero.png) |
+| **formulário** — descoberto | **imagem hero** — descoberta |
+
+*Os quatro shots saíram de um único comando `auto.mjs` na página-demo embutida — nenhum seletor escrito. Imprime uma linha `PASS` por elemento, depois `AUTO <k>/<n> PASS`, mais um manifesto `index.json`. Um elemento que some antes da captura (re-render de SPA, troca de tema) é um skip suave, nunca uma falha.*
+
 ## O que ele faz
 
 Cada recurso, um comando. Todos os scripts ficam em `showreel/scripts/`. O agente sempre fala em **seletor + texto**, nunca em pixel.
 
 | Recurso | Script | O que sai |
 |---|---|---|
+| **Auto (só URL)** | `auto.mjs` | Descobre os elementos salientes sozinho — título, ação principal, nav, hero, métricas, cards — notas por papel, mesmo gate `vcheck`. Um launch; escreve PNGs + `index.json`. Sem seletores. `--max N`. |
 | **Prova anotada** | `prove.mjs` | Retângulo exato no DOM + callout + seta, verificado pixel a pixel (`vcheck`) — sai 0 só no PASS. Flags: `--circle`, `--blur "<sel>"`, `--zoom`, `--batch jobs.json`. |
 | **Primitivas de anotação** | `demo.mjs` | Um conceito por imagem: `rect`, `circle`, `arrow`, `badge`, `blur`, `zoom`, `callout`, `label`. `--batch` = 8 capturas num launch só. |
 | **Gravação de fluxo** | `rec.mjs` | GIF/MP4 narrado a partir de steps JSON — cursor, ripples, scroll, modais de narração, contador de passos. O GIF do topo é uma chamada só. |
