@@ -65,6 +65,17 @@ node scripts/auto.mjs https://your-app.example.com
 
 *All four shots came from one `auto.mjs` command against the bundled demo page — not a selector written. It prints a `PASS` line per element, then `AUTO <k>/<n> PASS`, plus an `index.json` manifest. A discovered element that vanishes before capture (SPA re-render, themed swap) is a soft skip, never a failure.*
 
+## Share-ready frames
+
+Wrap any capture in a browser-window or card frame — shadow, rounded corners, gradient background — and export to a social aspect ratio. A raw screenshot becomes something you can drop in a slide, a README, or a launch post.
+
+```bash
+node scripts/beautify.mjs shot.png --url "your-app.com"        # browser window (default)
+node scripts/beautify.mjs shot.png --ratio 16:9 --frame card   # social card
+```
+
+![a capture wrapped in a browser-window frame](assets/beautify.png)
+
 ## What it can do
 
 Every capability, one command each. All scripts live in `showreel/scripts/`. The agent always speaks in **selectors + text**, never pixels.
@@ -82,6 +93,7 @@ Every capability, one command each. All scripts live in `showreel/scripts/`. The
 | **Terminal recording** | `tape.mjs` | CLI proof via [vhs](https://github.com/charmbracelet/vhs): JSON steps → `.tape` → GIF. The preflight GIF below is one call. |
 | **Before/after compare** | `compose.mjs`, `lh-ba.sh` | Two PNGs or two GIFs side by side with labels. `lh-ba.sh` runs real Lighthouse on both branches. |
 | **Size optimizer** | `shrink.mjs` | Re-encodes gif/png with no visible quality loss; `--target-kb` walks a quality ladder. Every image here went through it. |
+| **Share-ready frames** | `beautify.mjs` | Wraps any PNG in a browser-window / card frame — shadow, rounded corners, gradient background, and `--ratio 16:9\|9:16\|1:1` social presets. |
 | **Tight crop** | `shot.mjs` | Just the element, no annotation. |
 
 ### Recording: how steps work

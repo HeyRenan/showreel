@@ -30,6 +30,7 @@ Default output dir: `./showreel-out/` in the current project (create it; respect
 | Side-by-side of two PNGs or two GIFs | `node scripts/compose.mjs a.png b.png pair.png --labels "Before,After"` (gifs: `a.gif b.gif pair.gif [--height N]`) | `OK pair.png` |
 | Side-by-side VIDEO | `node scripts/compose-video.mjs a.webm b.webm out.mp4 [--labels "Before,After"] [--sync-trim]` — `--sync-trim` reads the `.timeline.json` sidecars from `rec --keep-webm` and aligns both takes | `OK out.mp4` |
 | Shrink a gif/png without visible quality loss | `node scripts/shrink.mjs in.gif [out.gif] [--target-kb N]` | `OK out (X KB -> Y KB, -N%)`; may print `RECOMMEND-MP4 <reason>` |
+| Wrap a PNG in a share-ready frame (browser window / card, shadow, social aspect) | `node scripts/beautify.mjs in.png [out.png] [--frame window\|card\|minimal] [--ratio 16:9\|9:16\|1:1] [--url "..."] [--bg "c1,c2"]` | `OK out.png (WxH) kb=<n>` |
 | One isolated annotation primitive | `node scripts/demo.mjs <url> "<sel>" out.png --kind <k>` — k: rect, circle, arrow, badge, blur, label, zoom, callout | `OK out.png` |
 | N captures, ONE browser launch | `node scripts/demo.mjs <url> --batch jobs.json` — jobs: `[{selector,out,kind,text}]` | `OK` per job |
 | Lighthouse before/after across branches | `bash scripts/lh-ba.sh <url> showreel-out [audit] [base-branch]` then `shot.mjs` each audit card + `compose.mjs` | real reports, never hand-built |
@@ -42,6 +43,7 @@ Default output dir: `./showreel-out/` in the current project (create it; respect
 - **CLI / terminal behavior** → `tape` (vhs). Browser things never go through vhs; terminal things never through rec.
 - **Comparison** → capture both states, then `compose` (stills) or `compose-video` (takes).
 - **Doc page needing one concept per image** → `demo --batch`.
+- **Make a capture share-ready (slides, social, marketing)** → `beautify` — frames any PNG with window chrome, shadow and social aspect presets.
 
 ## Fidelity — match the artifact to the subject
 

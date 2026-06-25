@@ -65,6 +65,17 @@ node scripts/auto.mjs https://seu-app.exemplo.com
 
 *Os quatro shots saíram de um único comando `auto.mjs` na página-demo embutida — nenhum seletor escrito. Imprime uma linha `PASS` por elemento, depois `AUTO <k>/<n> PASS`, mais um manifesto `index.json`. Um elemento que some antes da captura (re-render de SPA, troca de tema) é um skip suave, nunca uma falha.*
 
+## Frames prontos pra compartilhar
+
+Envolva qualquer captura numa moldura de janela de browser ou card — sombra, cantos arredondados, fundo gradiente — e exporte num aspecto social. Um screenshot cru vira algo pra colar num slide, num README ou num post de lançamento.
+
+```bash
+node scripts/beautify.mjs shot.png --url "seu-app.com"          # janela de browser (padrão)
+node scripts/beautify.mjs shot.png --ratio 16:9 --frame card    # card social
+```
+
+![captura numa moldura de janela de browser](assets/beautify.png)
+
 ## O que ele faz
 
 Cada recurso, um comando. Todos os scripts ficam em `showreel/scripts/`. O agente sempre fala em **seletor + texto**, nunca em pixel.
@@ -82,6 +93,7 @@ Cada recurso, um comando. Todos os scripts ficam em `showreel/scripts/`. O agent
 | **Gravação de terminal** | `tape.mjs` | Prova de CLI via [vhs](https://github.com/charmbracelet/vhs): steps JSON → `.tape` → GIF. O GIF do preflight abaixo é uma chamada só. |
 | **Comparação before/after** | `compose.mjs`, `lh-ba.sh` | Dois PNGs ou dois GIFs lado a lado com rótulos. `lh-ba.sh` roda Lighthouse real nos dois branches. |
 | **Otimizador de tamanho** | `shrink.mjs` | Re-encoda gif/png sem perda visível; `--target-kb` percorre uma escada de qualidade. Toda imagem daqui passou por ele. |
+| **Frames prontos pra compartilhar** | `beautify.mjs` | Envolve qualquer PNG numa moldura de janela de browser / card — sombra, cantos arredondados, fundo gradiente, e presets de aspecto social `--ratio 16:9\|9:16\|1:1`. |
 | **Corte justo** | `shot.mjs` | Só o elemento, sem anotação. |
 
 ### Gravação: como os steps funcionam

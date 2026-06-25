@@ -216,6 +216,95 @@ export class Browser {
     return Buffer.from(out.split(',')[1], 'base64');
   }
 
+  // Composite a screenshot into a frame (browser window / card / minimal) on a
+  // padded, optionally ratio-sized background. `layout` comes from frameLayout
+  // (pure); this only draws pixels. Returns a PNG Buffer.
+  async beautify(pngBuffer, layout, draw) {
+    const dataUrl = 'data:image/png;base64,' + Buffer.from(pngBuffer).toString('base64');
+    const out = await this.page.evaluate(({ dataUrl, L, D }) => new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => {
+        const cv = document.createElement('canvas');
+        cv.width = L.canvasW; cv.height = L.canvasH;
+        const ctx = cv.getContext('2d');
+
+        // rounded-rect path with per-corner radii
+        const path = (x, y, w, h, r) => {
+          const tl = r.tl || 0, tr = r.tr || 0, br = r.br || 0, bl = r.bl || 0;
+          ctx.beginPath();
+          ctx.moveTo(x + tl, y);
+          ctx.lineTo(x + w - tr, y); ctx.arcTo(x + w, y, x + w, y + tr, tr);
+          ctx.lineTo(x + w, y + h - br); ctx.arcTo(x + w, y + h, x + w - br, y + h, br);
+          ctx.lineTo(x + bl, y + h); ctx.arcTo(x, y + h, x, y + h - bl, bl);
+          ctx.lineTo(x, y + tl); ctx.arcTo(x, y, x + tl, y, tl);
+          ctx.closePath();
+        };
+
+        // background — flat or vertical gradient
+        const bg = (D.bg && D.bg.length) ? D.bg : ['#1e293b', '#0f172a'];
+        if (bg.length > 1) {
+          const g = ctx.createLinearGradient(0, 0, 0, L.canvasH);
+          g.addColorStop(0, bg[0]); g.addColorStop(1, bg[1]);
+          ctx.fillStyle = g;
+        } else { ctx.fillStyle = bg[0]; }
+        ctx.fillRect(0, 0, L.canvasW, L.canvasH);
+
+        const rad = L.radius;
+        const all = { tl: rad, tr: rad, br: rad, bl: rad };
+
+        // drop shadow under the whole window (fill once to cast it, then reset)
+        if (D.shadow !== false && L.frame !== 'minimal') {
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,.38)';
+          ctx.shadowBlur = Math.round(L.winW * 0.03);
+          ctx.shadowOffsetY = Math.round(L.winW * 0.012);
+          ctx.fillStyle = '#000';
+          path(L.winX, L.winY, L.winW, L.winH, all); ctx.fill();
+          ctx.restore();
+        }
+
+        // window body (also the chrome-bar background for the 'window' frame)
+        ctx.fillStyle = L.frame === 'window' ? '#0d1117' : '#ffffff';
+        path(L.winX, L.winY, L.winW, L.winH, all); ctx.fill();
+
+        // chrome bar: traffic lights + url
+        if (L.frame === 'window' && L.chromeH > 0) {
+          const cy = L.winY + L.chromeH / 2;
+          const dotR = Math.max(4, Math.round(L.chromeH * 0.16));
+          const dots = ['#ff5f57', '#febc2e', '#28c840'];
+          for (let i = 0; i < 3; i++) {
+            ctx.fillStyle = dots[i];
+            ctx.beginPath();
+            ctx.arc(L.winX + L.chromeH * 0.5 + i * (dotR * 2 + 8), cy, dotR, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          if (D.url) {
+            ctx.fillStyle = '#8b949e';
+            ctx.font = Math.round(L.chromeH * 0.4) + 'px -apple-system,Segoe UI,Roboto,Arial,sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(String(D.url).slice(0, 80), L.winX + L.winW / 2, cy + 1);
+            ctx.textAlign = 'left';
+          }
+        }
+
+        // the screenshot — bottom corners rounded under a window bar, all corners
+        // rounded for a bare card, square for minimal
+        const imgR = L.frame === 'window'
+          ? { tl: 0, tr: 0, br: rad, bl: rad }
+          : all;
+        ctx.save();
+        path(L.imgX, L.imgY, L.imgW, L.imgH, imgR); ctx.clip();
+        ctx.drawImage(img, L.imgX, L.imgY, L.imgW, L.imgH);
+        ctx.restore();
+
+        res(cv.toDataURL('image/png'));
+      };
+      img.onerror = () => rej('beautify: image failed to load');
+      img.src = dataUrl;
+    }), { dataUrl, L: layout, D: draw || {} });
+    return Buffer.from(out.split(',')[1], 'base64');
+  }
+
   // Inject a snippet (string) into the page, e.g. the cursor for rec.
   async inject(fnString, arg) {
     return this.page.evaluate(fnString, arg);
