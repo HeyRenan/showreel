@@ -1,0 +1,12 @@
+[
+  { "hide": true },
+  { "type": "cd ~/.claude/plugins/showreel/showreel" },
+  { "enter": true },
+  { "type": "clear" },
+  { "enter": true },
+  { "show": true },
+  { "type": "node scripts/prove.mjs file:///Users/renan/.claude/plugins/showreel/showreel/GUIDE.html '.step:nth-of-type(4)' /tmp/sr-demo.png --label 'annotated & gated'" },
+  { "enter": true },
+  { "sleep": 8000 },
+  { "sleep": 2500 }
+]
