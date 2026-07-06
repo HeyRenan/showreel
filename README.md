@@ -1,6 +1,6 @@
 # Showreel
 
-**Turn a URL + CSS selectors into a finished visual — annotated screenshots, flow GIFs, cinematic recordings and terminal captures. One command each. The agent never guesses pixels; every output is pixel-verified before it's saved.**
+**Turn a URL + CSS selectors into a finished visual — annotated screenshots, flow GIFs, smooth-motion recordings and terminal captures. One command each. The agent never guesses pixels; every output is pixel-verified before it's saved.**
 
 [![ci](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml/badge.svg)](https://github.com/HeyRenan/showreel/actions/workflows/ci.yml)
 [![version](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/HeyRenan/showreel/main/showreel/.claude-plugin/plugin.json&query=$.version&label=version&color=blue)](showreel/.claude-plugin/plugin.json)
@@ -19,7 +19,7 @@
 
 ## What it is
 
-A [Claude Code](https://claude.com/claude-code) plugin for **visual documentation**: explaining a change, a bug, a feature or a tutorial step with a picture instead of a paragraph.
+A [Claude Code](https://claude.com/claude-code) plugin for **visual documentation** — explaining a change, a bug, a feature flow, a UI/landing-page showcase or a tutorial step with a picture instead of a paragraph. It's built to **inform, not entertain**: for the devs and stakeholders who need to *understand* how something works, so every artifact stays legible and proportional to its content — no invented drama, no filler.
 
 You point it at a page and name elements by **CSS selector**. Showreel measures the DOM, draws the annotation exactly on target, and **validates the result before exit** — a bad capture is an error, never a shipped file. No screenshot → eyeball → retry loop, no pixel coordinates, no tokens burned guessing.
 
@@ -86,7 +86,7 @@ Every capability, one command each. All scripts live in `showreel/scripts/`. The
 | **Annotated proof** | `prove.mjs` | DOM-exact rectangle + callout + arrow, pixel-verified (`vcheck`) — exits 0 only on PASS. Flags: `--circle`, `--blur "<sel>"`, `--zoom`, `--batch jobs.json`. |
 | **Annotation primitives** | `demo.mjs` | One concept per image: `rect`, `circle`, `arrow`, `badge`, `blur`, `zoom`, `callout`, `label`. `--batch` = 8 captures in one launch. |
 | **Flow recording** | `rec.mjs` | Narrated GIF/MP4 from JSON steps — cursor motion, ripples, scrolling, narration modals, step stamps. The hero GIF above is one call. |
-| **Cinematic camera** | `rec.mjs` | Real viewport move: page glides + scales under an animated transform. `camera` frames an element, `follow` chases the cursor, `inset` is a magnifier loupe. |
+| **Viewport camera** | `rec.mjs` | Real viewport move that keeps a longer flow legible: page glides + scales under an animated transform. `camera` frames an element, `follow` chases the cursor, `inset` is a magnifier loupe. |
 | **Spotlight / slow-mo / auto-annotate** | `rec.mjs` | `spotlight` dims all but the target; per-step `speed` slows an animation; `--auto-annotate` outlines a bare `click`/`fill` for free. |
 | **Live elements** | `rec.mjs` | A `glossary`/`modal` with an `id` becomes **live** — later `live` steps append/update/recolor/replace/remove rows in place, no rebuild, no blink. Per-item colors, theme-matched text. |
 | **Offline render** | `rec.mjs --offline` | Renders on the page's virtual clock — reading dwells collapse, text-heavy takes finish in a fraction of the time. Best for static/text takes; motion bursts (`confetti`, `sparkline`) require a realtime take. |

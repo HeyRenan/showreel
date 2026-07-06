@@ -1,8 +1,8 @@
 # rec.mjs cookbook — steps, camera, interactions, pacing
 
 Read this before writing any rec step JSON beyond a straight preset swap. This file is
-**THE CONTRACT** — the only file you need to write VALID JSON. Craft (arc, easing numbers)
-lives in `cinematic-grammar.md` + `motion-design.md`; open those only for a hero/cinematic reel.
+**THE CONTRACT** — the only file you need to write VALID JSON. Craft (pacing, shot grammar,
+easing numbers) lives in `cinematic-grammar.md` + `motion-design.md`; open those only for a rich walkthrough reel.
 
 ## STEP GRAMMAR — correct by construction (all 56 keys)
 
@@ -361,7 +361,7 @@ explicit `out` + re-frame does, so just don't write it.
 6. **PLACE check.** `PLACE clean` → done, do not watch the video. `PLACE warn step N` → fix THAT step's overlay, re-run from 4. This is the only post-record action — never re-watch for "feel" and re-tune.
 
 - **Don't write from scratch:** copy a preset from `scripts/presets/` (`form-flow.json`, `nav-flow.json`, `dashboard.json`) and swap selectors AND values. If `--dry` MISSes after a swap, the SELECTOR is wrong, never the schema.
-- For a cinematic take, also read `cinematic-grammar.md` (arc, shot grammar, state hygiene) and `motion-design.md` (easing/stagger numbers, compositing-by-splitting).
+- For a rich walkthrough take, also read `cinematic-grammar.md` (pacing, shot grammar, state hygiene) and `motion-design.md` (easing/stagger numbers, compositing-by-splitting).
 
 ## Pre-flight — one binary checklist (run over the JSON before recording)
 

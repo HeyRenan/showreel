@@ -1,7 +1,7 @@
 {
   "name": "showreel",
   "version": "1.3.0",
-  "description": "Your UI, on its showreel \u2014 annotated screenshots, feature demos, cinematic flow recordings (gif/mp4), terminal captures and before/after composites in one command each. Self-contained Chromium motor, deterministic placement, self-validated output; no MCP, cheap on tokens.",
+  "description": "Your UI, on its showreel \u2014 annotated screenshots, feature demos, flow walkthrough recordings (gif/mp4), terminal captures and before/after composites in one command each. Self-contained Chromium motor, deterministic placement, self-validated output; no MCP, cheap on tokens.",
   "author": {
     "name": "Renan"
   },
@@ -12,7 +12,7 @@
     "recording",
     "demo",
     "showreel",
-    "cinematic",
+    "walkthrough",
     "terminal",
     "before-after",
     "documentation",

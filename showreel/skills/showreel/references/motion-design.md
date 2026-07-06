@@ -72,8 +72,8 @@ LABEL  (max 1):   note     (its arrow rides free — arrow never counts)
 | A click and the result it causes             | Section 3 | canonical beat      |
 | Navigating through a menu/drawer             | Preset B | open + walk + close |
 | A cursor journey across the page (3+ stops)  | Preset G | follow chase + out  |
-| The final outcome / "it worked"              | Preset H | resolution modal    |
-| A teaser of the end-state before the how     | Preset I | hook modal (OPTIONAL) |
+| A closing summary of the outcome             | Preset H | closing frame       |
+| Show the outcome first, then the how (opt.)  | Preset I | end-state-first opener (OPTIONAL) |
 
 Match exactly one row. Copy that block. Swap only the marked tokens.
 
@@ -115,7 +115,7 @@ feature. Open with Preset A, close with Preset H.
 | Hold after a `click` (result lands)       | `wait: 800`                          |
 | Hold after a `fill`                       | `wait: 700`                          |
 | Establishing / wide hold                  | `wait: 1200`                         |
-| Result / payoff hold (longest in reel)    | `wait: 2500`                         |
+| Result / outcome hold (longest in reel)   | `wait: 2500`                         |
 | Annotation / new-info hold                | omit `wait` — auto-dwell ≥ 4500 runs |
 | Typing speed                              | `delay: 45` (hero value: `delay: 70`)|
 | `follow` glide hold per stop              | `wait: 1600`                         |
@@ -275,7 +275,7 @@ SWAP ONLY: the three `glide` selectors. There must be **≥ 3** moving steps bef
 the release. The bare `{ "camera": "out" }` is what RELEASES follow — never omit
 it. `follow` level is `2`.
 
-### Preset H — resolution / closing payoff (always the last steps)
+### Preset H — closing summary frame (always the last steps)
 ```json
 { "camera": "out", "accent": "#22c55e", "wait": 700 },
 { "modal": "Deployed in four clicks.", "wait": 2500 }
@@ -286,7 +286,7 @@ keyword and NO separate `note` on a modal step. Pull the camera `out` FIRST so
 the card is full-frame. `wait: 2500` is the longest hold in the reel. NO
 `click`/`glide`/`fill`/`select` after this. The reel ends here.
 
-### Preset I — hook teaser (OPTIONAL, only as step 1 if you use it)
+### Preset I — end-state-first opener (OPTIONAL, only as step 1 if you use it)
 ```json
 { "modal": "What you'll build.", "wait": 2500 },
 { "scrollTo": ".hero h1", "wait": 1200 }
@@ -351,9 +351,9 @@ Frame BEFORE the click. Reveal the result in the camera that is already held.
 | Tversky — Attention guidance | Arrows/cues direct gaze | `note`+`arrow` bridges a gap only |
 | Screen Studio | Frame before the click, settle | camera `wait: 1300` (§4) |
 | Camtasia / TechSmith | Pause before/after a click | glide `wait: 400`, click `wait: 800` |
-| DevRel screencast craft | Smooth single-arc cursor | one `glide` per step; realtime fps30 |
+| DevRel screencast craft | Smooth single-glide cursor | one `glide` per step; realtime fps30 |
 | Material 3 motion | Stagger related reveals | `stagger: 360` (§4) |
-| Apple keynote | End on the held payoff | Preset H, `wait: 2500` |
+| Apple keynote | End on a clear final state | Preset H, `wait: 2500` |
 | BBC / NN/g | Hold text to reading speed | auto-dwell ≥ 4500 (§4) |
 | Eriksen / Lavie spotlight | Dim all but the target | Preset D `spotlight` |
 
