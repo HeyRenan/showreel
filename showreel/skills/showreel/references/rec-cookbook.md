@@ -304,8 +304,8 @@ explicit `out` + re-frame does, so just don't write it.
 - `--ratio` — final canvas forced to **16:9 by default**; any `W:H` or `free` only when asked.
 - `--end-card gif|all|none` — **none by default**; the END card exists only on explicit request. When present: gif closes with it (loop marker), mp4 cuts before it.
 - `--fit <n|off>` — establishing auto-fit is OPT-IN; takes open 1:1.
-- `--pace fast` — trims scripted holds/fades ~45%. **NOT for a cinematic/motion reel** — it collapses the easing you authored. Use only for quick proofs, never a hero reel (see RENDER MODE gate).
-- `--gif-width`, `--fps`, `--width/--height` (defaults are 900x1400 portrait = mobile breakpoint; desktop = `--width 1440 --height 900`). Cinematic ~16:9: `--width 1600 --height 812` + both bars = 1600×900.
+- `--pace fast` — trims scripted holds/fades ~45%. **NOT for a moving/motion reel** — it collapses the easing you authored. Use only for quick proofs, never a walkthrough reel (see RENDER MODE gate).
+- `--gif-width`, `--fps`, `--width/--height` (defaults are 900x1400 portrait = mobile breakpoint; desktop = `--width 1440 --height 900`). Widescreen ~16:9: `--width 1600 --height 812` + both bars = 1600×900.
 - `--block-hosts` — allowlist external hosts.
 - `--storage-state <file.json>` — record a LOGGED-IN page. Playwright storage-state JSON
   (cookies + localStorage) seeded into EVERY context (render + safeguard audit + dry), so the

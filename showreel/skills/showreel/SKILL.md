@@ -24,7 +24,7 @@ Default output dir: `./showreel-out/` in the current project (create it; respect
 | Per-shot options | `circle` (ring hugging target), `blur "<sel>"` (pixelate region), `zoom` (magnified inset) | |
 | Raw tight crop of one element | `node scripts/shot.mjs <url> "<selector>" out.png` | `OK out.png` |
 | Flow gif (cursor, ripples, per-step notes) | `node scripts/rec.mjs <url> --steps steps.json out.gif` | `OK out.gif` |
-| Flow mp4 (cinematic / over gif limits) | `node scripts/rec.mjs <url> --steps steps.json out.gif --mp4 out.mp4` (`--keep-webm` keeps the intermediate) | `OK out.mp4` |
+| Flow mp4 (smooth-motion / over gif limits) | `node scripts/rec.mjs <url> --steps steps.json out.gif --mp4 out.mp4` (`--keep-webm` keeps the intermediate) | `OK out.mp4` |
 | N takes, ONE browser (pool of 3) | `node scripts/rec.mjs --batch takes.json` | `OK` per take |
 | Terminal session gif (needs `vhs`) | `node scripts/tape.mjs --steps steps.json out.gif` | `OK out.gif` |
 | Side-by-side of two PNGs or two GIFs | `node scripts/compose.mjs a.png b.png pair.png --labels "Before,After"` (gifs: `a.gif b.gif pair.gif [--height N]`) | `OK pair.png` |
