@@ -28,7 +28,12 @@ by CSS selectors and JSON steps.
   nested / containing element of the same card (the exact bug above). The live
   audit (`auditRosterLive`) now runs the DOM `contains` check both ways, so
   framing a child — or the parent — of a card framed a beat ago is flagged as
-  `zoom-churn`. Warning, never fatal. +1 test (573 total).
+  `zoom-churn`. Warning, never fatal — churn is a craft issue, not broken output,
+  and the `contains` heuristic can flag a motivated return, so blocking every
+  render would be wrong. CI now audits the committed showcase roster in
+  `--strict`, so any warning (churn included) fails the build: the project
+  enforces zero-churn on its own artifacts while everyone else keeps
+  warn-by-default plus opt-in `--strict`. +1 test (573 total).
 
 ## [1.4.0] — 2026-07-06
 
