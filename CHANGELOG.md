@@ -17,7 +17,10 @@ by CSS selectors and JSON steps.
   `#rollback-countdown` — which lives *inside* the panel — pulled out, then framed
   `#deploy-panel` again). Now one held camera on `#deploy-panel` carries the whole
   deploy flow (block → auto-rollback → re-run → ship), swapping only the annotation
-  and the state colour. Authoring fix, not the motor.
+  and the state colour. Authoring fix, not the motor. The committed source
+  (`assets-src/showcase-steps.json`) is replaced with this didactic flow too, so
+  the shipped mp4 and its source stay in sync — re-rendering reproduces the fixed
+  reel, not the old feature-cram roster.
 
 ### Changed
 - **Zoom-churn audit now catches nested re-framing.** The audit only flagged
