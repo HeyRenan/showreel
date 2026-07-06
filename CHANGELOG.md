@@ -9,6 +9,34 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.4.0] — 2026-07-06
+
+### Changed
+- **Instructions realigned to the didactic purpose.** The reference docs had
+  drifted into film / "cinematic" theory — a `hook → build → climax → resolution`
+  story arc, "exactly one climax", a 2-minute retention curve cited to
+  video-marketing — which pushed models to add drama (stacked payoff effects,
+  on-screen chapter pills, panel-jumping) to what are really didactic
+  feature-flow / showcase / e2e walkthroughs. Showreel documents software to
+  **inform, not entertain**; this removes the drift and promotes the legibility
+  spine already in the same files (the Motivation rule, one-message-per-beat,
+  reading-time dwell).
+  - `cinematic-grammar.md` §4: content-driven pacing replaces the "2-minute
+    curve" story arc; the mandated climax/hook + marketing citation are dropped;
+    the checklist items that gated an arc are deleted and renumbered 1–18; modal
+    / montage / color reframed from "act boundaries / celebration" to topic.
+  - `motion-design.md`: Preset H/I "resolution / hook teaser" → "closing summary
+    / end-state-first opener"; payoff/arc delexicalized in the number table + MASTERS.
+  - `rec-cookbook.md`: now-stale "arc" cross-refs → "pacing, shot grammar".
+  - `SKILL.md`: hero row "arc order" → the real end-to-end flow, "never a story arc".
+  - README (EN + pt-BR), `plugin.json`, `marketplace.json`: "cinematic" branding
+    demoted to smooth-motion / walkthrough; the didactic positioning sharpened.
+
+### Validation
+- Docs only — motor untouched (**572/572** tests green). A blind matrix of
+  artifacts (still, auto, demo, gif, mp4, e2e) authored from the realigned docs
+  passes every motor gate (dry / PLACE / audit) and comes out drama-free.
+
 ## [1.3.0] — 2026-06-25
 
 ### Added
