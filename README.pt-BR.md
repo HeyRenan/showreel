@@ -13,7 +13,7 @@
 
 [![Veja o showcase completo](assets/showcase-poster.png)](assets/showcase.mp4)
 
-*Um take só, cada recurso — drawer, câmera, lupa, spotlight, blur ao vivo, formulário digitado, escolha de região, painel de legenda vivo, deploy de um clique. Gerado inteiramente pelo plugin na página demo embutida. ([clique pra tocar o MP4 completo](assets/showcase.mp4))*
+*Uma passada, um fluxo real — o Showreel percorre um deploy: lê o pipeline → esbarra no health gate → auto-rollback → re-run → sobe. Câmera, marks + legenda, spotlight e a barra de rollout, cada um a serviço do passo, nunca decoração. Gerado inteiramente pelo plugin na página demo embutida. ([clique pra tocar o MP4 completo](assets/showcase.mp4))*
 
 > Toda imagem deste README foi gerada pelo próprio Showreel, na página demo "Lumen" embutida. Rode os mesmos comandos, saem os mesmos arquivos.
 
