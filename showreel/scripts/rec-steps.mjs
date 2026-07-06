@@ -793,17 +793,30 @@ export function makeAuditBridge(page, vw, vh) {
 // Returns { errors: [{step, kind, message}] }.
 export async function auditRosterLive(steps, bridge) {
   const errors = [];
-  if (!Array.isArray(steps)) return { errors };
+  const warnings = [];
+  if (!Array.isArray(steps)) return { errors, warnings };
   const measure = bridge.measure;
   let framed = null;          // current camera selector or null (full page)
   let followActive = false;
+  let leftFramed = null;      // selector framed just before the most recent camera:"out"
   for (let i = 0; i < steps.length; i++) {
     const s = steps[i];
     if (!s || typeof s !== 'object') continue;
-    if ('screen' in s || 'modal' in s) { framed = null; followActive = false; continue; }
+    if ('screen' in s || 'modal' in s) { framed = null; followActive = false; leftFramed = null; continue; }
     const cam = stepCamera(s);
-    if (cam === 'out') { framed = null; followActive = false; }
+    if (cam === 'out') { if (framed) leftFramed = framed; framed = null; followActive = false; }
     else if (cam) {
+      // zoom-churn (live, DOM-aware): re-framing the SAME CARD after pulling out —
+      // a nested/containing element (a sub-region of what was just framed) reads as
+      // a redundant zoom-out/zoom-in on one region. auditScenes catches the exact
+      // same-selector case statically; only the live DOM sees that (e.g.)
+      // "#rollback-countdown" is inside "#deploy-panel" framed a beat ago. Warn.
+      if (leftFramed && leftFramed !== cam && bridge.contains) {
+        const sameCard = (await bridge.contains(leftFramed, cam)) || (await bridge.contains(cam, leftFramed));
+        if (sameCard) warnings.push({ step: i + 1, kind: 'zoom-churn',
+          message: `camera re-frames "${cam}" — the same card it framed as "${leftFramed}" a beat ago (one is nested in the other), with a "camera":"out" between. The viewer reads a redundant zoom-out/zoom-in on one region. Hold the zoom on the parent panel and swap the annotation instead of pulling "camera":"out".` });
+      }
+      leftFramed = null;
       framed = cam; followActive = false;
       // zoom-reach gate: a camera asking to magnify (zoom>1) an element too
       // wide/tall to enlarge without cropping is silently clamped to ~1x by the
@@ -869,7 +882,7 @@ export async function auditRosterLive(steps, bridge) {
       if (typeof s.select === 'string' && typeof s.option === 'string') { await bridge.select(s.select, s.option); }
     } catch { /* driving is best-effort; a failed click just leaves state as-is */ }
   }
-  return { errors };
+  return { errors, warnings };
 }
 
 // Sidecar step label: the human note when present, otherwise the take's first

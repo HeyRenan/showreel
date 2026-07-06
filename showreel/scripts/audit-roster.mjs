@@ -55,7 +55,8 @@ const page = await (await browser.newContext({ viewport: { width: VW, height: VH
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(350);
 const bridge = makeAuditBridge(page, VW, VH);
-const { errors } = await auditRosterLive(steps, bridge);
+const { errors, warnings: liveWarnings } = await auditRosterLive(steps, bridge);
+warnings.push(...liveWarnings);
 await browser.close();
 
 // 3. offline conflicts (informational unless the take is offline)

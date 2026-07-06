@@ -9,6 +9,32 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.4.1] — 2026-07-06
+
+### Fixed
+- **Showcase re-rendered — zoom churn removed.** The v1.4.0 showcase re-zoomed the
+  deploy card three times (it framed `#deploy-panel`, pulled out, framed
+  `#rollback-countdown` — which lives *inside* the panel — pulled out, then framed
+  `#deploy-panel` again). Now one held camera on `#deploy-panel` carries the whole
+  deploy flow (block → auto-rollback → re-run → ship), swapping only the annotation
+  and the state colour. Authoring fix, not the motor. The committed source
+  (`assets-src/showcase-steps.json`) is replaced with this didactic flow too, so
+  the shipped mp4 and its source stay in sync — re-rendering reproduces the fixed
+  reel, not the old feature-cram roster.
+
+### Changed
+- **Zoom-churn audit now catches nested re-framing.** The audit only flagged
+  re-framing the *same selector* after a `camera:"out"`; it missed re-framing a
+  nested / containing element of the same card (the exact bug above). The live
+  audit (`auditRosterLive`) now runs the DOM `contains` check both ways, so
+  framing a child — or the parent — of a card framed a beat ago is flagged as
+  `zoom-churn`. Warning, never fatal — churn is a craft issue, not broken output,
+  and the `contains` heuristic can flag a motivated return, so blocking every
+  render would be wrong. CI now audits the committed showcase roster in
+  `--strict`, so any warning (churn included) fails the build: the project
+  enforces zero-churn on its own artifacts while everyone else keeps
+  warn-by-default plus opt-in `--strict`. +1 test (573 total).
+
 ## [1.4.0] — 2026-07-06
 
 ### Changed
