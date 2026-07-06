@@ -1,4 +1,4 @@
-# Cinematic Grammar for Automated Product-Demo Recordings
+# Visual Grammar for Didactic Automated Recordings
 
 Rules for an AI that scripts screen recordings. Every rule is generic and binary-checkable.
 Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention event inside a scene
@@ -74,29 +74,26 @@ Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention eve
   one recognizable landmark (panel edge, header) stays in frame — full-bleed abstract zooms
   break spatial continuity.
 
-## 4. Pacing — the 2-minute curve
+## 4. Pacing — by content, not a clock
 
-- **Shape: hook → build → climax → resolution.**
-  - *Hook (0:00–0:10):* show the most impressive end-state or the core promise immediately.
-    Viewers expect value in the first seconds; front-load it
-    (https://wistia.com/learn/marketing/optimal-video-length).
-  - *Build (0:10–1:20):* step-by-step scenes, moderate tempo, scene length 6–12s.
-  - *Climax (1:20–1:40):* the biggest payoff beat — densest motion, boldest framing. Exactly
-    one climax must exist.
-  - *Resolution (1:40–2:00):* pull out, recap glossary/summary, closing card. Tempo slows.
+- **Order follows the content's own structure.** There is no fixed curve and no mandated
+  climax. Sequence scenes the way the subject is actually organized: topic and step
+  boundaries, dependency order (show the cause before the effect), first occurrence before
+  repeats. The recording's length is whatever the content needs — an honest explainer with no
+  payoff beat is complete without one.
+- **Tempo follows reading and novelty, not a running total.** Each beat's duration is set by
+  how much there is to read (reading-time dwell, §1 and §5) and whether the concept is new.
+  Nothing is rushed to hit a time target and nothing is padded to fill one.
+- **Motion follows the Motivation rule (§1).** The camera moves only when attention must move.
+  Between motivated moves, hold. Pacing is the rhythm of *when attention shifts*, decided by
+  the content, not by an editing clock.
 - **Alternate dwell and motion.** Never chain two motion-heavy scenes or two static scenes
-  back-to-back. Motion without rest is unreadable; rest without motion is dead air. Engagement
-  declines monotonically with runtime, so every static second must earn itself
-  (https://wistia.com/learn/marketing/optimal-video-length).
+  back-to-back. Motion without rest is unreadable; rest without motion is dead air.
 - **Slow down for first-time concepts:** first occurrence of a novel UI pattern gets full
   treatment (establish → frame-in → annotate → dwell ≥ 4.5s).
 - **Speed up repeats:** the 2nd+ occurrence of the same pattern runs at ~60% duration, no
-  annotations; by the 3rd it can compress into montage.
-- **Montage ramp rule:** start at normal speed, accelerate exponentially (each step ~70–80% of
-  the previous duration), use color-flash or quick-cut rhythm, then **hard stop** — one full
-  beat of stillness (~1s) before the closing card. The contrast of sudden stillness is the
-  punctuation; this is *timing* and *exaggeration* applied to editing
-  (https://en.wikipedia.org/wiki/Twelve_basic_principles_of_animation).
+  annotations; by the 3rd, repeats compress — show the pattern is the same and move on, plainly,
+  with no accelerating flourish.
 
 ## 5. Annotation Choreography
 
@@ -111,9 +108,10 @@ Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention eve
 - **Glossary/legend placement:** corner opposite the action region, never covering the focal
   element, and on the side that matches reading flow exit (bottom-right for LTR closing
   summaries). It persists across beats of one scene, then clears at scene end.
-- **Modal cards are scene-break punctuation.** A centered modal card = chapter title or
-  verdict. Use at act boundaries (hook→build, build→climax, end). Never mid-flow; it kills
-  momentum. Anchored cards (attached to an element) are in-scene commentary, not breaks.
+- **Modal cards mark topic boundaries.** A centered modal card = chapter title or verdict
+  between topics. Use it at the seam between one topic/section and the next (or at the end).
+  Never mid-flow; it interrupts a thought in progress. Anchored cards (attached to an element)
+  are in-scene commentary, not breaks.
 - **Text budget per note:** ≤ 12 words. Dwell ≥ 4.5s for any readable text; add ~0.3s per word
   beyond 12 (derived from ~200 wpm, https://www.nngroup.com/articles/how-little-do-users-read/).
 - **Group marks** outline a region when the unit of meaning is a cluster, not an element;
@@ -133,14 +131,14 @@ Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention eve
   text must be read. A scroll that ends exactly framing the next subject is the screen-capture
   match cut.
 - **Fade durations by purpose:** fast fades (150–250ms) for rhythm inside a scene (notes,
-  badges, ripples); medium (300–500ms) for scene changes; slow (600–1000ms) only for gravitas —
-  act breaks, the closing card. UI-scale motion lives around 0.2–0.35s; longer means "this is
+  badges, ripples); medium (300–500ms) for scene changes; slow (600–1000ms) only for weight —
+  topic breaks, the closing card. UI-scale motion lives around 0.2–0.35s; longer means "this is
   ceremonial" (https://developer.apple.com/design/human-interface-guidelines/motion,
   https://m3.material.io/styles/motion/overview).
 - **Letterbox bars** are OPTIONAL — use them only when the context strip carries real
   information for the scene (environment, build line, screen name). When used, bring them
-  in at an act boundary and let them vanish when the scene moves on; a bar that hangs
-  around with nothing to say is noise, not cinema. Most proofs need no bars at all.
+  in at a topic boundary and let them vanish when the scene moves on; a bar that hangs
+  around with nothing to say is noise. Most proofs need no bars at all.
 - **Blur/hide is continuity too:** sensitive or irrelevant regions stay blurred for their
   entire on-screen life — a region that flickers between blurred and sharp is a continuity error.
 
@@ -150,9 +148,8 @@ Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention eve
   highlight, pill, badge, glossary entry, ripple tint). The accent is the scene's signature.
 - **Sequential steps may rotate a small palette (3–5 hues)** so the glossary reads as a map,
   but each hue must keep meaning — never reuse step 1's color for step 4's unrelated topic.
-- **Multi-color simultaneously = celebration only.** A color-flash montage or final recap may
-  fire the whole palette; any instructional beat uses exactly one accent plus neutrals. More
-  than one saturated accent in a teaching beat = noise.
+- **One accent per teaching beat.** Any instructional beat uses exactly one accent plus
+  neutrals. More than one saturated accent in a teaching beat = noise.
 - **Contrast adapts to background:** accents must pass contrast against the actual UI region
   they annotate (light/dark areas may need per-region adjustment).
 
@@ -171,8 +168,8 @@ Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention eve
 | Notes/pills + arrows | Labeling a focal element | Label restates visible text | ≤12 words; arrow only if relation non-obvious |
 | Numbered badges + glossary | 3+ related points in one frame | Single point (use one pill) | Stagger in numeric order; glossary in opposite corner |
 | Group marks | Meaning lives in a cluster | Overlaps another group | One level deep only |
-| Modal card (anchored/centered) | Chapter break, verdict, intro/outro | Mid-flow commentary | Centered = scene break; anchored = in-scene aside |
-| Letterbox bars | A scene whose context strip informs | Default-on forever | Optional; appear and vanish at act boundaries |
+| Modal card (anchored/centered) | Topic break, verdict, intro/outro | Mid-flow commentary | Centered = topic break; anchored = in-scene aside |
+| Letterbox bars | A scene whose context strip informs | Default-on forever | Optional; appear and vanish at topic boundaries |
 | Screen-context pill | Viewer may not know which screen this is | Context obvious from establishing shot | Update on every navigation; keep position fixed |
 | Blur/hide | Secrets, irrelevant noisy regions | Hiding things the demo references later | Blur for the region's whole screen life |
 | Redact (solid bar) | Hard-mask data stronger than blur | Data the demo references later | ELEMENT-anchored — stays on target through scroll; keep it framed its whole life |
@@ -181,7 +178,7 @@ Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention eve
 | Per-step fade duration | Rhythm control | Slow fades on minor beats | Fast=rhythm, medium=scene, slow=gravitas |
 | Reading-time dwell | Any on-screen text | Cutting early because "it looks slow" | ≥4.5s; +0.3s/word past 12 |
 | Scroll animation | Vertical topic travel; reveal below fold | While text must be read | Eased, ends framing next subject |
-| Color-flash montage | Repeats compression; celebratory recap | First-time concepts | Exponential speedup; hard stop before close |
+| Compress repeats | 2nd+ occurrence of a known pattern | First-time concepts | Shorter dwell, no annotations; show it's the same and move on |
 
 ## 9. Pre-Flight Checklist (binary, run over the step-script before recording)
 
@@ -196,24 +193,21 @@ Vocabulary: a **scene** = one framing + one idea; a **beat** = one attention eve
 9. No toast, tooltip, or test input remains visible across a scene boundary.
 10. Every text-bearing beat dwells ≥ 4.5s (+0.3s per word past 12).
 11. No two consecutive scenes are both static; no two are both motion-heavy.
-12. Exactly one climax beat exists, in the final third before resolution.
-13. The first 10 seconds show the core payoff or promise (hook present).
-14. Repeated patterns after first occurrence run compressed and unannotated.
-15. Any montage accelerates monotonically and hard-stops ≥1s before the closing card.
-16. Each beat has exactly one focal point; simultaneous reveals are staggered ≥300ms.
-17. Badges reveal in numeric order; each glossary entry appears with its badge.
-18. Arrows exist only where target–label adjacency is broken.
-19. Each step uses exactly one accent color, consistent across its artifacts; multi-color
-    appears only in montage/celebration beats.
-20. Blurred regions stay blurred for their entire on-screen life.
+12. Scene order follows the content's own structure (topic/step boundaries, cause before effect).
+13. Repeated patterns after first occurrence run compressed and unannotated.
+14. Each beat has exactly one focal point; simultaneous reveals are staggered ≥300ms.
+15. Badges reveal in numeric order; each glossary entry appears with its badge.
+16. Arrows exist only where target–label adjacency is broken.
+17. Each step uses exactly one accent color, consistent across its artifacts; no second
+    saturated accent in a teaching beat.
+18. Blurred regions stay blurred for their entire on-screen life.
 
 ## Sources
 
 - https://screen.studio/ — auto-zoom on action and smooth cursor glide rationale
 - https://developer.apple.com/design/human-interface-guidelines/motion — purposeful motion, durations, motion sickness
 - https://m3.material.io/styles/motion/overview — motion duration/easing canon
-- https://en.wikipedia.org/wiki/Twelve_basic_principles_of_animation — staging, slow in/out, timing, exaggeration
+- https://en.wikipedia.org/wiki/Twelve_basic_principles_of_animation — staging, slow in/out, timing
 - https://en.wikipedia.org/wiki/Establishing_shot — wide-shot grammar
 - https://en.wikipedia.org/wiki/Match_cut — continuity editing, seamless reality effect
 - https://www.nngroup.com/articles/how-little-do-users-read/ — reading speed and read-percentage data
-- https://wistia.com/learn/marketing/optimal-video-length — engagement vs length, front-loading value

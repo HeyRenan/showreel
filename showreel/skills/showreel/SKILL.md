@@ -54,7 +54,7 @@ There is no effort flag; pick the lowest-effort artifact that still EXPLAINS the
 | One element / one fact | **annotated still** | `prove.mjs` — rect/badge + a note, zoom inset on the key detail. |
 | A set of related elements | **still with marks** | `demo.mjs` primitives, or `prove` with badges on the group. |
 | A user flow (click → result) | **flow gif** | `rec.mjs` with cursor glide, per-step notes (arrow on each), stamp counter. |
-| A rich walkthrough / the hero | **cinematic mp4** | `rec.mjs` realtime `--fps 30`. **`references/rec-cookbook.md` is THE CONTRACT — read it first; its GRAMMAR TABLE + FORBIDDEN FORMS + RENDER-MODE/ANCHORING gates + pre-flight make valid, complete output correct-by-construction.** Then read `references/cinematic-grammar.md` (arc, shot/camera/pacing) and `references/motion-design.md` (easing/stagger numbers, compositing-by-splitting) for craft. A hero reel composes themed scenes in arc order, one accent each — never a flat numbered feature list. |
+| A rich walkthrough / the hero | **rich mp4** | `rec.mjs` realtime `--fps 30`. **`references/rec-cookbook.md` is THE CONTRACT — read it first; its GRAMMAR TABLE + FORBIDDEN FORMS + RENDER-MODE/ANCHORING gates + pre-flight make valid, complete output correct-by-construction.** Then read `references/cinematic-grammar.md` (shot/camera/pacing for legible motion) and `references/motion-design.md` (easing/stagger numbers, compositing-by-splitting) for craft. A rich walkthrough shows the real end-to-end flow in the order it actually happens (or the order that best explains it), one focal point per beat, with smooth viewport motion (camera/follow/loupe) keeping the longer flow legible — never a flat numbered feature list, never a story arc. |
 | Before vs after | **compose** | `compose.mjs` two stills or two gifs side by side; `lh-ba.sh` for real Lighthouse. |
 
 Whatever you pick: every label visibly connects to its target, and the final frame still shows the effect (persist the note/rect/bar through the last step) so the artifact reads even when paused.
@@ -114,7 +114,7 @@ Only when the page needs an authenticated/live session the motor can't reach (re
 | Releasing follow with `follow:false` | Bare `{"camera":"out"}` — `follow:false` is INVALID |
 | Scrolling/camera-moving while a prior step's blur/redact/highlight/rect is still up | Frame the element in the SAME step as the overlay, or clear it first |
 | Writing rec step JSON from scratch | Copy `scripts/presets/*.json`, swap selectors |
-| Cinematic take scripted without the grammar | Read `references/cinematic-grammar.md`, run its checklist |
+| Viewport-motion take scripted without the grammar | Read `references/cinematic-grammar.md`, run its checklist |
 | Label floating with no visual tie to its target | `arrow` on the note, leader on the modal — never loose |
 | Delivering a 5 MB gif | gif > 2 MB or > 8 s → `rec --mp4`; obey `RECOMMEND-MP4` |
 | Artifact that skipped `shrink.mjs` | Optimize every png/gif first — quality-preserving |
