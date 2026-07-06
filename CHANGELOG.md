@@ -9,6 +9,24 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.4.1] — 2026-07-06
+
+### Fixed
+- **Showcase re-rendered — zoom churn removed.** The v1.4.0 showcase re-zoomed the
+  deploy card three times (it framed `#deploy-panel`, pulled out, framed
+  `#rollback-countdown` — which lives *inside* the panel — pulled out, then framed
+  `#deploy-panel` again). Now one held camera on `#deploy-panel` carries the whole
+  deploy flow (block → auto-rollback → re-run → ship), swapping only the annotation
+  and the state colour. Authoring fix, not the motor.
+
+### Changed
+- **Zoom-churn audit now catches nested re-framing.** The audit only flagged
+  re-framing the *same selector* after a `camera:"out"`; it missed re-framing a
+  nested / containing element of the same card (the exact bug above). The live
+  audit (`auditRosterLive`) now runs the DOM `contains` check both ways, so
+  framing a child — or the parent — of a card framed a beat ago is flagged as
+  `zoom-churn`. Warning, never fatal. +1 test (573 total).
+
 ## [1.4.0] — 2026-07-06
 
 ### Changed

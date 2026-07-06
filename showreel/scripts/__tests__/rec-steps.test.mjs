@@ -687,3 +687,45 @@ test('auditRosterLive gates a MISSING scrollTo target (silent-wrong-scene)', asy
   assert.equal((await auditRosterLive([{ zoom: '#far-down' }], bridge)).errors.length, 0);
   assert.equal((await auditRosterLive([{ zoom: 'out' }], bridge)).errors.length, 0); // "out" is not a selector
 });
+
+test('auditRosterLive warns on zoom-churn: re-framing a nested element of the same card across an "out"', async () => {
+  // #rollback-countdown lives INSIDE #deploy-panel — framing the panel, pulling
+  // out, then framing a child (or back to the panel) re-zooms the same card. The
+  // static auditScenes misses this (the selectors differ); the live DOM `contains`
+  // check catches it. WARN, never fatal.
+  const inside = { '#deploy-panel': ['#deploy', '#rollback-countdown'] };
+  const bridge = {
+    measure: async () => ({ visible: true, w: 200, h: 80, cx: 400, cy: 300 }),
+    click: async () => {}, fill: async () => {}, select: async () => {}, settle: async () => {},
+    contains: async (host, sel) => (inside[host] || []).includes(sel),
+  };
+  const churn = [
+    { camera: { sel: '#deploy-panel', zoom: 2 } },
+    { spotlight: '#deploy' },
+    { camera: 'out' },
+    { camera: { sel: '#rollback-countdown', zoom: 2 } }, // nested in the panel just left
+    { highlight: '#rollback-countdown' },
+    { camera: 'out' },
+    { camera: { sel: '#deploy-panel', zoom: 2 } },       // back to the same card
+  ];
+  const churnWarns = (await auditRosterLive(churn, bridge)).warnings.filter((x) => x.kind === 'zoom-churn');
+  assert.equal(churnWarns.length, 2, 'both nested re-frames flagged');
+  assert.match(churnWarns[0].message, /same card/);
+
+  // held camera (no "out" between the beats on one panel) — no churn
+  const held = [
+    { camera: { sel: '#deploy-panel', zoom: 2 } },
+    { spotlight: '#deploy' },
+    { highlight: '#rollback-countdown' },
+    { camera: 'out' },
+  ];
+  assert.equal((await auditRosterLive(held, bridge)).warnings.filter((x) => x.kind === 'zoom-churn').length, 0);
+
+  // two genuinely different cards across an "out" — a motivated move, not churn
+  const twoCards = [
+    { camera: { sel: '#deploy-panel', zoom: 2 } },
+    { camera: 'out' },
+    { camera: { sel: '#topology', zoom: 2 } },
+  ];
+  assert.equal((await auditRosterLive(twoCards, bridge)).warnings.filter((x) => x.kind === 'zoom-churn').length, 0);
+});
