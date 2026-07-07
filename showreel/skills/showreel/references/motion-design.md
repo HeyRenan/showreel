@@ -5,10 +5,13 @@ This file directs cursor, camera, and on-screen signaling so a viewer who is
 more. It is NOT motion art, NOT a title sequence, NOT decoration. Every block
 below makes the SOFTWARE clearer. Each rule is a number or a copy-paste step.
 
-**You are a low-capability executor.** Do not weigh tradeoffs. Do not infer
-intent. Do not improvise numbers. MATCH a row in a table, COPY the block, SWAP
-only the marked tokens. If a step needs a judgment call, you will get it wrong —
-so there are no judgment calls here, only counts and fixed values.
+**Match the tables for VALIDITY; choose freely for IMPACT.** The easing curves,
+stagger counts and fixed values below are not yours to improvise — COPY the block
+and SWAP only the marked tokens, so motion stays legible and correct. But WHAT to
+show, how rich the composition, and which beats to chain is your judgment to make:
+at `rich`/`cinematic` effort, reach for the full vocabulary (camera, spotlight,
+marks, live, glossary) whenever it makes the software clearer. Numbers from the
+table; storytelling from you.
 
 Grammar, render mode, and anchoring gates live in `rec-cookbook.md`. This file
 assumes those pass. Scene-level shot order lives in `cinematic-grammar.md`.
