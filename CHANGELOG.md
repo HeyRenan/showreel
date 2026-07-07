@@ -9,6 +9,15 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.6.0] — 2026-07-07
+
+### Added
+- **Effort dial.** Ask for `quick` / `standard` / `rich` / `cinematic` in any language; absent a request, showreel now defaults to **`rich`** so a first render impresses with zero config. Effort scales the craft poured into the *right* artifact — it never forces a bigger artifact than the subject needs (one element → a polished annotated still, not a movie).
+- **Storyboard preview.** Before recording a flow, showreel states the beats in plain language ("enter → zoom into #hero → click #deploy → pick a region → scroll to #services"). It proceeds by default; at `cinematic` effort — or on request — it waits for your nod.
+
+### Changed
+- **No more "economy mode".** The instruction surface is rebalanced: the default is rich rather than lowest-effort; a coherent multi-step flow is treated as one narrative (not "two concepts"); motion composition is the agent's judgment while easing/counts still come from the tables; and an explicit permission was added — *richness that explains is not filler*. Technical guardrails (`--dry`, render mode, label anchoring, shrink-before-deliver) are unchanged.
+
 ## [1.5.0] — 2026-07-07
 
 ### Added

@@ -19,7 +19,7 @@
 
 ## What it is
 
-A [Claude Code](https://claude.com/claude-code) plugin for **visual documentation** — explaining a change, a bug, a feature flow, a UI/landing-page showcase or a tutorial step with a picture instead of a paragraph. It's built to **inform, not entertain**: for the devs and stakeholders who need to *understand* how something works, so every artifact stays legible and proportional to its content — no invented drama, no filler.
+A [Claude Code](https://claude.com/claude-code) plugin for **visual documentation** — explaining a change, a bug, a feature flow, a UI/landing-page showcase or a tutorial step with a picture instead of a paragraph. It's built to **inform, not entertain**: for the devs and stakeholders who need to *understand* how something works, so every artifact stays legible and proportional to its content: no invented drama, no filler — but as rich as clarity demands, because restraint is against noise, never against capability.
 
 You point it at a page and name elements by **CSS selector**. Showreel measures the DOM, draws the annotation exactly on target, and **validates the result before exit** — a bad capture is an error, never a shipped file. No screenshot → eyeball → retry loop, no pixel coordinates, no tokens burned guessing.
 

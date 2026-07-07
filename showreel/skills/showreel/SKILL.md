@@ -47,7 +47,16 @@ Default output dir: `./showreel-out/` in the current project (create it; respect
 
 ## Fidelity — match the artifact to the subject
 
-There is no effort flag; pick the lowest-effort artifact that still EXPLAINS the point. Default to a still unless the subject is motion or a flow.
+**Effort — the user's dial (default `rich`).** The user can ask for a level in any language ("quick", "rich", "capricha", "cinematic") — honor it. Absent a request, default to **`rich`**: someone trying showreel for the first time should get a result that makes them go *wow*, with zero configuration. Effort scales the CRAFT poured into the RIGHT artifact — it never forces a bigger artifact than the subject needs (one element → a gorgeous annotated still, not a movie).
+
+| Effort | Pour in | Use when |
+|---|---|---|
+| `quick` | The lightest artifact that still EXPLAINS — minimal annotation, no camera. | user asks for fast / light |
+| `standard` | The right artifact, well annotated; light camera on flows. | user asks to keep it lean |
+| **`rich` — default** | Full capability on the right artifact: camera motion, spotlight, marks/glossary, multi-beat flows, mp4 for a hero, polish. | **default** |
+| `cinematic` | Showcase-grade — everything above at maximum craft, finished with `beautify`. | the hero, or "make it impressive" |
+
+Then match the ARTIFACT to the subject (the effort lives *inside* the right artifact):
 
 | Subject | Artifact | How |
 |---|---|---|
@@ -60,6 +69,8 @@ There is no effort flag; pick the lowest-effort artifact that still EXPLAINS the
 Whatever you pick: every label visibly connects to its target, and the final frame still shows the effect (persist the note/rect/bar through the last step) so the artifact reads even when paused.
 
 ## Flow recordings (`rec.mjs`)
+
+**Storyboard first.** Before recording a flow, show the user a plain-language beat list of what the reel will do — one line per beat, e.g. *"enter the page → zoom into #pipeline → click #deploy → pick a region → zoom out → scroll to #services"*. It's the human-readable mirror of the `--dry` step order. Default: show it, then record (keep the momentum). At `cinematic` effort — or if the user asks to review the plan first — wait for their nod before recording. A single still needs no storyboard.
 
 **Discipline:** `--dry` is MANDATORY before any recording — resolves every selector ([ok]/[MISS]), no recording. A [MISS] on a glide/camera/click/fill/select target is a frozen dead beat — fix to zero MISS, then record ONCE.
 
@@ -84,7 +95,8 @@ Requires the `vhs` binary (`brew install vhs`) — preflight reports it; if miss
 
 ## Rules
 
-- One artifact = one message. Each demo/print shows ONLY its feature — never stack two concepts in one image.
+- **Richness that explains is not filler.** At `rich` (the default) and up, assume camera motion, spotlight, marks/glossary and multi-beat flows are warranted — hold back only for genuine noise, never out of caution.
+- One focal point per beat. A still shows one concept; a flow is ONE coherent narrative — chaining related steps (click → result → next) is right, not "two concepts". Don't cram UNrelated concepts into a single frame.
 - **Per-file `prove` for 2+ shots is forbidden.** Use `prove --batch` — one browser launch, N shots.
 - **No eyeballing on PASS.** The motor verifies placement: each shot ends in `PASS <out> kb=<n>` or `FAIL <out> reason=<short>`; a batch ends `PROVE <k>/<n> PASS`. Open a PNG with Read ONLY when the verdict is FAIL (to diagnose the wrong selector/state). Never re-read passing shots.
 - `prove` exits 0 only on internal vcheck PASS. `FAIL`/`NO_SPACE` are actionable errors (wrong selector, element too small) — fix the input, never the coordinates.
@@ -126,7 +138,7 @@ Only when the page needs an authenticated/live session the motor can't reach (re
 - About to guess pixel coordinates → use `prove`/`demo` with a selector.
 - About to run `prove.mjs` per file for several shots → batch it.
 - About to Read a shot PNG that printed PASS → don't; only FAIL gets eyes.
-- About to stack two features in one image → one concept per artifact.
+- About to cram two UNRELATED concepts into one frame → split them (a coherent multi-step flow is one narrative — that's fine).
 - About to record without `--dry` → dry-run, fix [MISS], then record ONCE.
 - About to write rec step JSON from scratch → copy `scripts/presets/*.json`, swap selectors.
 - About to deliver a png/gif that skipped `shrink.mjs` → optimize first (quality-preserving).
