@@ -251,6 +251,53 @@
   body.light header.console-bar{background:rgba(246,248,251,.85)}
   body.light .panel{box-shadow:0 12px 30px rgba(20,30,60,.08)}
 </style>
+
+<style>
+  /* ───── premium overlay — visual lift only; structure + selectors untouched ───── */
+  :root{
+    --acc:#6E9BFF; --acc-2:#8B6BFF;
+    --acc-soft:rgba(110,155,255,.16); --ring:rgba(110,155,255,.38);
+  }
+  body{
+    background:
+      radial-gradient(1100px 520px at 88% -12%,rgba(110,155,255,.20) 0%,transparent 58%),
+      radial-gradient(1000px 720px at -12% 8%,rgba(139,107,255,.16) 0%,transparent 55%),
+      radial-gradient(760px 560px at 50% 120%,rgba(52,211,153,.10) 0%,transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+  }
+  .panel{
+    background:linear-gradient(180deg,rgba(28,34,48,.92),rgba(17,21,32,.94));
+    border-color:rgba(255,255,255,.07);
+    box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 24px 60px rgba(0,0,0,.45),0 0 0 1px rgba(110,155,255,.05);
+  }
+  .panel__head h2{color:#F2F5FB;position:relative;padding-left:14px}
+  .panel__head h2::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:4px;height:15px;border-radius:3px;
+    background:linear-gradient(180deg,var(--acc),var(--acc-2));box-shadow:0 0 10px rgba(110,155,255,.6)}
+
+  /* hero pipeline: light up the finished spine */
+  #stage-build .stage-link i,#stage-test .stage-link i{width:100%;
+    background:linear-gradient(90deg,var(--acc),var(--acc-2));box-shadow:0 0 10px rgba(110,155,255,.7)}
+  li.stage.done .stage-ico{background:linear-gradient(180deg,rgba(52,211,153,.16),rgba(17,21,32,.6)),var(--raised);
+    border-color:rgba(52,211,153,.55);box-shadow:0 0 0 4px rgba(52,211,153,.10),0 8px 20px rgba(0,0,0,.35)}
+  li.stage.done .badge{box-shadow:0 0 10px rgba(52,211,153,.7)}
+
+  /* metrics: give the numbers presence */
+  .kpi{background:linear-gradient(180deg,rgba(30,37,52,.9),rgba(20,25,38,.92));
+    border-color:rgba(255,255,255,.06);box-shadow:0 10px 26px rgba(0,0,0,.3)}
+  .kpi b.value{color:#F4F7FD}
+  .kpi .spark path{filter:drop-shadow(0 0 5px rgba(110,155,255,.6))}
+
+  /* fleet nodes */
+  .svc-node{background:linear-gradient(180deg,rgba(30,37,52,.9),rgba(20,25,38,.92))}
+  .svc-node--focus{box-shadow:0 0 0 3px var(--acc-soft),0 0 22px rgba(110,155,255,.25)}
+  .svc-node .dot{box-shadow:0 0 8px var(--ok)}
+
+  /* ship CTA + brand mark: extra lift */
+  .cta{box-shadow:0 10px 30px rgba(110,155,255,.4),0 0 0 1px rgba(255,255,255,.08) inset}
+  .logo i{box-shadow:0 0 18px rgba(110,155,255,.6)}
+</style>
 </head>
 <body>
 <header class="console-bar">

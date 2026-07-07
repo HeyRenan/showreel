@@ -11,7 +11,7 @@
 
 ## Showcase
 
-[![Watch the full showcase](assets/showcase-poster.png)](assets/showcase.mp4)
+[![Watch the full showcase](assets/showcase.gif)](assets/showcase.mp4)
 
 *One pass, one real flow — Showreel walks a deploy: read the pipeline → hit the health gate → auto-rollback → re-run → ship. Camera, marks + legend, spotlight and a rollout bar, each in service of the step, never decoration. Generated entirely by the plugin against the bundled demo page. ([click to play the full MP4](assets/showcase.mp4))*
 
