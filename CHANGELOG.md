@@ -9,6 +9,32 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.5.0] — 2026-07-07
+
+### Added
+- **Reproducible asset roster.** `assets-src/roster.json` + `assets-src/build-assets.mjs`
+  regenerate every README asset from one manifest (`--group` / `--name` filters,
+  resolution-safe shrink). `assets-src/build-composites.sh` + `primitives-jobs.json`
+  cover the multi-step assets (auto discovery, before/after compose, framed beautify,
+  primitive-callout batch). The ~50 grid gifs/pngs were previously hand-made against
+  an uncommitted page — they now rebuild deterministically.
+- **Shared premium design system.** `assets-src/demo/theme.css` holds the tokens and
+  components both fixtures link; a new `assets-src/demo/overview.html` fixture gives
+  the grid demos varied surface in one visual language.
+
+### Changed
+- **README graphics overhaul.** The hero is now an autoplaying `showcase.gif` (linking
+  to the full MP4); the demo console is re-styled premium; all ~50 grid assets were
+  re-recorded against the two fixtures in one consistent look.
+
+### Fixed
+- **Light theme** is no longer clobbered by the premium overlay (panels/KPIs stayed
+  dark under `body.light`).
+- **Pipeline spine** no longer bleeds through the stage icons, nor lights the connector
+  into the still-pending deploy node.
+- **Grid GIFs** render realtime at a uniform size — dropped an `--offline` pass that
+  cropped camera/effect frames and a post-shrink that softened resolution.
+
 ## [1.4.1] — 2026-07-06
 
 ### Fixed

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen — Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+  /* overview-only LAYOUT — all look/tokens come from theme.css */
+  .hero{margin:6px 2px 26px}
+  .hero h1{font-size:2.1rem;font-weight:700;letter-spacing:-.025em}
+  .hero p{color:var(--mut);margin-top:10px;max-width:560px}
+  .hero p b{color:var(--ink);font-weight:600}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+  .svc-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .svc-card{background:var(--raised);border:1px solid var(--line-2);border-radius:12px;padding:16px 18px}
+  .svc-card__head{display:flex;align-items:center;gap:9px;margin-bottom:2px}
+  .svc-card__head .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .svc-card h3{font-family:var(--mono);font-size:.86rem;font-weight:600}
+  .svc-card p{color:var(--mut);font-size:.8rem;margin:8px 0 16px;line-height:1.45}
+  .svc-card .deploy-progress{margin-top:auto}
+</style>
+</head>
+<body>
+<header class="console-bar">
+  <div class="logo"><i></i>Lumen</div>
+  <div id="env-switch">Production</div>
+  <div class="status-dot"><i></i><span>Live</span></div>
+  <div class="bar-actions">
+    <button class="btn" id="theme" aria-label="Toggle color theme">☀ Light</button>
+    <button class="btn" id="menu">Menu</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="hero">
+    <h1>Everything your project ships, in one view</h1>
+    <p>Deployments, performance and team activity for <b>lumen-web</b>, updated in real time.</p>
+  </section>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row" id="kpis">
+    <div class="kpi" id="kpi-uptime" data-metric="uptime">
+      <div class="kpi__label"><span>Uptime, 30 days</span><span class="delta">▲ 0.02%</span></div>
+      <b class="value" data-countup>99.98%</b>
+    </div>
+    <div class="kpi" id="kpi-latency" data-metric="p95">
+      <div class="kpi__label"><span>p95 response</span><span class="delta down">▼ 21 ms</span></div>
+      <b class="value" data-countup>184 ms</b>
+    </div>
+    <div class="kpi" id="kpi-deploys" data-metric="deploys">
+      <div class="kpi__label"><span>Deploys this quarter</span><span class="delta">▲ 12%</span></div>
+      <b class="value" data-countup>1,248</b>
+    </div>
+    <div class="kpi" id="kpi-apdex" data-metric="apdex">
+      <div class="kpi__label"><span>Apdex score</span><span class="delta down">▼ 0.1</span></div>
+      <b class="value" data-countup>4.9</b>
+    </div>
+  </div>
+
+  <!-- ACTIVE SERVICES -->
+  <section class="panel" id="services">
+    <div class="panel__head"><h2>Active services</h2><span class="tag">fleet</span></div>
+    <div class="svc-row">
+      <div class="svc-card" id="svc-checkout" data-service="checkout-api">
+        <div class="svc-card__head"><span class="dot"></span><h3>checkout-api</h3></div>
+        <p>Handles cart, payment intents and receipts.</p>
+        <div class="deploy-progress"><i style="width:82%"></i></div>
+      </div>
+      <div class="svc-card" id="svc-search" data-service="search-worker">
+        <div class="svc-card__head"><span class="dot"></span><h3>search-worker</h3></div>
+        <p>Indexes the catalog and serves typeahead.</p>
+        <div class="deploy-progress"><i style="width:64%"></i></div>
+      </div>
+      <div class="svc-card" id="svc-cdn" data-service="image-cdn">
+        <div class="svc-card__head"><span class="dot"></span><h3>image-cdn</h3></div>
+        <p>On-the-fly resize with edge caching.</p>
+        <div class="deploy-progress"><i style="width:91%"></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LATEST DEPLOYMENTS -->
+  <section class="panel hist-wrap" id="deployments">
+    <div class="panel__head"><h2>Latest deployments</h2><span class="tag">newest first</span></div>
+    <table class="deploy-history">
+      <thead><tr><th>Service</th><th>Author</th><th>Email</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr id="dep-checkout"><td>checkout-api</td><td>Dana Reeves</td><td class="email" data-private>dana.reeves@example.com</td><td><span class="pill ok">Live</span></td></tr>
+        <tr id="dep-search"><td>search-worker</td><td>Yuki Tanaka</td><td class="email" data-private>yuki.tanaka@example.com</td><td><span class="pill run">Rolling out</span></td></tr>
+        <tr id="dep-cdn"><td>image-cdn</td><td>Sam Okafor</td><td class="email" data-private>sam.okafor@example.com</td><td><span class="pill ok">Live</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- INVITE -->
+  <section class="panel" id="invite-panel">
+    <div class="panel__head"><h2>Invite a teammate</h2><span class="tag">access</span></div>
+    <form class="invite" id="invite-form" onsubmit="return false">
+      <div class="field"><label for="iname">Name</label><input id="iname" data-cursor-stop type="text" placeholder="Dana Reeves" autocomplete="off"></div>
+      <div class="field"><label for="iemail">Work email</label><input id="iemail" data-cursor-stop type="email" placeholder="dana@company.com" autocomplete="off"></div>
+      <div class="field"><label for="region">Region</label>
+        <select id="region" data-cursor-stop>
+          <option value="">Choose…</option>
+          <option value="us-east">US East</option>
+          <option value="eu-west">EU West</option>
+          <option value="sa-east">São Paulo</option>
+          <option value="ap-south">Singapore</option>
+        </select>
+      </div>
+      <div class="cta-row--form">
+        <button class="cta cta--form" id="invite" data-cursor-stop>Send invite</button>
+        <div class="toast" id="invite-toast" role="status" aria-live="polite">Invite sent ✓</div>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script>
+  const $=s=>document.querySelector(s);
+  $('#theme').addEventListener('click',function(){
+    const light=document.body.classList.toggle('light');
+    this.textContent=light?'☾ Dark':'☀ Light';
+  });
+  $('#invite').addEventListener('click',()=>{
+    const name=($('#iname').value||'teammate').trim();
+    const t=$('#invite-toast');t.textContent='Invite sent to '+name+' ✓';
+    t.classList.add('show');setTimeout(()=>t.classList.remove('show'),20000);
+  });
+  const q=new URLSearchParams(location.search);
+  if(q.get('theme')==='light'){document.body.classList.add('light');$('#theme').textContent='☾ Dark';}
+</script>
+</body>
+</html>

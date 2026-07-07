@@ -11,7 +11,7 @@
 
 ## Showcase
 
-[![Veja o showcase completo](assets/showcase-poster.png)](assets/showcase.mp4)
+[![Veja o showcase completo](assets/showcase.gif)](assets/showcase.mp4)
 
 *Uma passada, um fluxo real — o Showreel percorre um deploy: lê o pipeline → esbarra no health gate → auto-rollback → re-run → sobe. Câmera, marks + legenda, spotlight e a barra de rollout, cada um a serviço do passo, nunca decoração. Gerado inteiramente pelo plugin na página demo embutida. ([clique pra tocar o MP4 completo](assets/showcase.mp4))*
 

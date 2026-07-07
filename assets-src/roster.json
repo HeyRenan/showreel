@@ -1,0 +1,1017 @@
+{
+  "_readme": "Reproducible roster for ALL README assets. build-assets.mjs runs each entry. page is relative to assets-src/demo/. One visual language via demo/theme.css. Batches fill this incrementally.",
+  "pages": {
+    "console": "demo/index.html",
+    "console-gate": "demo/index.html?gate=fail",
+    "overview": "demo/overview.html"
+  },
+  "assets": [
+    {
+      "name": "showcase",
+      "group": "hero",
+      "tool": "rec",
+      "page": "console-gate",
+      "stepsFile": "showcase-steps.json",
+      "args": [
+        "--width",
+        "1280",
+        "--no-safeguards"
+      ],
+      "out": "assets/showcase.mp4",
+      "heavy": true
+    },
+    {
+      "name": "prove",
+      "group": "core",
+      "tool": "prove",
+      "page": "console",
+      "selector": "#deploy",
+      "label": "One click ships to production",
+      "out": "assets/prove.png"
+    },
+    {
+      "name": "camera",
+      "group": "core",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/camera.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#pipeline",
+            "zoom": 1.3
+          },
+          "wait": 1200
+        },
+        {
+          "camera": "out",
+          "wait": 700
+        }
+      ]
+    },
+    {
+      "name": "marks",
+      "group": "core",
+      "tool": "rec",
+      "page": "overview",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/marks.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#services"
+          },
+          "wait": 800
+        },
+        {
+          "marks": [
+            {
+              "sel": "#svc-checkout",
+              "badge": "1",
+              "text": "Handles checkout"
+            },
+            {
+              "sel": "#svc-search",
+              "badge": "2",
+              "text": "Serves search"
+            },
+            {
+              "sel": "#svc-cdn",
+              "badge": "3",
+              "text": "Edge image cache"
+            }
+          ],
+          "glossary": true,
+          "stagger": 300,
+          "wait": 3200
+        },
+        {
+          "camera": "out",
+          "wait": 600
+        }
+      ]
+    },
+    {
+      "name": "spotlight",
+      "group": "core",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12",
+        "--no-safeguards"
+      ],
+      "out": "assets/spotlight.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-panel",
+            "zoom": 1.5
+          },
+          "wait": 800
+        },
+        {
+          "spotlight": "#deploy",
+          "note": "Everything dims but the one action",
+          "wait": 1800
+        },
+        {
+          "camera": "out",
+          "wait": 500
+        }
+      ]
+    },
+    {
+      "name": "modal",
+      "group": "core",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/modal.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#pipeline"
+          },
+          "wait": 700
+        },
+        {
+          "modal": "Read the pipeline top to bottom.",
+          "wait": 2200
+        }
+      ]
+    },
+    {
+      "name": "bars",
+      "group": "core",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/bars.gif",
+      "steps": [
+        {
+          "screen": "Lumen · Deploy console",
+          "topbar": "lumen-web · main",
+          "bottombar": "Rollout region by region",
+          "wait": 2600
+        }
+      ]
+    },
+    {
+      "name": "fill",
+      "group": "input",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/fill.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#invite-panel"
+          },
+          "wait": 600
+        },
+        {
+          "fill": {
+            "sel": "#iname",
+            "value": "Dana Reeves"
+          },
+          "wait": 400
+        },
+        {
+          "fill": {
+            "sel": "#iemail",
+            "value": "dana@company.com"
+          },
+          "wait": 800
+        },
+        {
+          "camera": "out",
+          "wait": 400
+        }
+      ]
+    },
+    {
+      "name": "select",
+      "group": "input",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/select.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#invite-panel"
+          },
+          "wait": 600
+        },
+        {
+          "select": {
+            "sel": "#region",
+            "value": "São Paulo"
+          },
+          "note": "Pick a region",
+          "wait": 1600
+        },
+        {
+          "camera": "out",
+          "wait": 400
+        }
+      ]
+    },
+    {
+      "name": "glide",
+      "group": "input",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/glide.gif",
+      "steps": [
+        {
+          "wait": 500
+        },
+        {
+          "glide": "#deploy-detail",
+          "note": "Glide to the artifact",
+          "wait": 1400
+        }
+      ]
+    },
+    {
+      "name": "hide",
+      "group": "input",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/hide.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-log"
+          },
+          "wait": 700
+        },
+        {
+          "hide": "#deploy-log",
+          "note": "Drop the noise",
+          "wait": 1400
+        },
+        {
+          "camera": "out",
+          "wait": 400
+        }
+      ]
+    },
+    {
+      "name": "glossary",
+      "group": "input",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/glossary.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#pipeline"
+          },
+          "wait": 700
+        },
+        {
+          "marks": [
+            {
+              "sel": "#stage-build",
+              "badge": "1",
+              "text": "Cached build"
+            },
+            {
+              "sel": "#stage-test",
+              "badge": "2",
+              "text": "312 tests pass"
+            },
+            {
+              "sel": "#stage-deploy",
+              "badge": "3",
+              "text": "Awaiting approval"
+            }
+          ],
+          "glossary": true,
+          "stagger": 300,
+          "wait": 3200
+        },
+        {
+          "camera": "out",
+          "wait": 400
+        }
+      ]
+    },
+    {
+      "name": "inset",
+      "group": "input",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/inset.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#metrics"
+          },
+          "wait": 700
+        },
+        {
+          "inset": "#p95",
+          "note": "Loupe on the latency spark",
+          "wait": 1600
+        },
+        {
+          "camera": "out",
+          "wait": 400
+        }
+      ]
+    },
+    {
+      "name": "checkmark",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/checkmark.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-panel"
+          },
+          "wait": 600
+        },
+        {
+          "checkmark": "#deploy",
+          "note": "Shipped",
+          "wait": 1400
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "reveal",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/reveal.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#history-panel"
+          },
+          "wait": 500
+        },
+        {
+          "reveal": "#history-panel",
+          "note": "Rows reveal",
+          "wait": 1400
+        }
+      ]
+    },
+    {
+      "name": "flash",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/flash.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#pipeline"
+          },
+          "wait": 500
+        },
+        {
+          "flash": "#22c55e",
+          "note": "Deploy succeeded",
+          "wait": 1200
+        }
+      ]
+    },
+    {
+      "name": "orbit",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/orbit.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-panel"
+          },
+          "wait": 500
+        },
+        {
+          "orbit": "#deploy",
+          "note": "Working…",
+          "wait": 1600
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "trail",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/trail.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#pipeline"
+          },
+          "wait": 400
+        },
+        {
+          "trail": {
+            "from": "#stage-build",
+            "to": "#stage-deploy"
+          },
+          "note": "Trace the path",
+          "wait": 1400
+        }
+      ]
+    },
+    {
+      "name": "shake",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/shake.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-panel"
+          },
+          "wait": 500
+        },
+        {
+          "shake": "#deploy",
+          "note": "Gate blocked",
+          "wait": 1200
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "typeon",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/typeon.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-log"
+          },
+          "wait": 500
+        },
+        {
+          "typeon": "#log-approval",
+          "note": "Live log",
+          "wait": 1600
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "kenburns",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/kenburns.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-detail"
+          },
+          "wait": 400
+        },
+        {
+          "kenburns": ".artifact-preview",
+          "note": "Ken Burns on the artifact",
+          "wait": 2200
+        }
+      ]
+    },
+    {
+      "name": "redact",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/redact.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#history-panel"
+          },
+          "wait": 500
+        },
+        {
+          "redact": "#email-1248",
+          "note": "Redact PII",
+          "wait": 1400
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "highlight",
+      "group": "state",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/highlight.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#pipeline"
+          },
+          "wait": 500
+        },
+        {
+          "highlight": "#stage-test",
+          "note": "Tests passed",
+          "wait": 1400
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "pulse",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/pulse.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-panel"
+          },
+          "wait": 500
+        },
+        {
+          "pulse": "#deploy",
+          "note": "Pulsing call to action",
+          "wait": 1400
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "ripple",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/ripple.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-panel"
+          },
+          "wait": 500
+        },
+        {
+          "ripple": "#deploy",
+          "note": "Tap ripple",
+          "wait": 1400
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "glow",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/glow.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#pipeline"
+          },
+          "wait": 500
+        },
+        {
+          "glow": "#stage-test",
+          "note": "Glow on the passing stage",
+          "wait": 1400
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "confetti",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/confetti.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-panel"
+          },
+          "wait": 500
+        },
+        {
+          "confetti": "#deploy",
+          "note": "Shipped!",
+          "wait": 1600
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "countup",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/countup.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#metrics"
+          },
+          "wait": 500
+        },
+        {
+          "countup": "#rps",
+          "note": "Throughput climbs",
+          "wait": 1600
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "countdown",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12",
+        "--no-safeguards"
+      ],
+      "out": "assets/countdown.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-panel"
+          },
+          "wait": 500
+        },
+        {
+          "countdown": "#deploy-panel",
+          "note": "Auto-rollback window",
+          "wait": 1600
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "sparkline",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12",
+        "--no-safeguards"
+      ],
+      "out": "assets/sparkline.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#metrics"
+          },
+          "wait": 500
+        },
+        {
+          "sparkline": "#p95",
+          "note": "Latency sparkline draws",
+          "wait": 1600
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "progress",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12",
+        "--no-safeguards"
+      ],
+      "out": "assets/progress.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#pipeline"
+          },
+          "wait": 500
+        },
+        {
+          "progress": ".deploy-progress",
+          "note": "Rollout fills",
+          "wait": 1600
+        },
+        {
+          "camera": "out",
+          "wait": 300
+        }
+      ]
+    },
+    {
+      "name": "speed",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/speed.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#deploy-panel"
+          },
+          "wait": 400
+        },
+        {
+          "speed": 0.4
+        },
+        {
+          "click": "#deploy",
+          "note": "Slow-mo click"
+        },
+        {
+          "wait": 1600
+        }
+      ]
+    },
+    {
+      "name": "stamp",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/stamp.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#pipeline"
+          },
+          "wait": 600
+        },
+        {
+          "marks": [
+            {
+              "sel": "#stage-build",
+              "badge": "1",
+              "text": "Build"
+            },
+            {
+              "sel": "#stage-deploy",
+              "badge": "2",
+              "text": "Deploy"
+            }
+          ],
+          "stagger": 300,
+          "wait": 2000
+        }
+      ]
+    },
+    {
+      "name": "auto-annotate",
+      "group": "emphasis",
+      "tool": "rec",
+      "page": "console",
+      "args": [
+        "--width",
+        "800",
+        "--fps",
+        "12"
+      ],
+      "out": "assets/auto-annotate.gif",
+      "steps": [
+        {
+          "camera": {
+            "sel": "#invite-panel"
+          },
+          "wait": 500
+        },
+        {
+          "fill": {
+            "sel": "#iname",
+            "value": "Dana"
+          }
+        },
+        {
+          "click": "#invite"
+        },
+        {
+          "wait": 1400
+        }
+      ]
+    }
+  ]
+}
