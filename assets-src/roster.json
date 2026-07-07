@@ -36,8 +36,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/camera.gif",
       "steps": [
@@ -61,8 +62,9 @@
       "page": "overview",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/marks.gif",
       "steps": [
@@ -107,8 +109,10 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12",
+        "--no-safeguards"
       ],
       "out": "assets/spotlight.gif",
       "steps": [
@@ -137,8 +141,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/modal.gif",
       "steps": [
@@ -161,8 +166,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/bars.gif",
       "steps": [
@@ -181,8 +187,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/fill.gif",
       "steps": [
@@ -219,8 +226,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/select.gif",
       "steps": [
@@ -251,8 +259,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/glide.gif",
       "steps": [
@@ -273,8 +282,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/hide.gif",
       "steps": [
@@ -302,8 +312,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/glossary.gif",
       "steps": [
@@ -348,8 +359,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/inset.gif",
       "steps": [
@@ -377,8 +389,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/checkmark.gif",
       "steps": [
@@ -406,8 +419,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/reveal.gif",
       "steps": [
@@ -431,8 +445,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/flash.gif",
       "steps": [
@@ -456,8 +471,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/orbit.gif",
       "steps": [
@@ -485,8 +501,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/trail.gif",
       "steps": [
@@ -513,8 +530,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/shake.gif",
       "steps": [
@@ -542,8 +560,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/typeon.gif",
       "steps": [
@@ -571,8 +590,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/kenburns.gif",
       "steps": [
@@ -596,8 +616,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/redact.gif",
       "steps": [
@@ -625,8 +646,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/highlight.gif",
       "steps": [
@@ -654,8 +676,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/pulse.gif",
       "steps": [
@@ -683,8 +706,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/ripple.gif",
       "steps": [
@@ -712,8 +736,9 @@
       "page": "console",
       "args": [
         "--width",
-        "900",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/glow.gif",
       "steps": [
@@ -741,8 +766,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/confetti.gif",
       "steps": [
@@ -770,8 +796,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/countup.gif",
       "steps": [
@@ -799,9 +826,9 @@
       "page": "console",
       "args": [
         "--width",
-        "900",
+        "800",
         "--fps",
-        "20",
+        "12",
         "--no-safeguards"
       ],
       "out": "assets/countdown.gif",
@@ -830,9 +857,9 @@
       "page": "console",
       "args": [
         "--width",
-        "900",
+        "800",
         "--fps",
-        "20",
+        "12",
         "--no-safeguards"
       ],
       "out": "assets/sparkline.gif",
@@ -861,9 +888,9 @@
       "page": "console",
       "args": [
         "--width",
-        "900",
+        "800",
         "--fps",
-        "20",
+        "12",
         "--no-safeguards"
       ],
       "out": "assets/progress.gif",
@@ -892,8 +919,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/speed.gif",
       "steps": [
@@ -922,9 +950,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline",
-        "--stamp"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/stamp.gif",
       "steps": [
@@ -959,9 +987,9 @@
       "page": "console",
       "args": [
         "--width",
-        "1000",
-        "--offline",
-        "--auto-annotate"
+        "800",
+        "--fps",
+        "12"
       ],
       "out": "assets/auto-annotate.gif",
       "steps": [

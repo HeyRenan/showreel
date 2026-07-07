@@ -12,7 +12,7 @@
 // This is the single source of truth so `showcase.mp4` and the ~50 grid assets
 // are all rebuildable with one command — no more hand-dogfooding.
 
-import { readFileSync, writeFileSync, mkdtempSync, renameSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, existsSync, renameSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -79,15 +79,17 @@ for (const a of pick) {
   process.stderr.write(`▶ ${label} ... `);
   try {
     execFileSync('node', [script, ...args], { env: depsEnv(), stdio: ['ignore', 'ignore', 'pipe'] });
-    // grid gifs auto-shrink to budget so regeneration stays reproducible (hero mp4/gif exempt)
+    // guarded shrink: trim size via colours/fps, but if shrink would downscale the
+    // DIMENSIONS (softening the gif) discard it and keep the crisp full-res render.
     if (a.out && a.out.endsWith('.gif') && !a.heavy) {
       const outAbs = join(REPO, a.out);
+      const widthOf = (f) => { try { return execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width', '-of', 'csv=p=0', f]).toString().trim(); } catch { return ''; } };
+      const w0 = widthOf(outAbs);
       try {
-        execFileSync('node', [join(SCRIPTS, 'shrink.mjs'), outAbs, '--target-kb', String(a.shrinkKb || 1500)],
-          { env: depsEnv(), stdio: ['ignore', 'ignore', 'pipe'] });
+        execFileSync('node', [join(SCRIPTS, 'shrink.mjs'), outAbs, '--target-kb', String(a.shrinkKb || 1800)], { env: depsEnv(), stdio: ['ignore', 'ignore', 'pipe'] });
         const min = outAbs.replace(/\.gif$/, '.min.gif');
-        if (existsSync(min)) renameSync(min, outAbs);
-      } catch { /* shrink is best-effort */ }
+        if (existsSync(min)) { if (widthOf(min) === w0) renameSync(min, outAbs); else rmSync(min); }
+      } catch { /* best-effort */ }
     }
     console.error('ok'); ok++;
   } catch (e) {
