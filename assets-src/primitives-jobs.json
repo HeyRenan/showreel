@@ -1,0 +1,10 @@
+[
+  { "selector": "#stage-build", "out": "assets/primitives/p1-rect.png",    "kind": "rect",    "text": "Build" },
+  { "selector": "#stage-test",  "out": "assets/primitives/p2-circle.png",  "kind": "circle",  "text": "Tests" },
+  { "selector": "#deploy",      "out": "assets/primitives/p3-arrow.png",   "kind": "arrow",   "text": "Ship it" },
+  { "selector": "#stage-push",  "out": "assets/primitives/p4-badge.png",   "kind": "badge",   "text": "3" },
+  { "selector": "#email-1248",  "out": "assets/primitives/p5-blur.png",    "kind": "blur" },
+  { "selector": "#p95",         "out": "assets/primitives/p6-zoom.png",    "kind": "zoom" },
+  { "selector": "#deploy",      "out": "assets/primitives/p7-callout.png", "kind": "callout", "text": "One click ships to production" },
+  { "selector": "#env-switch",  "out": "assets/primitives/p8-label.png",   "kind": "label",   "text": "Production" }
+]
