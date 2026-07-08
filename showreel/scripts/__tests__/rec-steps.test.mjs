@@ -688,6 +688,74 @@ test('auditRosterLive gates a MISSING scrollTo target (silent-wrong-scene)', asy
   assert.equal((await auditRosterLive([{ zoom: 'out' }], bridge)).errors.length, 0); // "out" is not a selector
 });
 
+test('auditRosterLive refuses a not-actionable interaction target (app-state drift)', async () => {
+  // The audit drives clicks with el.click(), which punches through a disabled or
+  // covered element without throwing; the real take clicks by coordinate and hits
+  // nothing (disabled) or the overlay (random click). The actionability gate
+  // catches the re-record-against-drifted-state failure BEFORE any video.
+  const acts = {
+    '#submit': { ok: false, reason: 'disabled' },
+    '#cta': { ok: false, reason: 'covered', by: 'div.cookie-banner' },
+    '#email': { ok: false, reason: 'disabled' },
+    '#go': { ok: true },
+  };
+  const bridge = {
+    measure: async () => ({ visible: true, w: 120, h: 36, cx: 200, cy: 300 }),
+    click: async () => {}, fill: async () => {}, select: async () => {}, settle: async () => {},
+    actionable: async (sel) => acts[sel] || { ok: true },
+  };
+  // disabled click -> not-actionable, message routes the operator to reset state
+  const dis = (await auditRosterLive([{ click: '#submit' }], bridge)).errors;
+  assert.equal(dis.length, 1);
+  assert.equal(dis[0].kind, 'not-actionable');
+  assert.match(dis[0].message, /reset/i);
+  // covered click -> not-actionable, message names the overlay on top
+  const cov = (await auditRosterLive([{ click: '#cta' }], bridge)).errors;
+  assert.equal(cov.length, 1);
+  assert.equal(cov[0].kind, 'not-actionable');
+  assert.match(cov[0].message, /cookie-banner/);
+  // a fill target is gated too (the audit fills with el.value=, same punch-through)
+  const fil = (await auditRosterLive([{ fill: '#email', text: 'a@b.com' }], bridge)).errors;
+  assert.equal(fil.length, 1);
+  assert.equal(fil[0].kind, 'not-actionable');
+  // an actionable target renders clean — the happy path is untouched
+  assert.equal((await auditRosterLive([{ click: '#go' }], bridge)).errors.length, 0);
+});
+
+test('auditRosterLive: a target enabled by an EARLIER step is not falsely refused', async () => {
+  // form-flow: #submit starts disabled and an earlier fill enables it. The gate
+  // checks actionability AFTER driving prior steps, so #submit must read
+  // actionable at its click. Guards the regression where a valid fill->submit
+  // flow would be refused. (The real bridge's fill fires input+change via the
+  // native setter so the DOM actually flips; here the fake bridge models that.)
+  const makeFormBridge = () => {
+    let filled = false;
+    return {
+      measure: async () => ({ visible: true, w: 120, h: 36, cx: 200, cy: 300 }),
+      click: async () => {}, settle: async () => {}, select: async () => {},
+      fill: async () => { filled = true; },
+      actionable: async (sel) => (sel === '#submit' && !filled ? { ok: false, reason: 'disabled' } : { ok: true }),
+    };
+  };
+  const roster = [{ fill: '#email', text: 'a@b.com' }, { click: '#submit', note: 'Enviar' }];
+  const errs = (await auditRosterLive(roster, makeFormBridge())).errors;
+  assert.equal(errs.length, 0, 'a fill that enables the submit must not trip not-actionable');
+  // control: the SAME submit with no preceding fill IS refused (disabled on load)
+  const bare = (await auditRosterLive([{ click: '#submit', note: 'Enviar' }], makeFormBridge())).errors;
+  assert.equal(bare.length, 1);
+  assert.equal(bare[0].kind, 'not-actionable');
+});
+
+test('auditRosterLive: a bridge without actionable() adds no errors (back-compat)', async () => {
+  // fake bridges (and any external caller) predating the actionability gate must
+  // keep passing — the check is guarded on the method existing.
+  const bridge = {
+    measure: async () => ({ visible: true, w: 120, h: 36, cx: 200, cy: 300 }),
+    click: async () => {}, fill: async () => {}, select: async () => {}, settle: async () => {},
+  };
+  assert.equal((await auditRosterLive([{ click: '#submit' }], bridge)).errors.length, 0);
+});
+
 test('auditRosterLive warns on zoom-churn: re-framing a nested element of the same card across an "out"', async () => {
   // #rollback-countdown lives INSIDE #deploy-panel — framing the panel, pulling
   // out, then framing a child (or back to the panel) re-zooms the same card. The

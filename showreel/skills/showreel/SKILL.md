@@ -74,6 +74,8 @@ Whatever you pick: every label visibly connects to its target, and the final fra
 
 **Discipline:** `--dry` is MANDATORY before any recording — resolves every selector ([ok]/[MISS]), no recording. A [MISS] on a glide/camera/click/fill/select target is a frozen dead beat — fix to zero MISS, then record ONCE.
 
+**Fresh app state before every (re-)record.** A roster is authored for the app in state A; re-running it later hits state B, where the action already happened — a submitted form's button is now `disabled`, a one-time CTA is spent, a control changed and an overlay/next-page element sits where the target was. The recorder then clicks nothing (disabled) or the wrong thing (reads as random clicks). `--dry` will NOT catch this (a disabled button still resolves). The live safeguard now **refuses** (exit 2, `[not-actionable]`) when a click/fill/select target is `disabled` / `aria-disabled` / `pointer-events:none` / covered by another element. The recorder CANNOT reset server-side state (a fresh browser context won't un-submit a form) — so on a `not-actionable` refusal, **reset the demo/app to a fresh state and re-run**; never `--no-safeguards` past it (that records the broken flow).
+
 **Render mode (decides at the command line, not in the frames):** a MOVING reel — any `glide`/`follow`/`camera`/`fill`/`select` — records realtime `--fps 30`, NO `--offline` (15fps stills → slideshow), NO `--pace fast` (collapses easing), NO `speed` (a no-op in realtime). `--pace fast` and `--offline` are ONLY for quick static/dwell-only proofs.
 
 **Presets:** don't write step JSON from scratch. Copy a starting roster from `scripts/presets/` — `form-flow.json`, `nav-flow.json`, `dashboard.json` — and swap the selectors for the page under test.
