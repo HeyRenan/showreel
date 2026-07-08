@@ -759,8 +759,27 @@ export function makeAuditBridge(page, vw, vh) {
       return { w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2, visible };
     }, sel),
     click: (sel) => page.evaluate((q) => { const el = document.querySelector(q); if (el) el.click(); }, sel),
-    fill: (sel, t) => page.evaluate(({ q, t }) => { const el = document.querySelector(q); if (el) { el.value = t; el.dispatchEvent(new Event('input', { bubbles: true })); } }, { q: sel, t }),
-    select: (sel, o) => page.evaluate(({ q, o }) => { const el = document.querySelector(q); if (el) { const x = [...el.options].find((p) => p.text.trim() === o || p.value === o); if (x) { el.value = x.value; el.dispatchEvent(new Event('change', { bubbles: true })); } } }, { q: sel, o }),
+    // Type/select the way the REAL take does (keyboard + coordinate change), so
+    // the audit's post-action DOM — and the actionability verdict riding it —
+    // matches what the recording produces. A raw `el.value=` fires no `change`
+    // and is invisible to a controlled (React) input (its value setter is
+    // overridden on the instance): use the prototype's native setter and
+    // dispatch input + change (+ blur) so a submit gated on change/blur/state
+    // actually enables here too. Without this the gate FALSE-REFUSES a valid
+    // fill->enable-submit flow (the shipped form-flow preset).
+    fill: (sel, t) => page.evaluate(({ q, t }) => {
+      const el = document.querySelector(q); if (!el) return;
+      // native value setter ONLY on a real input/textarea — calling the input
+      // prototype's setter on any other element throws "Illegal invocation".
+      const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype
+        : el instanceof HTMLInputElement ? HTMLInputElement.prototype : null;
+      const desc = proto && Object.getOwnPropertyDescriptor(proto, 'value');
+      if (desc && desc.set) desc.set.call(el, t); else el.value = t;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      el.dispatchEvent(new Event('blur', { bubbles: true }));
+    }, { q: sel, t }),
+    select: (sel, o) => page.evaluate(({ q, o }) => { const el = document.querySelector(q); if (el) { const x = [...el.options].find((p) => p.text.trim() === o || p.value === o); if (x) { el.value = x.value; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } } }, { q: sel, o }),
     settle: (ms) => page.waitForTimeout(ms),
     contains: (host, sel) => page.evaluate(({ h, s }) => {
       const he = document.querySelector(h), se = document.querySelector(s);
@@ -773,7 +792,52 @@ export function makeAuditBridge(page, vw, vh) {
       const noCrop = cap.MARGIN * Math.min(vw / r.width, vh / r.height);
       return Math.max(1, Math.min(Math.min(cap.MAX, fit * cap.ZOOM), noCrop));
     }, { q: sel, vw, vh, cap: FRAME }),
+    // Is an INTERACTION target truly clickable, the way the real take clicks it?
+    // The audit drives with el.click()/el.value= (above), which PUNCH THROUGH a
+    // disabled or covered element — el.click() never throws on a disabled control
+    // and ignores pointer-events + occlusion. The recorded take clicks by
+    // coordinate (p.mouse.click), so it clicks nothing (disabled) or the overlay
+    // on top (reads as a random click). This asserts the target the way the take
+    // will hit it. Occlusion is viewport-guarded: elementFromPoint returns null
+    // for a point below the fold, which would false-flag every off-screen target
+    // as covered — the disabled/aria/pointer-events checks are position-free and
+    // always run. Returns { ok } or { ok:false, reason, by? }.
+    actionable: (sel) => page.evaluate(({ q, vw, vh }) => {
+      const el = document.querySelector(q);
+      if (!el) return { ok: false, reason: 'missing' };
+      if (el.disabled === true) return { ok: false, reason: 'disabled' };
+      if (el.getAttribute('aria-disabled') === 'true') return { ok: false, reason: 'aria-disabled' };
+      if (getComputedStyle(el).pointerEvents === 'none') return { ok: false, reason: 'pointer-events' };
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const inViewport = cx >= 0 && cx <= vw && cy >= 0 && cy <= vh;
+      if (inViewport) {
+        const top = document.elementFromPoint(cx, cy);
+        if (top && top !== el && !el.contains(top) && !top.contains(el)) {
+          const tag = top.tagName.toLowerCase();
+          const cls = typeof top.className === 'string' && top.className.trim()
+            ? '.' + top.className.trim().split(/\s+/).join('.') : '';
+          return { ok: false, reason: 'covered', by: tag + cls };
+        }
+      }
+      return { ok: true };
+    }, { q: sel, vw, vh }),
   };
+}
+
+// Human message for a not-actionable interaction target. Routes the operator to
+// the REAL cause — the app drifted from the state the roster was authored for —
+// because the recorder cannot reset server-side state (a fresh browser context
+// won't un-submit a form). Pure; unit-tested through auditRosterLive.
+export function actionabilityMessage(sel, act) {
+  const reason = act && act.reason;
+  if (reason === 'covered')
+    return `"${sel}" is covered by ${(act && act.by) || 'another element'} at its click point — the real mouse click would hit that overlay, not the target (reads as a random click). Dismiss/hide the overlay first (an earlier click to close it, or {"hide":"<overlay>"}).`;
+  if (reason === 'pointer-events')
+    return `"${sel}" has pointer-events:none — the real mouse click can't actuate it. Reveal/enable it first, or target the actionable element.`;
+  if (reason === 'missing')
+    return `"${sel}" matches no element — the step fires on nothing.`;
+  return `"${sel}" is disabled — the app is in a state this roster wasn't authored for (a form already submitted, a one-time action already spent). The recorder can't reset server-side state; reset the demo/app to a fresh state before recording (or pass --no-safeguards to override).`;
 }
 
 // Live audit (needs a page): walks the roster against the REAL rendered DOM and
@@ -873,13 +937,35 @@ export async function auditRosterLive(steps, bridge) {
       if (!(await measure(sel))) errors.push({ step: i + 1, kind: 'missing', message: `${what} "${sel}" matches no element — the scene never ${what === 'zoom target' ? 'frames it (renders wide, reads as a random pan)' : 'scrolls (silently shows the wrong position)'}.` });
     }
 
-    // drive real state so later anchors see the post-action DOM
+    // actionability gate: assert each interaction target is clickable the way the
+    // real take clicks it (by coordinate), not the way the audit drives it (DOM
+    // el.click(), which punches through disabled/covered). This is the app-state-
+    // drift failure the operator hits re-recording — a form already submitted, a
+    // spent one-time action, a CTA that changed and now covers/overlays.
+    const notActionable = new Set();
+    if (typeof bridge.actionable === 'function') {
+      const interactionSels = [];
+      if (typeof s.click === 'string') interactionSels.push(s.click);
+      const fSpec = fillSpec(s); if (fSpec && fSpec.sel) interactionSels.push(fSpec.sel);
+      const slSpec = selectSpec(s); if (slSpec && slSpec.sel) interactionSels.push(slSpec.sel);
+      for (const sel of interactionSels) {
+        const act = await bridge.actionable(sel);
+        if (act && !act.ok) {
+          errors.push({ step: i + 1, kind: 'not-actionable', message: actionabilityMessage(sel, act) });
+          notActionable.add(sel);
+        }
+      }
+    }
+
+    // drive real state so later anchors see the post-action DOM. A target flagged
+    // not-actionable is skipped — driving it would either no-op (disabled) or
+    // punch through to a covered element and mutate state off the wrong node.
     try {
       // a click can kick off an async flow (deploy progress reveals toast/new
       // row ~2s later); settle long enough for those reveals before later checks.
-      if (typeof s.click === 'string') { await bridge.click(s.click); await bridge.settle(2300); }
-      const fl = s.fill; if (typeof fl === 'string' && typeof s.text === 'string') { await bridge.fill(fl, s.text); }
-      if (typeof s.select === 'string' && typeof s.option === 'string') { await bridge.select(s.select, s.option); }
+      if (typeof s.click === 'string' && !notActionable.has(s.click)) { await bridge.click(s.click); await bridge.settle(2300); }
+      const fl = s.fill; if (typeof fl === 'string' && typeof s.text === 'string' && !notActionable.has(fl)) { await bridge.fill(fl, s.text); }
+      if (typeof s.select === 'string' && typeof s.option === 'string' && !notActionable.has(s.select)) { await bridge.select(s.select, s.option); }
     } catch { /* driving is best-effort; a failed click just leaves state as-is */ }
   }
   return { errors, warnings };

@@ -9,6 +9,12 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.6.1] — 2026-07-08
+
+### Fixed
+- **Recording against a drifted app state is now refused, not silently mis-recorded.** Re-running a roster after the app moved on — a submitted form's button now `disabled`, a spent one-time action, a control now sitting under an overlay — used to slip the live safeguard: it drove the target with a DOM `el.click()`, which punches through a disabled/covered element without erroring, so the real coordinate-click then hit nothing or the overlay (reading as random clicks). The safeguard now asserts the target is actionable the way the real take clicks it and **refuses** (`[not-actionable]`, exit 2) on a `disabled` / `aria-disabled` / `pointer-events:none` / covered target, routing you to reset the app to a fresh state (occlusion is viewport-guarded, so a below-fold target is not false-flagged).
+- **Audit driving now matches real typing.** The safeguard's `fill` sets the value through the native input setter and dispatches `input` + `change` + `blur`, so a submit gated on `change`/blur/controlled-state enables during the audit too — a valid fill→enable-submit flow (the `form-flow` preset) is no longer false-refused.
+
 ## [1.6.0] — 2026-07-07
 
 ### Added
