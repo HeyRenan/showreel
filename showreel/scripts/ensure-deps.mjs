@@ -12,6 +12,7 @@ import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { isMain } from './cli-args.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const DEPS_DIR = join(HERE, '.deps');
@@ -141,7 +142,7 @@ export function ffmpegHasPalette() {
   return systemFfmpeg();
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   try {
     const r = ensureDeps({ needGif: true });
     console.log(JSON.stringify(r, null, 2));

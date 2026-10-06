@@ -79,30 +79,47 @@ function slideSide(side, t, c, vp, obstacles, gap, align) {
   return null;
 }
 
-// Arrow from the callout edge nearest the target, ending just inside the
-// target's NEAR edge (not its center): on wide/tall targets a center anchor
-// drags the shaft across the element's own text.
-function arrowFor(callout, target) {
+// Arrow from the callout edge that FACES the target (the side autoplace chose,
+// not a dx/dy guess) to just inside the target's near edge. The shaft stays on
+// the target's center axis; the start slides along the callout edge toward that
+// axis so a slid callout still gets a short, straight-as-possible arrow.
+function arrowFor(callout, target, side) {
+  const slideOn = (v, start, len) => {
+    const m = Math.min(12, len / 2);
+    return Math.max(start + m, Math.min(start + len - m, v));
+  };
   const tcx = target.x + target.w / 2;
   const tcy = target.y + target.h / 2;
-  const ccx = callout.x + callout.w / 2;
-  const ccy = callout.y + callout.h / 2;
-  let sx = ccx, sy = ccy, ex, ey;
-  const dx = tcx - ccx, dy = tcy - ccy;
-  if (Math.abs(dx) > Math.abs(dy)) {
-    sx = dx > 0 ? callout.x + callout.w : callout.x;
-    sy = ccy;
-    const inset = Math.min(target.w / 2, 28);
-    ex = dx > 0 ? target.x + inset : target.x + target.w - inset;
-    ey = tcy;
-  } else {
-    sy = dy > 0 ? callout.y + callout.h : callout.y;
-    sx = ccx;
+  let x1, y1, x2, y2;
+  if (side === 'above' || side === 'below') {
     const inset = Math.min(target.h / 2, 28);
-    ey = dy > 0 ? target.y + inset : target.y + target.h - inset;
-    ex = tcx;
+    x1 = slideOn(tcx, callout.x, callout.w); x2 = tcx;
+    if (side === 'below') { y1 = callout.y; y2 = target.y + target.h - inset; }
+    else { y1 = callout.y + callout.h; y2 = target.y + inset; }
+  } else {
+    const inset = Math.min(target.w / 2, 28);
+    y1 = slideOn(tcy, callout.y, callout.h); y2 = tcy;
+    if (side === 'right') { x1 = callout.x; x2 = target.x + target.w - inset; }
+    else { x1 = callout.x + callout.w; x2 = target.x + inset; }
   }
-  return { x1: Math.round(sx), y1: Math.round(sy), x2: Math.round(ex), y2: Math.round(ey) };
+  return { x1: Math.round(x1), y1: Math.round(y1), x2: Math.round(x2), y2: Math.round(y2) };
+}
+
+// Greedy word-wrap to maxWidth using a caller-supplied measure(text) -> px.
+// Pure: the browser passes ctx.measureText, tests pass a fake. A single word
+// wider than maxWidth stays whole on its own line (never split mid-word).
+export function wrapLabel(text, maxWidth, measure) {
+  const out = [];
+  for (const para of String(text).split('\n')) {
+    let line = '';
+    for (const word of para.split(/\s+/).filter(Boolean)) {
+      const next = line ? line + ' ' + word : word;
+      if (line && measure(next) > maxWidth) { out.push(line); line = word; }
+      else line = next;
+    }
+    out.push(line);
+  }
+  return out.join('\n');
 }
 
 export function place({ target, neighbors = [], viewport, calloutW = 220, calloutH = 48 }) {
@@ -114,7 +131,7 @@ export function place({ target, neighbors = [], viewport, calloutW = 220, callou
   const result = (box, side) => ({
     rect: { x: target.x, y: target.y, w: target.w, h: target.h },
     callout: { x: box.x, y: box.y, w: box.w, h: box.h, side },
-    arrow: arrowFor(box, target),
+    arrow: arrowFor(box, target, side),
   });
 
   // pass 1: centered next to each side (then a viewport-clamped variant)
@@ -242,8 +259,8 @@ export function snapCropToAncestor({ crop, ancestors = [], viewport, maxAreaFrac
     const box = clip(anc);
     if (box.w < 1 || box.h < 1) continue;
     if (!contains(box, want)) continue;
-    if (box.w * box.h > maxAreaFrac * vp.w * vp.h) return vp;
+    if (box.w * box.h > maxAreaFrac * vp.w * vp.h) return want;
     return box;
   }
-  return vp;
+  return want;
 }

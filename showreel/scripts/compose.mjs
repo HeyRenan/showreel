@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // compose.mjs — side-by-side of two PNGs or two GIFs on a card, with auto A/B labels.
-// Generalizes before-after.mjs (no Lighthouse hardcoding). PNGs composite on the
+// PNGs composite on the
 // browser motor's canvas; GIFs go through system ffmpeg (hstack + shared palette).
 //
 //   node compose.mjs a.png b.png pair.png [--labels "Before,After"] [--gap N]
@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Browser } from '../lib/browser.mjs';
 import { pngDims } from './annotate.mjs';
-import { num, str } from './cli-args.mjs';
+import { num, str, isMain } from './cli-args.mjs';
 
 // One filter graph: scale each gif to a common height, top label bar, label
 // text overlaid from canvas-rendered PNGs (inputs 2 and 3 — drawtext is not in
@@ -194,5 +194,5 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`)
+if (isMain(import.meta.url))
   main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });

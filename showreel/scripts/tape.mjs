@@ -20,7 +20,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { num, str } from './cli-args.mjs';
+import { num, str, isMain } from './cli-args.mjs';
 
 const STEP_KEYS = new Set(['type', 'enter', 'sleep', 'wait', 'ctrl', 'hide', 'show']);
 
@@ -118,7 +118,7 @@ function main() {
   console.log(`OK ${out}`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   try { main(); }
   catch (e) { console.error(String(e.message || e)); process.exit(1); }
 }
