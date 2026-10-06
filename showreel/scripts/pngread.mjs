@@ -21,6 +21,7 @@
 
 import { readFileSync } from 'node:fs';
 import zlib from 'node:zlib';
+import { isMain } from './cli-args.mjs';
 
 const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
@@ -218,7 +219,7 @@ export function colorMatches(px, target, tol) {
   );
 }
 
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   // Tiny CLI: `node pngread.mjs <png>` prints decoded dimensions + a center pixel.
   const p = process.argv[2];
   if (!p) { console.error('usage: pngread.mjs <png>'); process.exit(2); }

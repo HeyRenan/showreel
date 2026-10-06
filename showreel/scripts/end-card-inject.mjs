@@ -1,25 +1,12 @@
-#!/usr/bin/env node
-// end-card-inject.mjs — emit a JS snippet that overlays a styled "END" card on a
+// end-card-inject.mjs — builds the JS snippet that overlays a styled "END" card on a
 // live page. Show it for ~1s at the very end of a recorded flow so the webm
 // captures a clear end marker; without it a looping GIF restarts seamlessly and
 // reads as confusing ("did it reset? is that a bug?"). Renders in the browser,
 // so it uses real fonts — no ffmpeg drawtext (libfreetype is often missing) and
 // no extra Node deps.
-//
-// Paste the printed snippet inside the Playwright MCP `browser_run_code_unsafe`
-// page.evaluate() AFTER the flow's last step, then wait ~1000ms before closing
-// the context so the card lands in the video:
-//
-//   await p.evaluate(() => { /* <END_SNIPPET> */ });
-//   await p.waitForTimeout(1000);
-//   await p.close();
-//
-// Optional args: --text "END" --note "cart stays in sync"
-//   node end-card-inject.mjs --text "DONE" --note "all flows pass"
 
-// Build the injectable END-card snippet from the card text + optional note.
-// Pure/deterministic. JSON-encodes both so quotes/newlines in user text can't
-// break out of the snippet; an empty note omits the subtitle node entirely.
+// JSON-encodes text and note so quotes/newlines in user text can't break out of
+// the snippet; an empty note omits the subtitle node entirely.
 export function buildEndCardSnippet(text, note) {
   // JSON-encode so quotes/newlines in user text can't break the snippet.
   const T = JSON.stringify(text);
@@ -44,13 +31,4 @@ export function buildEndCardSnippet(text, note) {
   requestAnimationFrame(() => { o.style.opacity = '1'; });
   return { endcard: true };
 })()`;
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const args = process.argv.slice(2);
-  const get = (flag, def) => {
-    const i = args.indexOf(flag);
-    return i >= 0 && args[i + 1] ? args[i + 1] : def;
-  };
-  process.stdout.write(buildEndCardSnippet(get('--text', 'END'), get('--note', '')) + '\n');
 }

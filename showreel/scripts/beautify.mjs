@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync, statSync } from 'node:fs';
 import { Browser } from '../lib/browser.mjs';
 import { frameLayout, resolveBackground, RATIOS } from './beautify-frame.mjs';
 import { pngDims } from './annotate.mjs';
-import { num, str } from './cli-args.mjs';
+import { num, str, isMain } from './cli-args.mjs';
 
 const FRAMES = ['window', 'card', 'minimal'];
 
@@ -71,6 +71,6 @@ async function main() {
   console.log('OK ' + out + ' (' + layout.canvasW + 'x' + layout.canvasH + ') kb=' + kb);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });
 }

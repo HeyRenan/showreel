@@ -1,6 +1,6 @@
 // annotate-edge.test.mjs — hostile inputs against annotate.mjs pure exports.
 // Happy/visual paths live in pngread.test.mjs; this file probes the boundaries
-// of pngDims, selfCheck, the grid-inject builders, and the UNTESTED visualCheck
+// of pngDims and the UNTESTED visualCheck
 // edges (null opts, zero-area target, tol extremes, minInside floor). A failure
 // here is a real bug, not a typo.
 
@@ -8,8 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import zlib from 'node:zlib';
 import {
-  pngDims, pngDimsFromFile, buildGridInjectUrl, buildGridInject,
-  selfCheck, visualCheck, DEFAULT_MARKER_HEX,
+  pngDims, visualCheck, DEFAULT_MARKER_HEX,
 } from '../annotate.mjs';
 import { decodePNG } from '../pngread.mjs';
 import { writeFileSync, rmSync } from 'node:fs';
@@ -101,110 +100,6 @@ test('pngDims: an IHDR reporting a zero dimension throws', () => {
   assert.throws(() => pngDims(pngHeader(100, 0)), /zero dimension/);
 });
 
-test('pngDimsFromFile: a missing path surfaces the fs error (intentional throw)', () => {
-  assert.throws(() => pngDimsFromFile('/no/such/raw.png'), /ENOENT|no such file/);
-});
-
-// ── selfCheck: pure geometry fed malformed annotation sets ──────────────────
-test('selfCheck: a missing/invalid target throws clearly', () => {
-  assert.throws(() => selfCheck(null, []), /target must be/);
-  assert.throws(() => selfCheck({ x: 0, y: 0, h: 1 }, []), /target must be/); // no w
-  assert.throws(() => selfCheck({ x: 0, y: 0, w: 1 }, []), /target must be/); // no h
-});
-
-test('selfCheck: non-array annotations are tolerated, never crash', () => {
-  // BUG GUARD: the CLI JSON.parses annotations.json and passes it straight in; a
-  // file holding {} or null must yield a clean FAIL verdict, not a length crash.
-  const t = { x: 0, y: 0, w: 100, h: 100 };
-  for (const bad of [null, undefined, {}, 5, 'x']) {
-    const r = selfCheck(t, bad);
-    assert.equal(r.pass, false);
-    assert.equal(r.hits.length, 0);
-    assert.equal(r.passingCount, 0);
-  }
-});
-
-test('selfCheck: a null/string/number entry never derefs, reports a label miss', () => {
-  // BUG GUARD: annToGeom(null) and the hit record both used to read .type on the
-  // raw entry — a [{...}, null] array crashed the gate meant to catch bad coords.
-  const t = { x: 0, y: 0, w: 100, h: 100 };
-  const r = selfCheck(t, [null, '#a', 7]);
-  assert.equal(r.hits.length, 3);
-  assert.ok(r.hits.every((h) => h.type === 'label' && h.pass === false));
-});
-
-test('selfCheck: an empty annotations array is a clean FAIL (nothing proven)', () => {
-  const r = selfCheck({ x: 0, y: 0, w: 100, h: 100 }, []);
-  assert.equal(r.pass, false);
-  assert.equal(r.bestOverlap, 0);
-});
-
-test('selfCheck: a rect overlapping the target passes via area mode', () => {
-  const r = selfCheck({ x: 0, y: 0, w: 100, h: 100 }, [{ type: 'rect', x: 10, y: 10, w: 20, h: 20 }]);
-  assert.equal(r.hits[0].mode, 'area');
-  assert.equal(r.pass, true);
-});
-
-test('selfCheck: an arrowhead landing inside passes via point mode; outside fails', () => {
-  const t = { x: 0, y: 0, w: 100, h: 100 };
-  assert.equal(selfCheck(t, [{ type: 'arrow', x2: 50, y2: 50 }]).hits[0].mode, 'point');
-  assert.equal(selfCheck(t, [{ type: 'arrow', x2: 50, y2: 50 }]).pass, true);
-  assert.equal(selfCheck(t, [{ type: 'arrow', x2: 500, y2: 500 }]).pass, false);
-});
-
-test('selfCheck: a zero-area target still runs (area divides by a 1 floor)', () => {
-  // targetArea is Math.max(1, w*h) so a degenerate target never divides by zero.
-  const r = selfCheck({ x: 0, y: 0, w: 0, h: 0 }, [{ type: 'rect', x: 0, y: 0, w: 10, h: 10 }]);
-  assert.equal(r.pass, false); // a 0x0 target can never be overlapped by area
-  assert.ok(Number.isFinite(r.bestOverlap));
-});
-
-// ── buildGridInjectUrl / buildGridInject: pure injection-string builders ─────
-function payloadOf(inject) {
-  // the inject is `()=>{const __PAYLOAD={...};function GRID...`; pull the literal.
-  const start = inject.indexOf('__PAYLOAD=') + '__PAYLOAD='.length;
-  const end = inject.indexOf(';function');
-  return JSON.parse(inject.slice(start, end));
-}
-
-test('buildGridInjectUrl: a positive step is honored, default is 100', () => {
-  assert.equal(payloadOf(buildGridInjectUrl('u', 50)).step, 50);
-  assert.equal(payloadOf(buildGridInjectUrl('u')).step, 100); // omitted -> default
-});
-
-test('buildGridInjectUrl: 0/negative/NaN step all fold to the 100 default', () => {
-  // the lattice spacing must be a usable positive number or the grid loop hangs.
-  for (const s of [0, -10, NaN, undefined]) assert.equal(payloadOf(buildGridInjectUrl('u', s)).step, 100);
-});
-
-test('buildGridInjectUrl: the image URL is embedded verbatim for same-origin load', () => {
-  assert.equal(payloadOf(buildGridInjectUrl('https://x/raw.png', 100)).imageUrl, 'https://x/raw.png');
-});
-
-test('buildGridInjectUrl: the result is a no-arg arrow that returns GRID(...)', () => {
-  // the evaluate channel only accepts a no-arg arrow on BOTH MCP backends.
-  const out = buildGridInjectUrl('u', 100);
-  assert.match(out, /^\(\)=>\{/);
-  assert.match(out, /return GRID\(__PAYLOAD\);\}$/);
-});
-
-test('buildGridInject: a missing png path surfaces the fs error (intentional)', () => {
-  assert.throws(() => buildGridInject('/no/such/raw.png'), /ENOENT|no such file/);
-});
-
-test('buildGridInject: base64-embeds a real png and keeps the step contract', () => {
-  // round-trip a tiny PNG so the base64 path is exercised end to end.
-  const png = encodePNG(2, 2, Buffer.alloc(2 * 2 * 4, 255));
-  const tmp = `${process.env.TMPDIR || '/tmp'}/annotate-edge-${process.pid}.png`;
-  writeFileSync(tmp, png);
-  try {
-    const p = payloadOf(buildGridInject(tmp, -5)); // negative step -> default 100
-    assert.equal(p.step, 100);
-    assert.match(p.imageB64, /^data:image\/png;base64,/);
-  } finally { rmSync(tmp, { force: true }); }
-});
-
-// ── visualCheck: ONLY the edges pngread.test.mjs leaves uncovered ────────────
 test('visualCheck: explicit null opts is tolerated (default param only fixes undefined)', () => {
   // BUG GUARD: opts = {} catches `undefined` but a caller passing `null` slipped
   // through to opts.hex and crashed. Both forms must behave like the default.

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { place, pillOutside, badgeOutside, snapCropToAncestor } from '../../lib/autoplace.mjs';
+import { place, pillOutside, badgeOutside, snapCropToAncestor, wrapLabel } from '../../lib/autoplace.mjs';
 
 const VP = { w: 900, h: 600 };
 
@@ -216,11 +216,11 @@ test('snapCropToAncestor picks the smallest containing ancestor', () => {
   assert.deepEqual(r, { x: 80, y: 80, w: 300, h: 150 });
 });
 
-test('snapCropToAncestor falls back to viewport for near-viewport ancestors', () => {
+test('snapCropToAncestor keeps the tight crop when the only ancestor is near-viewport', () => {
   const crop = { x: 100, y: 100, w: 200, h: 80 };
   const ancestors = [{ x: 0, y: 0, w: VP.w - 10, h: VP.h - 10 }]; // > 92% of vp
   const r = snapCropToAncestor({ crop, ancestors, viewport: VP });
-  assert.deepEqual(r, { x: 0, y: 0, w: VP.w, h: VP.h });
+  assert.deepEqual(r, crop);
 });
 
 test('snapCropToAncestor caps ancestors at the viewport and handles none containing', () => {
@@ -228,5 +228,43 @@ test('snapCropToAncestor caps ancestors at the viewport and handles none contain
   const r1 = snapCropToAncestor({ crop, ancestors: [{ x: 0, y: 60, w: 400, h: 200 }], viewport: VP });
   assert.deepEqual(r1, { x: 0, y: 60, w: 400, h: 200 });
   const r2 = snapCropToAncestor({ crop: { x: 10, y: 10, w: 50, h: 50 }, ancestors: [], viewport: VP });
-  assert.deepEqual(r2, { x: 0, y: 0, w: VP.w, h: VP.h });
+  assert.deepEqual(r2, { x: 10, y: 10, w: 50, h: 50 });
+});
+
+test('arrow leaves the callout edge that faces the target, on every side', () => {
+  const t = { x: 400, y: 300, w: 160, h: 80 };
+  const cases = {
+    below: (c, a) => a.y1 === c.y,
+    above: (c, a) => a.y1 === c.y + c.h,
+    right: (c, a) => a.x1 === c.x,
+    left: (c, a) => a.x1 === c.x + c.w,
+  };
+  for (const [side, onFacingEdge] of Object.entries(cases)) {
+    const blockers = ['below', 'right', 'above', 'left'].filter((s) => s !== side).map((s) => {
+      const b = { below: { x: 380, y: t.y + t.h + 2, w: 200, h: 60 }, above: { x: 380, y: t.y - 62, w: 200, h: 60 },
+        right: { x: t.x + t.w + 2, y: 280, w: 120, h: 120 }, left: { x: t.x - 122, y: 280, w: 120, h: 120 } };
+      return b[s];
+    });
+    const r = place({ target: t, neighbors: blockers, viewport: { w: 900, h: 700 }, calloutW: 100, calloutH: 40 });
+    assert.equal(r.callout.side, side, 'forced side ' + side);
+    assert.ok(onFacingEdge(r.callout, r.arrow), side + ': arrow starts on the facing edge');
+  }
+});
+
+test('slid callout: arrow stays on the pill edge and ends on the target axis', () => {
+  const t = { x: 100, y: 200, w: 40, h: 40 };
+  const r = place({ target: t, viewport: { w: 900, h: 600 }, calloutW: 300, calloutH: 40,
+    neighbors: [{ x: 100, y: 242, w: 40, h: 30 }] });
+  const { x1, y1, x2, y2 } = r.arrow;
+  assert.ok(x1 >= r.callout.x && x1 <= r.callout.x + r.callout.w, 'x1 within callout span');
+  assert.ok(y1 >= r.callout.y && y1 <= r.callout.y + r.callout.h, 'y1 within callout span');
+  assert.ok(x2 >= t.x && x2 <= t.x + t.w && y2 >= t.y && y2 <= t.y + t.h, 'head inside target');
+});
+
+test('wrapLabel breaks on width, keeps long words whole, honors newlines', () => {
+  const measure = (s) => s.length * 10;
+  assert.equal(wrapLabel('aaa bbb ccc', 70, measure), 'aaa bbb\nccc');
+  assert.equal(wrapLabel('supercalifragilistic x', 50, measure), 'supercalifragilistic\nx');
+  assert.equal(wrapLabel('a\nb', 500, measure), 'a\nb');
+  assert.equal(wrapLabel('short', 500, measure), 'short');
 });

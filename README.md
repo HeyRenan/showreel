@@ -91,7 +91,7 @@ Every capability, one command each. All scripts live in `showreel/scripts/`. The
 | **Live elements** | `rec.mjs` | A `glossary`/`modal` with an `id` becomes **live** — later `live` steps append/update/recolor/replace/remove rows in place, no rebuild, no blink. Per-item colors, theme-matched text. |
 | **Offline render** | `rec.mjs --offline` | Renders on the page's virtual clock — reading dwells collapse, text-heavy takes finish in a fraction of the time. Best for static/text takes; motion bursts (`confetti`, `sparkline`) require a realtime take. |
 | **Terminal recording** | `tape.mjs` | CLI proof via [vhs](https://github.com/charmbracelet/vhs): JSON steps → `.tape` → GIF. The preflight GIF below is one call. |
-| **Before/after compare** | `compose.mjs`, `lh-ba.sh` | Two PNGs or two GIFs side by side with labels. `lh-ba.sh` runs real Lighthouse on both branches. |
+| **Before/after compare** | `compose.mjs` | Two PNGs or two GIFs side by side with labels. |
 | **Size optimizer** | `shrink.mjs` | Re-encodes gif/png with no visible quality loss; `--target-kb` walks a quality ladder. Every image here went through it. |
 | **Share-ready frames** | `beautify.mjs` | Wraps any PNG in a browser-window / card frame — shadow, rounded corners, gradient background, and `--ratio 16:9\|9:16\|1:1` social presets. |
 | **Tight crop** | `shot.mjs` | Just the element, no annotation. |

@@ -1,8 +1,6 @@
 // Browser-side annotator. Injected verbatim as the MCP evaluate `function`.
 // Zero-dep: pure CanvasRenderingContext2D, present in every Chromium the MCP drives.
-// Reads its payload from a baked-in `__PAYLOAD` const (see build-inject.mjs) — NOT
-// from tool args, because chrome-devtools `args` resolves element uids and
-// playwright browser_evaluate has no args channel at all (verified).
+// Called as ANNOTATE({ imageB64, annotations }) by lib/browser.mjs.
 //
 // Payload: { imageB64:"data:image/png;base64,...", scale?:1, annotations:[...] }
 // annotation types: rect|arrow|label|badge|callout|circle|blur|zoom|highlight|
@@ -149,7 +147,7 @@ function ANNOTATE(payload) {
           } else if (a.type === 'callout') {
             var cbg = neu(a.bg, NEU.bg);
             if (a.anchorX != null && a.anchorY != null)
-              arrow(a.x + (a.w || 220) / 2, a.y, a.anchorX, a.anchorY, neu(a.lineColor, NEU.line, cbg), a.lineWidth || 3);
+              arrow(a.arrowX != null ? a.arrowX : a.x + (a.w || 220) / 2, a.arrowY != null ? a.arrowY : a.y, a.anchorX, a.anchorY, neu(a.lineColor, NEU.line, cbg), a.lineWidth || 3);
             pill(a.x, a.y, a.text, neu(a.color, NEU.fg), cbg, a.size || 18, 14, 10);
           } else if (a.type === 'circle') {
             var crx = a.rx != null ? a.rx : (a.r != null ? a.r : 20);

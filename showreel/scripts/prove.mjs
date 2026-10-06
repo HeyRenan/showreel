@@ -28,7 +28,7 @@ import { writeFileSync, readFileSync, statSync } from 'node:fs';
 import { Browser } from '../lib/browser.mjs';
 import { place, pillOutside, snapCropToAncestor } from '../lib/autoplace.mjs';
 import { visualCheck, DEFAULT_MARKER_HEX } from './annotate.mjs';
-import { num, str } from './cli-args.mjs';
+import { num, str, parseDo, isMain } from './cli-args.mjs';
 import { decodePNG } from './pngread.mjs';
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -110,6 +110,7 @@ export function buildAnnotations({ t, blurBox, zoom, circle, label, layout, view
         x: layout.callout.x, y: layout.callout.y, w: layout.callout.w,
         text: label, bg: NEUTRAL, size: fontSize,
         anchorX: layout.arrow.x2, anchorY: layout.arrow.y2,
+        arrowX: layout.arrow.x1, arrowY: layout.arrow.y1,
       });
     }
   }
@@ -191,6 +192,7 @@ export function parse(argv) {
     else if (k === '--circle') a.circle = true;
     else if (k === '--blur') a.blur = str('prove', '--blur', argv[++i]);
     else if (k === '--zoom') a.zoom = true;
+    else if (k === '--do') a.do = parseDo('prove', argv[++i]);
     else if (k === '--batch') a.batch = str('prove', '--batch', argv[++i]);
     else if (k === '--width') a.width = num('prove', '--width', argv[++i], { int: true, min: 1 });
     else if (k === '--height') a.height = num('prove', '--height', argv[++i], { int: true, min: 1 });
@@ -216,6 +218,7 @@ export function parse(argv) {
 // Exported so auto.mjs can run the SAME capture+gate path on machine-discovered
 // elements — the verdict semantics stay identical to a hand-authored proof.
 export async function proveOne(b, job) {
+  if (job.do && job.do.length) { await b.prepare(job.do); await b.freeze(); }
   const geo = await b.measureVisible(job.selector);
 
   // Measure the blur region up front so autoplace treats it as an obstacle
@@ -236,8 +239,10 @@ export async function proveOne(b, job) {
   // a small one stays delicate. Clamp to sane bounds.
   const strokeW = clamp(Math.round(Math.min(t.w, t.h) * 0.04), 3, 8);
   const fontSize = clamp(Math.round(Math.min(t.w, t.h) * 0.10), 14, 26);
-  const calloutW = clamp(Math.round((job.label || '').length * fontSize * 0.62) + 28, 120, 420);
-  const calloutH = Math.round(fontSize * 1.3) + 20; // matches pill(): size*1.3 + 2*padY(10)
+  const labelBox = job.label
+    ? await b.measureLabel(job.label, fontSize, Math.min(420, geo.viewport.w - 24))
+    : { text: '', w: 120, h: Math.round(fontSize * 1.3) + 20 };
+  const calloutW = labelBox.w, calloutH = labelBox.h;
 
   const textNbrs = await b.textNeighbors(job.selector);
   // Zoom inset placed FIRST so the callout ladder dodges it (inset is the
@@ -272,7 +277,7 @@ export async function proveOne(b, job) {
   const annotations = buildAnnotations({
     t, blurBox,
     zoom: zoomSpot,
-    circle: job.circle, label: job.label,
+    circle: job.circle, label: labelBox.text || job.label,
     layout, viewport: geo.viewport, fontSize, strokeW, calloutW, calloutH, textNbrs,
   });
 
@@ -353,6 +358,7 @@ async function main() {
   const results = [];
   try {
     await b.open(a.url);
+    if (a.do) await b.prepare(a.do);
     await b.freeze();
     await b.fitToContent();
     for (const job of jobs) {
@@ -371,6 +377,6 @@ async function main() {
   if (exitCode) process.exit(exitCode);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });
 }
