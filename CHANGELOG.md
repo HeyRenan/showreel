@@ -9,7 +9,7 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
-## [Unreleased]
+## [1.7.0] — 2026-10-06
 
 ### Added
 - **Capture states that only exist after an interaction.** `prove` / `shot` take `--do '[{"click":"#menu"},{"waitFor":"#drawer"}]'` (per job: `"do"`), and every measurement now waits for the target to exist, be visible and hold still.
