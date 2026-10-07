@@ -173,6 +173,14 @@ async function main() {
       vb.errors.forEach((e) => console.error('rec: ' + e));
       process.exit(2);
     }
+    // RESOURCE LIMIT: each take spawns a browser context (and, when not
+    // --offline, an ffmpeg video encode) — an unbounded batch file lets a
+    // single invocation exhaust memory/CPU/disk. Cap it.
+    const MAX_BATCH_TAKES = 50;
+    if (vb.takes.length > MAX_BATCH_TAKES) {
+      console.error(`rec: batch has ${vb.takes.length} takes, exceeding the limit of ${MAX_BATCH_TAKES} — split into smaller batches to avoid exhausting system resources.`);
+      process.exit(2);
+    }
     if (a.offline) {
       const conflicts = vb.takes.flatMap((t, ti) =>
         offlineMotionConflicts(t.steps).map((c) => `rec: take ${ti + 1} step ${c.step}: "${c.key}" does not render under --offline (blank burst). Record this take realtime (--fps 30).`));
