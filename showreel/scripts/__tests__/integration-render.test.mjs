@@ -53,7 +53,7 @@ function render(steps, outName, extraArgs = []) {
     REC, 'file://' + DEMO, '--steps', stepsPath, out,
     '--offline', '--ratio', 'free', '--width', '800', '--height', '500',
     ...extraArgs,
-  ], { env, stdio: 'pipe' });
+  ], { env, stdio: 'pipe', timeout: 180000 }); // a stalled render must fail, not hang CI for hours
   return { dir, out };
 }
 

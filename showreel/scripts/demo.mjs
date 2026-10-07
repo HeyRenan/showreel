@@ -17,7 +17,7 @@
 import { writeFileSync, readFileSync } from 'node:fs';
 import { Browser } from '../lib/browser.mjs';
 import { place, pillOutside, badgeOutside, snapCropToAncestor } from '../lib/autoplace.mjs';
-import { num, str } from './cli-args.mjs';
+import { num, str, isMain } from './cli-args.mjs';
 
 const NEUTRAL = 'neutral'; // engine resolves vs page tone (light on dark, dark on light)
 const GREEN = '#16a34a';
@@ -92,15 +92,15 @@ async function captureOne(b, job) {
     ann.push({ type: 'label', x: at.x, y: at.y, text, bg: NEUTRAL, size: fontSize });
     boxes.push({ x: at.x, y: at.y, w: labelW, h: labelH });
   } else if (kind === 'callout') {
-    const cw = clamp(text.length * fontSize * 0.62 + 28, 120, 420);
-    const ch = Math.round(fontSize * 1.3) + 20;
+    const box = await b.measureLabel(text, fontSize, Math.min(420, vp.w - 24));
+    const cw = box.w, ch = box.h;
     const lay = placeLadder(cw, ch);
     if (lay.error || lay.mode === 'inside') {
       const at = pillOutside({ target: t, viewport: vp, w: labelW, h: labelH, neighbors: textNbrs });
       ann.push({ type: 'label', x: at.x, y: at.y, text, bg: NEUTRAL, size: fontSize });
       boxes.push({ x: at.x, y: at.y, w: labelW, h: labelH });
     } else {
-      ann.push({ type: 'callout', x: lay.callout.x, y: lay.callout.y, w: lay.callout.w, text, bg: NEUTRAL, size: fontSize, anchorX: lay.arrow.x2, anchorY: lay.arrow.y2 });
+      ann.push({ type: 'callout', x: lay.callout.x, y: lay.callout.y, w: lay.callout.w, text: box.text, bg: NEUTRAL, size: fontSize, anchorX: lay.arrow.x2, anchorY: lay.arrow.y2, arrowX: lay.arrow.x1, arrowY: lay.arrow.y1 });
       boxes.push({ x: lay.callout.x, y: lay.callout.y, w: lay.callout.w, h: ch });
     }
   } else if (kind === 'arrow') {
@@ -182,6 +182,6 @@ async function main() {
   if (failed) process.exit(1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });
 }

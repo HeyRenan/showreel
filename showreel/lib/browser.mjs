@@ -15,12 +15,19 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureDeps, depsEnv, playwrightSpecifier } from '../scripts/ensure-deps.mjs';
 import { FREEZE_FN } from '../scripts/annotate.mjs';
+import { wrapLabel } from './autoplace.mjs';
+import { measureInPage, textNeighborsInPage } from './page-measure.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CANVAS_SRC = readFileSync(join(HERE, '..', 'scripts', 'annotate-canvas.js'), 'utf8');
 
 // Wrap a no-arg arrow-fn STRING so page.evaluate CALLS it (a bare string is
 // evaluated as an expression -> would return the fn, not its result).
+// Same font stack the canvas pill draws with — measuring with anything else
+// reserves a box the drawn label does not fill.
+const CANVAS_FONT = /var FONT = '([^']+)'/.exec(CANVAS_SRC)[1];
+const PILL_PAD_X = 14, PILL_PAD_Y = 10, PILL_LINE_HEIGHT = 1.3; // callout pill() args
+
 function callFn(fnString) {
   return '(' + fnString + ')()';
 }
@@ -45,6 +52,51 @@ export class Browser {
 
   async open(url) {
     await this.page.goto(url, { waitUntil: 'domcontentloaded' });
+    // fonts decide text width, so every box measured later depends on them
+    await this.page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
+  }
+
+  // Drive the page into the state worth capturing — the elements that only
+  // exist AFTER a click, a fill or a route change. Steps run in order:
+  //   {click:sel} {hover:sel} {fill:sel, value:text} {press:key} {wait:ms}
+  //   {waitFor:sel}   (waitFor also gates on the element holding still)
+  async prepare(steps = []) {
+    for (const [i, step] of steps.entries()) {
+      const label = 'step ' + (i + 1) + ' ' + JSON.stringify(step);
+      try {
+        if (step.click) await this.page.click(step.click, { timeout: 5000 });
+        else if (step.hover) await this.page.hover(step.hover, { timeout: 5000 });
+        else if (step.fill) await this.page.fill(step.fill, String(step.value ?? ''), { timeout: 5000 });
+        else if (step.press) await this.page.keyboard.press(step.press);
+        else if (step.wait) await this.page.waitForTimeout(step.wait);
+        else if (step.waitFor) await this.settle(step.waitFor);
+        else throw new Error('unknown step (use click|hover|fill|press|wait|waitFor)');
+      } catch (e) {
+        throw new Error('prepare: ' + label + ' failed: ' + String(e.message || e).split('\n')[0]);
+      }
+    }
+  }
+
+  // Wait until the selector exists, is visible, and stopped moving (same rect
+  // on two consecutive frames) — a modal mid-fade or a list mid-render would
+  // otherwise be measured at the wrong place.
+  async settle(selector, timeout = 5000) {
+    try {
+      await this.page.waitForFunction((sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return false;
+        const s = getComputedStyle(el);
+        if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) return false;
+        const r = el.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) return false;
+        const key = [r.x, r.y, r.width, r.height, s.opacity].join(':');
+        const stable = window.__srLast === sel + key;
+        window.__srLast = sel + key;
+        return stable;
+      }, selector, { timeout, polling: 'raf' });
+    } catch {
+      throw new Error('selector never appeared or never settled: ' + selector);
+    }
   }
 
   async setContent(html) {
@@ -55,39 +107,36 @@ export class Browser {
     return this.page.evaluate(callFn(FREEZE_FN));
   }
 
+  // Exact box of a callout pill: wraps the label to maxWidth and measures it
+  // with the real canvas font, so autoplace reserves precisely what gets drawn.
+  async measureLabel(text, size, maxWidth) {
+    const measureAll = (strings) => this.page.evaluate(({ font, size, strings }) => {
+      const ctx = document.createElement('canvas').getContext('2d');
+      ctx.font = '600 ' + size + 'px ' + font;
+      return strings.map((str) => ctx.measureText(str).width);
+    }, { font: CANVAS_FONT, size, strings });
+
+    const words = [...new Set(String(text).split(/\s+/).filter(Boolean))];
+    const [spaceW, ...wordWidths] = await measureAll([' ', ...words]);
+    const widthOf = new Map(words.map((w, i) => [w, wordWidths[i]]));
+    const approx = (line) => {
+      const parts = line.split(' ');
+      return parts.reduce((sum, w) => sum + widthOf.get(w), 0) + spaceW * (parts.length - 1);
+    };
+    const wrapped = wrapLabel(text, maxWidth - PILL_PAD_X * 2, approx);
+    const lines = wrapped.split('\n');
+    const lineWidths = await measureAll(lines);
+    return {
+      text: wrapped,
+      w: Math.ceil(Math.max(...lineWidths) + PILL_PAD_X * 2),
+      h: Math.ceil(size * PILL_LINE_HEIGHT * lines.length + PILL_PAD_Y * 2),
+    };
+  }
+
   // Pixel-exact geometry from the DOM: the target box, the neighbor boxes the
   // callout must avoid, and the viewport. Throws if the selector is missing.
   async measure(selector) {
-    const geo = await this.page.evaluate((sel) => {
-      const el = document.querySelector(sel);
-      if (!el) return { error: 'selector not found: ' + sel };
-      const round = (r) => ({ x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) });
-      const target = round(el.getBoundingClientRect());
-      // neighbors = visible siblings of the target and of its ancestors that
-      // intersect the viewport — the things a callout must not cover.
-      const vpw = window.innerWidth, vph = window.innerHeight;
-      const visible = (n) => {
-        const s = getComputedStyle(n);
-        if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) return false;
-        const r = n.getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && r.right > 0 && r.bottom > 0 && r.left < vpw && r.top < vph;
-      };
-      const set = new Map();
-      let node = el;
-      while (node && node !== document.body && node.parentElement) {
-        const sibs = node.parentElement.children;
-        for (let i = 0; i < sibs.length; i++) {
-          const c = sibs[i];
-          if (c === node || c.contains(el)) continue;
-          if (!visible(c)) continue;
-          const r = round(c.getBoundingClientRect());
-          set.set(r.x + ':' + r.y + ':' + r.w + ':' + r.h, r);
-          if (set.size >= 40) break;
-        }
-        node = node.parentElement;
-      }
-      return { target, neighbors: [...set.values()], viewport: { w: vpw, h: vph } };
-    }, selector);
+    const geo = await this.page.evaluate(measureInPage, selector);
     if (geo.error) throw new Error(geo.error);
     geo.dpr = this.opts.dpr;
     return geo;
@@ -104,6 +153,7 @@ export class Browser {
   // pages taller than the fitToContent cap a below-the-fold selector would be
   // measured off-canvas; scroll it into view and re-measure.
   async measureVisible(selector) {
+    await this.settle(selector);
     let geo = await this.measure(selector);
     const t = geo.target;
     if (t.y < 0 || t.y + t.h > geo.viewport.h) {
@@ -118,29 +168,7 @@ export class Browser {
   // descendants) — extra autoplace obstacles so callouts and zoom insets never
   // land on page text that the sibling-only measure() misses.
   async textNeighbors(selector) {
-    return this.page.evaluate((sel) => {
-      const target = document.querySelector(sel);
-      const viewportWidth = window.innerWidth, viewportHeight = window.innerHeight;
-      const boxes = [];
-      const seenKeys = new Set();
-      const textNodes = document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,a,button,td,th,li,label,code,b,strong,em,span,small');
-      for (const node of textNodes) {
-        if (boxes.length >= 50) break;
-        if (target && (node === target || target.contains(node) || node.contains(target))) continue;
-        if (!(node.textContent || '').trim()) continue;
-        const style = getComputedStyle(node);
-        if (style.display === 'none' || style.visibility === 'hidden' || +style.opacity === 0) continue;
-        const rect = node.getBoundingClientRect();
-        if (rect.width < 8 || rect.height < 8) continue;
-        if (rect.right <= 0 || rect.bottom <= 0 || rect.left >= viewportWidth || rect.top >= viewportHeight) continue;
-        const box = { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height) };
-        const key = box.x + ':' + box.y + ':' + box.w + ':' + box.h;
-        if (seenKeys.has(key)) continue;
-        seenKeys.add(key);
-        boxes.push(box);
-      }
-      return boxes;
-    }, selector);
+    return this.page.evaluate(textNeighborsInPage, selector);
   }
 
   // Ancestor boxes innermost → outermost (up to body) — lets a tight crop snap to
