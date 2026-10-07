@@ -8,15 +8,24 @@
 //
 // Idempotent: a second run with everything present is a fast no-op.
 
-import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { isMain } from './cli-args.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const DEPS_DIR = join(HERE, '.deps');
 const BROWSERS_DIR = join(DEPS_DIR, 'ms-playwright');
 const PW_PKG = join(DEPS_DIR, 'node_modules', 'playwright');
+
+// Exact Playwright (and so Chromium) version the motor is verified against.
+// Unpinned, a fresh install floats to the newest Chromium: offline rendering
+// (Emulation.setVirtualTimePolicy + page.evaluate(scrollTo)) hangs on
+// Playwright 1.63 / Chromium 153 and renders in ~7s on 1.61.1 / Chromium 149.
+// Bump only after the render test passes on the new version.
+export const PLAYWRIGHT_VERSION = '1.61.1';
+const STAMP = join(DEPS_DIR, '.pinned');
 
 // Env every motor script must use so Playwright finds the isolated browser.
 export function depsEnv() {
@@ -41,6 +50,13 @@ function pwInstalled() {
   return existsSync(playwrightSpecifier());
 }
 
+// True when a full install of the pinned version completed. A bare chromium
+// directory is not enough: it may belong to an older or newer Playwright.
+function pinnedReady() {
+  try { return readFileSync(STAMP, 'utf8').trim() === PLAYWRIGHT_VERSION && pwInstalled() && hasChromium(); }
+  catch { return false; }
+}
+
 function run(cmd, args, opts = {}) {
   execFileSync(cmd, args, { stdio: 'inherit', ...opts });
 }
@@ -61,21 +77,22 @@ export function ensureDeps({ quiet = false, needGif = false } = {}) {
     writeFileSync(pkgJson, JSON.stringify({ name: 'showreel-deps', private: true }, null, 2) + '\n');
   }
 
-  if (!pwInstalled()) {
-    console.error('ensure-deps: installing playwright into .deps (one-time npm install)...');
+  const ready = pinnedReady();
+  if (!ready) {
+    console.error('ensure-deps: installing playwright@' + PLAYWRIGHT_VERSION + ' into .deps (one-time npm install)...');
     try {
-      run('npm', ['install', 'playwright', '--no-audit', '--no-fund'], { cwd: DEPS_DIR });
+      run('npm', ['install', 'playwright@' + PLAYWRIGHT_VERSION, '--save-exact', '--no-audit', '--no-fund'], { cwd: DEPS_DIR });
     } catch (e) {
       throw new Error(
         'ensure-deps: npm install playwright failed. Install manually:\n' +
-        '  cd ' + DEPS_DIR + ' && npm install playwright\n' +
+        '  cd ' + DEPS_DIR + ' && npm install playwright@' + PLAYWRIGHT_VERSION + '\n' +
         'Behind a proxy: set HTTPS_PROXY (and npm config set proxy/https-proxy).\n' +
         'npm missing from PATH entirely? Install Node 18+ from https://nodejs.org\n' + (e.message || '')
       );
     }
   }
 
-  if (!hasChromium()) {
+  if (!ready) {
     console.error('ensure-deps: downloading chromium headless shell into .deps (one-time, ~90MB — may take minutes)...');
     const pwBin = join(DEPS_DIR, 'node_modules', '.bin', 'playwright');
     try {
@@ -98,6 +115,8 @@ export function ensureDeps({ quiet = false, needGif = false } = {}) {
         '  sudo ' + pwBin + ' install-deps chromium');
     }
   }
+
+  if (!ready) writeFileSync(STAMP, PLAYWRIGHT_VERSION + '\n');
 
   const ffmpeg = existsSync(BROWSERS_DIR) && readdirSync(BROWSERS_DIR).some((d) => /^ffmpeg/.test(d));
   if (needGif && !ffmpeg && !systemFfmpeg()) {
@@ -141,7 +160,7 @@ export function ffmpegHasPalette() {
   return systemFfmpeg();
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   try {
     const r = ensureDeps({ needGif: true });
     console.log(JSON.stringify(r, null, 2));

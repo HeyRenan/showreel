@@ -18,7 +18,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { Browser } from '../lib/browser.mjs';
-import { num } from './cli-args.mjs';
+import { num, isMain } from './cli-args.mjs';
 
 export function videoFilter({ height = 480, gap = 24, pad = 28 } = {}) {
   const lane = (i) =>
@@ -156,5 +156,5 @@ async function main() {
   console.log('OK ' + a.out);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`)
+if (isMain(import.meta.url))
   main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });

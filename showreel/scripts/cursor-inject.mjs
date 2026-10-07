@@ -1,8 +1,6 @@
-#!/usr/bin/env node
-// cursor-inject.mjs — emit a JS snippet that injects a fake cursor + click ripple
-// into a live page, so a recorded screencast/video shows the mouse moving and
-// every click pulsing. Paste the printed snippet inside the Playwright MCP
-// `browser_run_code_unsafe` page.evaluate() BEFORE driving the flow.
+// cursor-inject.mjs — builds the JS snippet that injects a fake cursor + click
+// ripple into the recorded page, so the video shows the mouse moving and every
+// click pulsing (rec-page injects it before the flow runs).
 //
 // Why a fake cursor: Playwright's real mouse pointer is NOT painted into the
 // recorded video. We mirror page mousemove events onto an SVG arrow, and expose
@@ -11,11 +9,6 @@
 // The ripple is driven by requestAnimationFrame, NOT CSS @keyframes, so it
 // survives the usual "freeze all animations" style you inject for stable shots.
 //
-// usage:
-//   node scripts/cursor-inject.mjs            # default green ripple, 28px cursor
-//   node scripts/cursor-inject.mjs --color="#2563eb" --size=30 --ripple-ms=750 --ripple-max=110
-//
-// Companion: drive-recipe.md shows the exact MCP call sequence + clickAt() helper.
 
 // rgba fill derived from the ripple color (hex -> rgba). Exported pure for
 // tests; expands a 3-digit hex to 6 first. Malformed hex yields NaN channels.
@@ -37,7 +30,7 @@ function safeColor(c) {
 
 // Build the injectable cursor + ripple snippet string from resolved options.
 // Pure/deterministic: numbers and color are baked into the returned source.
-export function buildCursorSnippet({ color, size, rippleMs, rippleMax }) {
+export function buildCursorSnippet({ color = '#16a34a', size = 28, rippleMs = 750, rippleMax = 110 } = {}) {
   color = safeColor(color);
   const fill = hexToRgba(color, 0.18);
   return `(() => {
@@ -79,18 +72,4 @@ export function buildCursorSnippet({ color, size, rippleMs, rippleMax }) {
   }
   return { cursor: true };
 })()`;
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const arg = (k, d) => {
-    const hit = process.argv.find(a => a.startsWith(`--${k}=`));
-    return hit ? hit.slice(k.length + 3) : d;
-  };
-  const snippet = buildCursorSnippet({
-    color: arg('color', '#16a34a'),
-    size: parseInt(arg('size', '28'), 10),
-    rippleMs: parseInt(arg('ripple-ms', '750'), 10),
-    rippleMax: parseInt(arg('ripple-max', '110'), 10),
-  });
-  process.stdout.write(snippet + '\n');
 }

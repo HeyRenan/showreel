@@ -91,7 +91,7 @@ Cada recurso, um comando. Todos os scripts ficam em `showreel/scripts/`. O agent
 | **Elementos vivos** | `rec.mjs` | Um `glossary`/`modal` com `id` vira **live** — steps `live` seguintes fazem append/update/recolor/replace/remove das linhas no lugar, sem rebuild, sem piscar. Cores por item, texto casado ao tema. |
 | **Render offline** | `rec.mjs --offline` | Renderiza no relógio virtual da página — pausas de leitura colapsam, takes com muito texto terminam numa fração do tempo. Melhor para takes estáticos/de texto; rajadas de movimento (`confetti`, `sparkline`) exigem um take em realtime. |
 | **Gravação de terminal** | `tape.mjs` | Prova de CLI via [vhs](https://github.com/charmbracelet/vhs): steps JSON → `.tape` → GIF. O GIF do preflight abaixo é uma chamada só. |
-| **Comparação before/after** | `compose.mjs`, `lh-ba.sh` | Dois PNGs ou dois GIFs lado a lado com rótulos. `lh-ba.sh` roda Lighthouse real nos dois branches. |
+| **Comparação before/after** | `compose.mjs` | Dois PNGs ou dois GIFs lado a lado com rótulos. |
 | **Otimizador de tamanho** | `shrink.mjs` | Re-encoda gif/png sem perda visível; `--target-kb` percorre uma escada de qualidade. Toda imagem daqui passou por ele. |
 | **Frames prontos pra compartilhar** | `beautify.mjs` | Envolve qualquer PNG numa moldura de janela de browser / card — sombra, cantos arredondados, fundo gradiente, e presets de aspecto social `--ratio 16:9\|9:16\|1:1`. |
 | **Corte justo** | `shot.mjs` | Só o elemento, sem anotação. |

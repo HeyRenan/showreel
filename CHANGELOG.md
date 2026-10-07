@@ -9,6 +9,26 @@ Showreel turns "show me" into a finished visual — annotated screenshots, isola
 demos, flow GIFs, terminal recordings and before/after composites — driven entirely
 by CSS selectors and JSON steps.
 
+## [1.7.0] — 2026-10-06
+
+### Added
+- **Capture states that only exist after an interaction.** `prove` / `shot` take `--do '[{"click":"#menu"},{"waitFor":"#drawer"}]'` (per job: `"do"`), and every measurement now waits for the target to exist, be visible and hold still.
+- **Claude in Chrome overlay.** `overlay.mjs --install` prints a library for the browser's JS tool; `__showreel.annotate(sel, label)` draws the same placed marker, callout and arrow on the live tab. Page tone picks light or dark ink.
+- `rec.mjs --grammar [keys]` prints just the step-grammar rows asked for; `--help` on every script.
+
+### Fixed
+- **Offline render hung on a fresh install.** `ensure-deps` installed Playwright unpinned, so new installs floated to Playwright 1.63 / Chromium 153, where offline rendering stalls inside `page.evaluate`. Playwright is now pinned to 1.61.1 (Chromium 149), reinstalled automatically when the pin changes; the render test has a timeout so a stall fails instead of hanging CI.
+- **Callouts reserved a guessed size.** Labels are now wrapped and measured with the real canvas font before placement, so a long label no longer runs off the image and a short one no longer leaves the arrow floating off the pill.
+- **Arrow started at the wrong edge.** The arrow now leaves the pill edge facing the target on the side autoplace chose, and ends on the target's axis.
+- Page text near the target was dropped as an obstacle on busy pages (first 50 in document order); now the 50 nearest are kept.
+- Crop fell back to the whole viewport when the only containing ancestor was large; it now keeps the tight crop (a 660 KB full-page PNG became ~50 KB).
+- Scripts silently did nothing when their path had a space or was a symlink.
+- Fonts are awaited before measuring.
+
+### Removed
+- The hand-driven MCP fallback (`capture`, `build-inject`, `dataurl-to-png`, `annotate` CLI/grid), the WordPress-era Lighthouse helpers (`lh-ba.sh`, `before-after.mjs`), and the unused `gif.sh` / `webm-to-gif.sh`.
+- `SKILL.md` cut from ~4.3k to ~1.5k tokens.
+
 ## [1.6.1] — 2026-07-08
 
 ### Fixed

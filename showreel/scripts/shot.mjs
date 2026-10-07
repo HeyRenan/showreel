@@ -5,7 +5,7 @@
 
 import { writeFileSync } from 'node:fs';
 import { Browser } from '../lib/browser.mjs';
-import { num } from './cli-args.mjs';
+import { num, isMain } from './cli-args.mjs';
 
 export function parse(argv) {
   const a = { width: 900, height: 1400, dpr: 1, pad: 16 };
@@ -17,6 +17,7 @@ export function parse(argv) {
     else if (k === '--height') a.height = num('shot', '--height', argv[++i], { int: true, min: 1 });
     else if (k === '--dpr') a.dpr = num('shot', '--dpr', argv[++i], { min: 0.1 });
     else if (k.startsWith('--')) throw new Error('shot: unknown arg ' + k);
+    else if (k === '--do') a.do = parseDo('shot', argv[++i]);
     else pos.push(k);
   }
   // reject surplus positionals — an unquoted selector with spaces splits into
@@ -39,6 +40,7 @@ async function main() {
   const b = await Browser.launch({ width: a.width, height: a.height, dpr: a.dpr });
   try {
     await b.open(a.url);
+    if (a.do) await b.prepare(a.do);
     await b.freeze();
     const geo = await b.measureVisible(a.selector);
     const t = geo.target;
@@ -56,6 +58,6 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });
 }

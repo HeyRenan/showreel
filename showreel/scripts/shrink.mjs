@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { extname, join } from 'node:path';
-import { num } from './cli-args.mjs';
+import { num, isMain } from './cli-args.mjs';
 
 export const GIF_MAX_KB = 2048;
 export const GIF_MAX_SEC = 8;
@@ -205,6 +205,6 @@ function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   try { main(); } catch (e) { console.error(String(e.message || e)); process.exit(1); }
 }

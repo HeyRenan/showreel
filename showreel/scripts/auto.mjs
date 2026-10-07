@@ -18,7 +18,7 @@ import { join } from 'node:path';
 import { Browser } from '../lib/browser.mjs';
 import { proveOne, summarize } from './prove.mjs';
 import { rankCandidates, roleLabel, isCircleKind, isSmallTarget, COLLECT_FN } from './auto-rank.mjs';
-import { num, str } from './cli-args.mjs';
+import { num, str, isMain } from './cli-args.mjs';
 
 export function parse(argv) {
   const a = { width: 900, height: 1400, dpr: 1, max: 4, outDir: './showreel-out/auto' };
@@ -119,6 +119,6 @@ async function main() {
   if (exitCode) process.exit(exitCode);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });
 }

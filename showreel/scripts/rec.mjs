@@ -96,6 +96,7 @@ import { makeCamera } from './rec-camera.mjs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isMain } from './cli-args.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -123,7 +124,21 @@ export * from "./rec-steps.mjs";
 // so its position:fixed stays in true viewport space while the page moves.
 const camSnippet = readFileSync(join(HERE, 'cam-inject.js'), 'utf8');
 
+// `--grammar [key,key,...]` prints the step-grammar rows from the cookbook, so an
+// author pulls the few keys a reel uses (~30 tokens each) instead of reading the
+// whole 8k-token contract. No keys = the full table.
+function printGrammar(keysArg) {
+  const cookbook = readFileSync(join(HERE, '..', 'skills', 'showreel', 'references', 'rec-cookbook.md'), 'utf8');
+  const rows = cookbook.split('\n').filter((l) => /^\| `[a-zA-Z]+` \|/.test(l));
+  const want = keysArg ? new Set(keysArg.split(',').map((k) => k.trim())) : null;
+  const hit = rows.filter((r) => !want || want.has(/^\| `([a-zA-Z]+)`/.exec(r)[1]));
+  if (!hit.length) { console.error('rec: --grammar found no such key: ' + keysArg); process.exit(1); }
+  console.log('| key | shape | REQUIRES sibling | ILLEGAL without | range | anchor |\n|---|---|---|---|---|---|\n' + hit.join('\n'));
+}
+
 async function main() {
+  const gi = process.argv.indexOf('--grammar');
+  if (gi > -1) { printGrammar(process.argv[gi + 1] && !process.argv[gi + 1].startsWith('--') ? process.argv[gi + 1] : null); return; }
   const a = applyOfflineDefaults(parse(process.argv.slice(2)));
   // --block-hosts [csv]: requests to hosts that are neither the page's own
   // host nor on the optional allow list are aborted at the context — file://
@@ -980,6 +995,6 @@ const { showAnnotations, clearAnnotations, applyBlur, applyHide, applyRedact, ap
 // line up with the chrome/step timestamps because the clock guaranteed
 // sum(frame durations) == its own timeline.
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   main().catch((e) => { console.error(String(e.message || e)); process.exit(1); });
 }

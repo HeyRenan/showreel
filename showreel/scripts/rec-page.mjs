@@ -2,17 +2,12 @@
 // offline launch flags, page-look sampling, and the injected-snippet readers.
 // Extracted from rec.mjs (stage 4). State-free.
 
-import { execFileSync } from 'node:child_process';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { ensureDeps, depsEnv, playwrightSpecifier } from './ensure-deps.mjs';
+import { buildCursorSnippet } from './cursor-inject.mjs';
+import { buildEndCardSnippet } from './end-card-inject.mjs';
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-
-export const cursorSnippet = () =>
-  execFileSync('node', [join(HERE, 'cursor-inject.mjs')], { encoding: 'utf8' }).trim();
-export const endCardSnippet = () =>
-  execFileSync('node', [join(HERE, 'end-card-inject.mjs')], { encoding: 'utf8' }).trim();
+export const cursorSnippet = () => buildCursorSnippet({}).trim();
+export const endCardSnippet = () => buildEndCardSnippet('END', '').trim();
 
 export async function detectPageLook(page) {
   try {
