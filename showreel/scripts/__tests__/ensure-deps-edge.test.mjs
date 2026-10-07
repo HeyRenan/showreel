@@ -122,3 +122,8 @@ test('ffmpegHasPalette: when true, ffmpegPath uses the full system ffmpeg', () =
     assert.ok(p === 'ffmpeg' || p === bundledFfmpeg());
   }
 });
+
+test('playwright is pinned to an exact version, never a floating range', async () => {
+  const { PLAYWRIGHT_VERSION } = await import('../ensure-deps.mjs');
+  assert.match(PLAYWRIGHT_VERSION, /^\d+\.\d+\.\d+$/);
+});
