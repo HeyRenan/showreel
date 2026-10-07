@@ -17,6 +17,7 @@ by CSS selectors and JSON steps.
 - `rec.mjs --grammar [keys]` prints just the step-grammar rows asked for; `--help` on every script.
 
 ### Fixed
+- **Offline render hung on a fresh install.** `ensure-deps` installed Playwright unpinned, so new installs floated to Playwright 1.63 / Chromium 153, where offline rendering stalls inside `page.evaluate`. Playwright is now pinned to 1.61.1 (Chromium 149), reinstalled automatically when the pin changes; the render test has a timeout so a stall fails instead of hanging CI.
 - **Callouts reserved a guessed size.** Labels are now wrapped and measured with the real canvas font before placement, so a long label no longer runs off the image and a short one no longer leaves the arrow floating off the pill.
 - **Arrow started at the wrong edge.** The arrow now leaves the pill edge facing the target on the side autoplace chose, and ends on the target's axis.
 - Page text near the target was dropped as an obstacle on busy pages (first 50 in document order); now the 50 nearest are kept.
